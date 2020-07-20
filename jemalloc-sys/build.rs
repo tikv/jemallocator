@@ -131,23 +131,7 @@ fn main() {
     info!("CFLAGS={:?}", cflags);
 
     assert!(out_dir.exists(), "OUT_DIR does not exist");
-    let (jemalloc_repo_dir, run_autoconf) = if env::var("JEMALLOC_SYS_GIT_DEV_BRANCH").is_ok() {
-        let jemalloc_repo = out_dir.join("jemalloc_repo");
-        if jemalloc_repo.exists() {
-            fs::remove_dir_all(jemalloc_repo.clone()).unwrap();
-        }
-        let mut cmd = Command::new("git");
-        cmd.arg("clone")
-            .arg("--depth=1")
-            .arg("--branch=dev")
-            .arg("--")
-            .arg("https://github.com/jemalloc/jemalloc")
-            .arg(format!("{}", jemalloc_repo.display()));
-        run(&mut cmd);
-        (jemalloc_repo, true)
-    } else {
-        (PathBuf::from("jemalloc"), false)
-    };
+    let jemalloc_repo_dir = PathBuf::from("jemalloc");
     info!("JEMALLOC_REPO_DIR={:?}", jemalloc_repo_dir);
 
     let jemalloc_src_dir = out_dir.join("jemalloc");
@@ -168,37 +152,10 @@ fn main() {
     // Configuration files
     let config_files = ["configure" /*"VERSION"*/];
 
-    // Verify that the configuration files are up-to-date
-    let verify_configure = env::var("JEMALLOC_SYS_VERIFY_CONFIGURE").is_ok();
-    if verify_configure || run_autoconf {
-        info!("Verifying that configuration files in `configure/` are up-to-date... ");
-
-        // The configuration file from the configure/directory should be used.
-        // The jemalloc git submodule shouldn't contain any configuration files.
-        assert!(
-            !jemalloc_src_dir.join("configure").exists(),
-            "the jemalloc submodule contains configuration files"
-        );
-
-        // Run autoconf:
-        let mut cmd = Command::new("autoconf");
-        cmd.current_dir(jemalloc_src_dir.clone());
-        run(&mut cmd);
-
-        for f in &config_files {
-            if verify_configure {
-                let mut cmd = Command::new("diff");
-                run(cmd
-                    .arg(&jemalloc_src_dir.join(f))
-                    .arg(&Path::new("configure").join(f)));
-            }
-        }
-    } else {
-        // Copy the configuration files to jemalloc's source directory
-        for f in &config_files {
-            fs::copy(Path::new("configure").join(f), jemalloc_src_dir.join(f))
-                .expect("failed to copy config file to OUT_DIR");
-        }
+    // Copy the configuration files to jemalloc's source directory
+    for f in &config_files {
+        fs::copy(Path::new("configure").join(f), jemalloc_src_dir.join(f))
+            .expect("failed to copy config file to OUT_DIR");
     }
 
     // Run configure:

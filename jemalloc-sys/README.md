@@ -144,10 +144,6 @@ hyphens `-` are replaced with underscores `_`(see
   virtual address size on those platforms where it knows how, and picks a
   default otherwise. This option may be useful when cross-compiling.
 
-* `JEMALLOC_SYS_GIT_DEV_BRANCH`: when this environment variable is defined, the
-  latest commit from `jemalloc`'s dev branch is fetched from
-  `https://github.com/jemalloc/jemalloc` and built.
-
 [jemalloc_install]: https://github.com/jemalloc/jemalloc/blob/dev/INSTALL.md#advanced-configuration
 
 ## License

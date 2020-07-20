@@ -8,7 +8,6 @@ echo "Running tests for target: ${TARGET}, Rust version=${TRAVIS_RUST_VERSION}"
 export RUST_BACKTRACE=1
 export RUST_TEST_THREADS=1
 export RUST_TEST_NOCAPTURE=1
-export CARGO_CMD=cross
 
 # FIXME: workaround cargo breaking Travis-CI again:
 # https://github.com/rust-lang/cargo/issues/5721
@@ -23,18 +22,6 @@ then
     echo "jemalloc's tests are not run"
 else
     export JEMALLOC_SYS_RUN_JEMALLOC_TESTS=1
-fi
-
-# Use cargo on native CI platforms:
-case "${TARGET}" in
-    "x86_64-unknown-linux-gnu") export CARGO_CMD=cargo ;;
-    *"windows"*) export CARGO_CMD=cargo ;;
-    *"apple"*) export CARGO_CMD=cargo ;;
-esac
-
-if [ "${CARGO_CMD}" = "cross" ]
-then
-    cargo install cross || echo "cross is already installed"
 fi
 
 if [ "${VALGRIND}" = "1" ]
@@ -53,10 +40,14 @@ then
     esac
 fi
 
+if [ "${TARGET}" = "x86_64-unknown-linux-musl" ]; then
+    rustup toolchain install stable-x86_64-unknown-linux-musl
+fi
+
 if [ "${TARGET}" = "x86_64-unknown-linux-gnu" ] || [ "${TARGET}" = "x86_64-apple-darwin" ]
 then
     # Not using tee to avoid too much logs that exceeds travis' limit.
-    if ! ${CARGO_CMD} build -vv --target "${TARGET}" > build_no_std.txt 2>&1; then
+    if ! cargo build -vv --target "${TARGET}" > build_no_std.txt 2>&1; then
         tail -n 1024 build_no_std.txt
         exit 1
     fi
@@ -75,42 +66,28 @@ then
     done
 fi
 
-${CARGO_CMD} test --target "${TARGET}"
+cargo test --target "${TARGET}"
+cargo test --target "${TARGET}" --features profiling
+cargo test --target "${TARGET}" --features debug
+cargo test --target "${TARGET}" --features stats
+cargo test --target "${TARGET}" --features 'debug profiling'
 
-if [ "${JEMALLOC_SYS_GIT_DEV_BRANCH}" = "1" ]; then
-    # FIXME: profiling tests broken on dev-branch
-    # https://github.com/jemalloc/jemalloc/issues/1477
-    :
-else
-    ${CARGO_CMD} test --target "${TARGET}" --features profiling
-fi
-
-${CARGO_CMD} test --target "${TARGET}" --features debug
-${CARGO_CMD} test --target "${TARGET}" --features stats
-if [ "${JEMALLOC_SYS_GIT_DEV_BRANCH}" = "1" ]; then
-    # FIXME: profiling tests broken on dev-branch
-    # https://github.com/jemalloc/jemalloc/issues/1477
-    :
-else
-    ${CARGO_CMD} test --target "${TARGET}" --features 'debug profiling'
-fi
-
-${CARGO_CMD} test --target "${TARGET}" \
-             --features unprefixed_malloc_on_supported_platforms
-${CARGO_CMD} test --target "${TARGET}" --no-default-features
-${CARGO_CMD} test --target "${TARGET}" --no-default-features \
-             --features background_threads_runtime_support
+cargo test --target "${TARGET}" \
+    --features unprefixed_malloc_on_supported_platforms
+cargo test --target "${TARGET}" --no-default-features
+cargo test --target "${TARGET}" --no-default-features \
+    --features background_threads_runtime_support
 
 if [ "${NOBGT}" = "1" ]
 then
     echo "enabling background threads by default at run-time is not tested"
 else
-    ${CARGO_CMD} test --target "${TARGET}" --features background_threads
+    cargo test --target "${TARGET}" --features background_threads
 fi
 
-${CARGO_CMD} test --target "${TARGET}" --release
-${CARGO_CMD} test --target "${TARGET}" --manifest-path jemalloc-sys/Cargo.toml
-${CARGO_CMD} test --target "${TARGET}" \
+cargo test --target "${TARGET}" --release
+cargo test --target "${TARGET}" --manifest-path jemalloc-sys/Cargo.toml
+cargo test --target "${TARGET}" \
              --manifest-path jemalloc-sys/Cargo.toml \
              --features unprefixed_malloc_on_supported_platforms
 
@@ -120,9 +97,9 @@ case "${TARGET}" in
     "x86_64-unknown-linux-musl") ;;
     *)
 
-        ${CARGO_CMD} test --target "${TARGET}" \
-                     --manifest-path jemalloc-ctl/Cargo.toml \
-                     --no-default-features
+        cargo test --target "${TARGET}" \
+                   --manifest-path jemalloc-ctl/Cargo.toml \
+                   --no-default-features
         # FIXME: cross fails to pass features to jemalloc-ctl
         # ${CARGO_CMD} test --target "${TARGET}" \
         #             --manifest-path jemalloc-ctl \
@@ -130,10 +107,9 @@ case "${TARGET}" in
         ;;
 esac
 
-${CARGO_CMD} test --target "${TARGET}" -p systest
-${CARGO_CMD} test --target "${TARGET}" \
-             --manifest-path jemallocator-global/Cargo.toml
-${CARGO_CMD} test --target "${TARGET}" \
+cargo test --target "${TARGET}" -p systest
+cargo test --target "${TARGET}" --manifest-path jemallocator-global/Cargo.toml
+cargo test --target "${TARGET}" \
              --manifest-path jemallocator-global/Cargo.toml \
              --features force_global_jemalloc
 
