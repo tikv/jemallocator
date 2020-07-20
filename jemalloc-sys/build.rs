@@ -116,8 +116,6 @@ fn main() {
         println!("cargo:rustc-link-lib={}={}", kind, &stem[3..]);
         return;
     }
-
-    fs::create_dir_all(&build_dir).unwrap();
     // Disable -Wextra warnings - jemalloc doesn't compile free of warnings with
     // it enabled: https://github.com/jemalloc/jemalloc/issues/1196
     let compiler = cc::Build::new().extra_warnings(false).get_compiler();
@@ -134,32 +132,28 @@ fn main() {
     let jemalloc_repo_dir = PathBuf::from("jemalloc");
     info!("JEMALLOC_REPO_DIR={:?}", jemalloc_repo_dir);
 
-    let jemalloc_src_dir = out_dir.join("jemalloc");
-    info!("JEMALLOC_SRC_DIR={:?}", jemalloc_src_dir);
-
-    if jemalloc_src_dir.exists() {
-        fs::remove_dir_all(jemalloc_src_dir.clone()).unwrap();
+    if build_dir.exists() {
+        fs::remove_dir_all(build_dir.clone()).unwrap();
     }
-
     // Copy jemalloc submodule to the OUT_DIR
     let mut copy_options = fs_extra::dir::CopyOptions::new();
     copy_options.overwrite = true;
     copy_options.copy_inside = true;
-    fs_extra::dir::copy(&jemalloc_repo_dir, &jemalloc_src_dir, &copy_options)
+    fs_extra::dir::copy(&jemalloc_repo_dir, &build_dir, &copy_options)
         .expect("failed to copy jemalloc source code to OUT_DIR");
-    assert!(jemalloc_src_dir.exists());
+    assert!(build_dir.exists());
 
     // Configuration files
-    let config_files = ["configure" /*"VERSION"*/];
+    let config_files = ["configure", "VERSION"];
 
     // Copy the configuration files to jemalloc's source directory
     for f in &config_files {
-        fs::copy(Path::new("configure").join(f), jemalloc_src_dir.join(f))
+        fs::copy(Path::new("configure").join(f), build_dir.join(f))
             .expect("failed to copy config file to OUT_DIR");
     }
 
     // Run configure:
-    let configure = jemalloc_src_dir.join("configure");
+    let configure = build_dir.join("configure");
     let mut cmd = Command::new("sh");
     cmd.arg(
         configure
@@ -274,7 +268,6 @@ fn main() {
     let make = make_cmd(&host);
     run(Command::new(make)
         .current_dir(&build_dir)
-        .arg("srcroot=../jemalloc/")
         .arg("-j")
         .arg(num_jobs.clone()));
 
@@ -283,22 +276,17 @@ fn main() {
         // Make tests:
         run(Command::new(make)
             .current_dir(&build_dir)
-            .arg("srcroot=../jemalloc/")
             .arg("-j")
             .arg(num_jobs.clone())
             .arg("tests"));
 
         // Run tests:
-        run(Command::new(make)
-            .current_dir(&build_dir)
-            .arg("srcroot=../jemalloc/")
-            .arg("check"));
+        run(Command::new(make).current_dir(&build_dir).arg("check"));
     }
 
     // Make install:
     run(Command::new(make)
         .current_dir(&build_dir)
-        .arg("srcroot=../jemalloc/")
         .arg("install_lib_static")
         .arg("install_include")
         .arg("-j")
