@@ -262,7 +262,7 @@ fn main() {
     cmd.arg(format!("--build={}", gnu_target(&host)));
     cmd.arg(format!("--prefix={}", out_dir.display()));
 
-    run(&mut cmd);
+    run_and_log(&mut cmd, &build_dir.join("config.log"));
 
     // Make:
     let make = make_cmd(&host);
@@ -315,13 +315,24 @@ fn main() {
     println!("cargo:rerun-if-changed=jemalloc");
 }
 
+fn run_and_log(cmd: &mut Command, log_file: &Path) {
+    execute(cmd, || {
+        run(Command::new("tail").arg("-n").arg("100").arg(log_file));
+    })
+}
+
 fn run(cmd: &mut Command) {
+    execute(cmd, || ());
+}
+
+fn execute(cmd: &mut Command, on_fail: impl FnOnce()) {
     println!("running: {:?}", cmd);
     let status = match cmd.status() {
         Ok(status) => status,
         Err(e) => panic!("failed to execute command: {}", e),
     };
     if !status.success() {
+        on_fail();
         panic!(
             "command did not execute successfully: {:?}\n\
              expected success, got: {}",

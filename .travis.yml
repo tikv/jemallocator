@@ -6,10 +6,10 @@ jobs:
   include:
     # Linux
     - name: "aarch64-unknown-linux-gnu"
-      env: TARGET=aarch64-unknown-linux-gnu
+      env: TARGET=aarch64-unknown-linux-gnu NO_JEMALLOC_TESTS=1
       arch: arm64
     - name: "powerpc64le-unknown-linux-gnu"
-      env: TARGET=powerpc64le-unknown-linux-gnu
+      env: TARGET=powerpc64le-unknown-linux-gnu NO_JEMALLOC_TESTS=1
       arch: ppc64le
     - name: "x86_64-unknown-linux-gnu (nightly)"
       env: TARGET=x86_64-unknown-linux-gnu VALGRIND=1
@@ -32,6 +32,11 @@ jobs:
         # - cargo test --features=alloc_trait --bench roundtrip
     - name: "x86_64-unknown-linux-musl"
       env: TARGET=x86_64-unknown-linux-musl NOBGT=1 NO_JEMALLOC_TESTS=1
+      install: rustup target add x86_64-unknown-linux-musl
+      addons:
+        apt:
+          packages:
+            musl-tools
 
     # OSX
     # FIXME: cannot jemalloc tests fail due to:

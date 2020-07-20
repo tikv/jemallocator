@@ -40,10 +40,6 @@ then
     esac
 fi
 
-if [ "${TARGET}" = "x86_64-unknown-linux-musl" ]; then
-    rustup toolchain install stable-x86_64-unknown-linux-musl
-fi
-
 if [ "${TARGET}" = "x86_64-unknown-linux-gnu" ] || [ "${TARGET}" = "x86_64-apple-darwin" ]
 then
     # Not using tee to avoid too much logs that exceeds travis' limit.
