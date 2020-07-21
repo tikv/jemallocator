@@ -18,8 +18,7 @@ description = """
 Sets `jemalloc` as the `#[global_allocator]`
 """
 
- [badges]
-appveyor = { repository = "tikv/jemallocator" }
+[badges]
 travis-ci = { repository = "tikv/jemallocator" }
 codecov = { repository = "tikv/jemallocator" }
 is-it-maintained-issue-resolution = { repository = "tikv/jemallocator" }

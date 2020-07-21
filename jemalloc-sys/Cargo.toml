@@ -20,7 +20,6 @@ Rust FFI bindings to jemalloc
 edition = "2018"
 
 [badges]
-appveyor = { repository = "tikv/jemallocator" }
 travis-ci = { repository = "tikv/jemallocator" }
 codecov = { repository = "tikv/jemallocator" }
 is-it-maintained-issue-resolution = { repository = "tikv/jemallocator" }

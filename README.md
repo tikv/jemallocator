@@ -1,6 +1,6 @@
 # tikv-jemallocator
 
-[![Travis-CI Status]][travis] [![Appveyor Status]][appveyor] [![Latest Version]][crates.io] [![docs]][docs.rs]
+[![Travis-CI Status]][travis] [![Latest Version]][crates.io] [![docs]][docs.rs]
 
 This project is a simplified fork of [jemallocator](https://github.com/gnzlbg/jemallocator) focus on server.
 
@@ -91,8 +91,6 @@ shall be dual licensed as above, without any additional terms or conditions.
 
 [travis]: https://travis-ci.com/tikv/jemallocator
 [Travis-CI Status]: https://travis-ci.com/tikv/jemallocator.svg?branch=master
-[appveyor]: https://ci.appveyor.com/project/tikv/jemallocator/branch/master
-[Appveyor Status]: https://ci.appveyor.com/api/projects/status/github/tikv/jemallocator?branch=master&svg=true
 [Latest Version]: https://img.shields.io/crates/v/tikv-jemallocator.svg
 [crates.io]: https://crates.io/crates/tikv-jemallocator
 [docs]: https://docs.rs/tikv-jemallocator/badge.svg

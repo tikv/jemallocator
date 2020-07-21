@@ -61,12 +61,6 @@ jobs:
     - name: "Documentation"
       install: true
       script: RUSTDOCFLAGS="--cfg jemallocator_docs" cargo doc
-      deploy:
-        provider: script
-        script: curl -LsSf https://git.io/fhJ8n | rustc - && (cd target/doc && ../../rust_out)
-        cleanup: true
-        on:
-          branch: master
     - name: "rustfmt"
       install: true
       rust: nightly
