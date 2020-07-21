@@ -11,10 +11,10 @@ macro_rules! types {
             pub struct $id;
 
             impl $id {
-                const NAME: &'static ::keys::Name = {
+                const NAME: &'static crate::keys::Name = {
                     union U<'a> {
                         bytes: &'a [u8],
-                        name: &'a ::keys::Name
+                        name: &'a crate::keys::Name
                     }
 
                     unsafe { U { bytes: $byte_string }.name }
@@ -22,12 +22,12 @@ macro_rules! types {
                 /// Returns Management Information Base (MIB)
                 ///
                 /// This value can be used to access the key without doing string lookup.
-                pub fn mib() -> ::error::Result<[<$id _mib>]> {
+                pub fn mib() -> crate::error::Result<[<$id _mib>]> {
                     Ok([<$id _mib>](Self::NAME.$name_to_mib()?))
                 }
 
                 /// Key [`::keys::Name`].
-                pub fn name() -> &'static ::keys::Name {
+                pub fn name() -> &'static crate::keys::Name {
                     Self::NAME
                 }
             }
@@ -36,7 +36,7 @@ macro_rules! types {
             #[repr(transparent)]
             #[derive(Copy, Clone)]
             #[allow(non_camel_case_types)]
-            pub struct [<$id _mib>](pub ::keys::$mib);
+            pub struct [<$id _mib>](pub crate::keys::$mib);
         }
     };
 }
@@ -47,16 +47,16 @@ macro_rules! r {
         paste::item! {
             impl $id {
                 /// Reads value using string API.
-                pub fn read() -> ::error::Result<$ret_ty> {
-                    use ::keys::Access;
+                pub fn read() -> crate::error::Result<$ret_ty> {
+                    use crate::keys::Access;
                     Self::NAME.read()
                 }
             }
 
             impl [<$id _mib>] {
                 /// Reads value using MIB API.
-                pub fn read(self) -> ::error::Result<$ret_ty> {
-                    use ::keys::Access;
+                pub fn read(self) -> crate::error::Result<$ret_ty> {
+                    use crate::keys::Access;
                     self.0.read()
                 }
             }
@@ -96,16 +96,16 @@ macro_rules! w {
         paste::item! {
             impl $id {
                 /// Writes `value` using string API.
-                pub fn write(value: $ret_ty) -> ::error::Result<()> {
-                    use ::keys::Access;
+                pub fn write(value: $ret_ty) -> crate::error::Result<()> {
+                    use crate::keys::Access;
                     Self::NAME.write(value)
                 }
             }
 
             impl [<$id _mib>] {
                 /// Writes `value` using MIB API.
-                pub fn write(self, value: $ret_ty) -> ::error::Result<()> {
-                    use ::keys::Access;
+                pub fn write(self, value: $ret_ty) -> crate::error::Result<()> {
+                    use crate::keys::Access;
                     self.0.write(value)
                 }
             }
@@ -145,16 +145,16 @@ macro_rules! u {
         paste::item! {
             impl $id {
                 /// Updates key to `value` returning its old value using string API.
-                pub fn update(value: $ret_ty) -> ::error::Result<$ret_ty> {
-                    use ::keys::Access;
+                pub fn update(value: $ret_ty) -> crate::error::Result<$ret_ty> {
+                    use crate::keys::Access;
                     Self::NAME.update(value)
                 }
             }
 
             impl [<$id _mib>] {
                 /// Updates key to `value` returning its old value using MIB API.
-                pub fn update(self, value: $ret_ty) -> ::error::Result<$ret_ty> {
-                    use ::keys::Access;
+                pub fn update(self, value: $ret_ty) -> crate::error::Result<$ret_ty> {
+                    use crate::keys::Access;
                     self.0.update(value)
                 }
             }

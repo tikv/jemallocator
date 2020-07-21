@@ -5,7 +5,7 @@
 //! ```toml
 //! # Cargo.toml
 //! [dependencies]
-//! jemallocator-global = "0.3.0"
+//! jemallocator-global = "0.4.0"
 //! ```
 //!
 //! and `jemalloc` will be used as the `#[global_allocator]` on targets that
@@ -21,18 +21,14 @@ cfg_if! {
     if #[cfg(any(
         feature = "force_global_jemalloc",
         target_os = "linux",
-        target_os = "android",
         target_os = "macos",
-        target_os = "ios",
         target_os = "freebsd",
         target_os = "openbsd",
         target_os = "netbsd"
     ))] {
-        extern crate jemallocator;
-
         /// Sets `jemalloc` as the `#[global_allocator]`.
         #[global_allocator]
-        pub static JEMALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
+        pub static JEMALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
     }
 }
 

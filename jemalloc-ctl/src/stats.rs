@@ -18,14 +18,11 @@ option! {
     /// # Examples
     ///
     /// ```rust
-    /// # extern crate jemallocator;
-    /// # extern crate jemalloc_ctl;
-    /// #
     /// # #[global_allocator]
-    /// # static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
+    /// # static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
     /// #
     /// # fn main() {
-    /// use jemalloc_ctl::{epoch, stats};
+    /// use tikv_jemalloc_ctl::{epoch, stats};
     /// let e = epoch::mib().unwrap();
     /// let allocated = stats::allocated::mib().unwrap();
     ///
@@ -56,14 +53,11 @@ option! {
     /// # Examples
     ///
     /// ```rust
-    /// # extern crate jemallocator;
-    /// # extern crate jemalloc_ctl;
-    /// #
     /// # #[global_allocator]
-    /// # static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
+    /// # static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
     /// #
     /// # fn main() {
-    /// use jemalloc_ctl::{epoch, stats};
+    /// use tikv_jemalloc_ctl::{epoch, stats};
     /// let e = epoch::mib().unwrap();
     /// let active = stats::active::mib().unwrap();
     ///
@@ -91,14 +85,11 @@ option! {
     /// # Examples
     ///
     /// ```rust
-    /// # extern crate jemallocator;
-    /// # extern crate jemalloc_ctl;
-    /// #
     /// # #[global_allocator]
-    /// # static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
+    /// # static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
     /// #
     /// # fn main() {
-    /// use jemalloc_ctl::{epoch, stats};
+    /// use tikv_jemalloc_ctl::{epoch, stats};
     /// let e = epoch::mib().unwrap();
     /// let metadata = stats::metadata::mib().unwrap();
     ///
@@ -132,14 +123,11 @@ option! {
     /// # Examples
     ///
     /// ```rust
-    /// # extern crate jemallocator;
-    /// # extern crate jemalloc_ctl;
-    /// #
     /// # #[global_allocator]
-    /// # static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
+    /// # static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
     /// #
     /// # fn main() {
-    /// use jemalloc_ctl::{epoch, stats};
+    /// use tikv_jemalloc_ctl::{epoch, stats};
     /// let e = epoch::mib().unwrap();
     /// let resident = stats::resident::mib().unwrap();
     ///
@@ -170,14 +158,11 @@ option! {
     /// # Examples
     ///
     /// ```rust
-    /// # extern crate jemallocator;
-    /// # extern crate jemalloc_ctl;
-    /// #
     /// # #[global_allocator]
-    /// # static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
+    /// # static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
     /// #
     /// # fn main() {
-    /// use jemalloc_ctl::{epoch, stats};
+    /// use tikv_jemalloc_ctl::{epoch, stats};
     /// let e = epoch::mib().unwrap();
     /// let mapped = stats::mapped::mib().unwrap();
     ///
@@ -208,14 +193,11 @@ option! {
     /// # Examples
     ///
     /// ```rust
-    /// # extern crate jemallocator;
-    /// # extern crate jemalloc_ctl;
-    /// #
     /// # #[global_allocator]
-    /// # static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
+    /// # static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
     /// #
     /// # fn main() {
-    /// use jemalloc_ctl::{epoch, stats};
+    /// use tikv_jemalloc_ctl::{epoch, stats};
     /// let e = epoch::mib().unwrap();
     /// let retained = stats::retained::mib().unwrap();
     ///

@@ -19,15 +19,12 @@
 //! Repeatedly printing allocation statistics:
 //!
 //! ```no_run
-//! extern crate jemallocator;
-//! extern crate jemalloc_ctl;
-//!
 //! use std::thread;
 //! use std::time::Duration;
-//! use jemalloc_ctl::{stats, epoch};
+//! use tikv_jemalloc_ctl::{stats, epoch};
 //!
 //! #[global_allocator]
-//! static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
+//! static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 //!
 //! fn main() {
 //!     loop {
@@ -45,15 +42,12 @@
 //! Doing the same with the MIB-based API:
 //!
 //! ```no_run
-//! extern crate jemallocator;
-//! extern crate jemalloc_ctl;
-//!
 //! use std::thread;
 //! use std::time::Duration;
-//! use jemalloc_ctl::{stats, epoch};
+//! use tikv_jemalloc_ctl::{stats, epoch};
 //!
 //! #[global_allocator]
-//! static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
+//! static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 //!
 //! fn main() {
 //!     let e = epoch::mib().unwrap();
@@ -74,20 +68,15 @@
 #![cfg_attr(not(feature = "use_std"), no_std)]
 #![cfg_attr(feature = "cargo-clippy", allow(clippy::module_name_repetitions))]
 
-extern crate jemalloc_sys;
-extern crate libc;
-extern crate paste;
-
-#[cfg(test)]
-extern crate jemallocator;
-
 #[cfg(test)]
 #[global_allocator]
-static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
+static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 
+use crate::std::{fmt, mem, num, ops, ptr, result, slice, str};
 #[cfg(not(feature = "use_std"))]
 use core as std;
-use std::{fmt, mem, num, ops, ptr, result, slice, str};
+#[cfg(feature = "use_std")]
+use std;
 
 #[macro_use]
 mod macros;
@@ -115,14 +104,11 @@ option! {
     /// # Example
     ///
     /// ```
-    /// # extern crate jemallocator;
-    /// # extern crate jemalloc_ctl;
-    /// #
     /// # #[global_allocator]
-    /// # static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
+    /// # static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
     /// #
     /// # fn main() {
-    /// use jemalloc_ctl::version;
+    /// use tikv_jemalloc_ctl::version;
     /// println!("jemalloc version {}", version::read().unwrap());
     /// let version_mib = version::mib().unwrap();
     /// println!("jemalloc version {}", version_mib.read().unwrap());
@@ -142,16 +128,13 @@ option! {
     /// arenas). Threads run periodically and handle purging asynchronously.
     ///
     /// ```
-    /// # extern crate jemallocator;
-    /// # extern crate jemalloc_ctl;
-    /// #
     /// # #[global_allocator]
-    /// # static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
+    /// # static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
     /// #
     /// # fn main() {
     /// # #[cfg(not(target_os = "macos"))] {
     /// #
-    /// use jemalloc_ctl::background_thread;
+    /// use tikv_jemalloc_ctl::background_thread;
     /// let bg = background_thread::mib().unwrap();
     /// let s = bg.read().unwrap();
     /// println!("background_threads enabled: {}", s);
@@ -175,16 +158,13 @@ option! {
     /// Maximum number of background threads that will be created.
     ///
     /// ```
-    /// # extern crate jemallocator;
-    /// # extern crate jemalloc_ctl;
-    /// #
     /// # #[global_allocator]
-    /// # static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
+    /// # static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
     /// #
     /// # fn main() {
     /// # #[cfg(not(target_os = "macos"))] {
     /// #
-    /// use jemalloc_ctl::max_background_threads;
+    /// use tikv_jemalloc_ctl::max_background_threads;
     /// let m = max_background_threads::mib().unwrap();
     /// println!("max_background_threads: {}", m.read().unwrap());
     /// m.write(0).unwrap();
@@ -210,15 +190,12 @@ option! {
     /// Advancing the epoch:
     ///
     /// ```
-    /// # extern crate jemallocator;
-    /// # extern crate jemalloc_ctl;
-    /// #
     /// # #[global_allocator]
-    /// # static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
+    /// # static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
     /// #
     /// # fn main() {
     /// #
-    /// use jemalloc_ctl::epoch;
+    /// use tikv_jemalloc_ctl::epoch;
     /// let e = epoch::mib().unwrap();
     /// let a = e.advance().unwrap();
     /// let b = e.advance().unwrap();
@@ -232,14 +209,14 @@ option! {
 
 impl epoch {
     /// Advances the epoch returning its old value - see [`epoch`].
-    pub fn advance() -> ::error::Result<u64> {
+    pub fn advance() -> crate::error::Result<u64> {
         Self::update(1)
     }
 }
 
 impl epoch_mib {
     /// Advances the epoch returning its old value - see [`epoch`].
-    pub fn advance(self) -> ::error::Result<u64> {
+    pub fn advance(self) -> crate::error::Result<u64> {
         self.0.update(1)
     }
 }

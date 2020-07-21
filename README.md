@@ -1,6 +1,8 @@
-# jemallocator
+# tikv-jemallocator
 
 [![Travis-CI Status]][travis] [![Appveyor Status]][appveyor] [![Latest Version]][crates.io] [![docs]][docs.rs]
+
+This project is a simplified fork of [jemallocator](https://github.com/gnzlbg/jemallocator) focus on server.
 
 > Links against `jemalloc` and provides a `Jemalloc` unit type that implements
 > the allocator APIs and can be set as the `#[global_allocator]`
@@ -9,10 +11,10 @@
 
 The `jemalloc` support ecosystem consists of the following crates:
 
-* `jemalloc-sys`: builds and links against `jemalloc` exposing raw C bindings to it.
-* `jemallocator`: provides the `Jemalloc` type which implements the
+* `tikv-jemalloc-sys`: builds and links against `jemalloc` exposing raw C bindings to it.
+* `tikv-jemallocator`: provides the `Jemalloc` type which implements the
   `GlobalAlloc` and `Alloc` traits. 
-* `jemalloc-ctl`: high-level wrapper over `jemalloc`'s control and introspection
+* `tikv-jemalloc-ctl`: high-level wrapper over `jemalloc`'s control and introspection
   APIs (the `mallctl*()` family of functions and the _MALLCTL NAMESPACE_)'
 
 ## Documentation
@@ -20,22 +22,22 @@ The `jemalloc` support ecosystem consists of the following crates:
 * [Latest release (docs.rs)][docs.rs]
 * [Master branch][master_docs]
 
-To use `jemallocator` add it as a dependency:
+To use `tikv-jemallocator` add it as a dependency:
 
 ```toml
 # Cargo.toml
 [dependencies]
 
 [target.'cfg(not(target_env = "msvc"))'.dependencies]
-jemallocator = "0.3.2"
+tikv-jemallocator = "0.4.0"
 ```
 
-To set `jemallocator::Jemalloc` as the global allocator add this to your project:
+To set `tikv_jemallocator::Jemalloc` as the global allocator add this to your project:
 
 ```rust
 # main.rs
 #[cfg(not(target_env = "msvc"))]
-use jemallocator::Jemalloc;
+use tikv_jemallocator::Jemalloc;
 
 #[cfg(not(target_env = "msvc"))]
 #[global_allocator]
@@ -50,8 +52,8 @@ all allocations requested by Rust code in the same program.
 The following table describes the supported platforms: 
 
 * `build`: does the library compile for the target?
-* `run`: do `jemallocator` and `jemalloc-sys` tests pass on the target?
-* `jemalloc`: do `jemalloc`'s tests pass on the target?
+* `run`: do `tikv-jemallocator` and `tikv-jemalloc-sys` tests pass on the target?
+* `jemalloc`: do `tikv-jemalloc`'s tests pass on the target?
 * `valgrind`: do the tests pass under valgrind?
 
 Tier 1 targets are tested on all Rust channels (stable, beta, and nightly). All
@@ -60,34 +62,15 @@ other targets are only tested on Rust nightly.
 | Linux targets:                      | build     | run     | jemalloc     | valgrind     |
 |-------------------------------------|-----------|---------|--------------|--------------|
 | `aarch64-unknown-linux-gnu`         | ✓         | ✓       | ✗            | ✗            |
-| `arm-unknown-linux-gnueabi`         | ✓         | ✓       | ✗            | ✗            |
-| `armv7-unknown-linux-gnueabi`       | ✓         | ✓       | ✗            | ✗            |
-| `i586-unknown-linux-gnu`            | ✓         | ✓       | ✓            | ✗            |
-| `i686-unknown-linux-gnu` (tier 1)   | ✓         | ✓       | ✓            | ✗            |
-| `mips-unknown-linux-gnu`            | ✓         | ✓       | ✗            | ✗            |
-| `mipsel-unknown-linux-musl`         | ✓         | ✓       | ✗            | ✗            |
-| `mips64-unknown-linux-gnuabi64`     | ✓         | ✓       | ✗            | ✗            |
-| `mips64el-unknown-linux-gnuabi64`   | ✓         | ✓       | ✗            | ✗            |
-| `powerpc-unknown-linux-gnu`         | ✓         | ✓       | ✗            | ✗            |
-| `powerpc64-unknown-linux-gnu`       | ✓         | ✓       | ✗            | ✗            |
 | `powerpc64le-unknown-linux-gnu`     | ✓         | ✓       | ✗            | ✗            |
 | `x86_64-unknown-linux-gnu` (tier 1) | ✓         | ✓       | ✓            | ✓            |
 | **MacOSX targets:**                 | **build** | **run** | **jemalloc** | **valgrind** |
 | `x86_64-apple-darwin` (tier 1)      | ✓         | ✓       | ✗            | ✗            |
-| `i686-apple-darwin` (tier 1)        | ✓         | ✓       | ✗            | ✗            |
-| **Windows targets:**                | **build** | **run** | **jemalloc** | **valgrind** |
-| `x86_64-pc-windows-msvc` (tier 1)   | ✗         | ✗       | ✗            | ✗            |
-| `i686-pc-windows-msvc` (tier 1)     | ✗         | ✗       | ✗            | ✗            |
-| `x86_64-pc-windows-gnu` (tier 1)    | ✓         | ✓       | ✗            | ✗            |
-| `i686-pc-windows-gnu` (tier 1)      | ✓         | ✓       | ✗            | ✗            |
-| **Android targets:**                | **build** | **run** | **jemalloc** | **valgrind** |
-| `aarch64-linux-android`             | ✓         | ✓       | ✗            | ✗            |
-| `x86_64-linux-android`              | ✓         | ✓       | ✓            | ✗            |
 
 ## Features
 
-The `jemallocator` crate re-exports the [features of the `jemalloc-sys`
-dependency](https://github.com/gnzlbg/jemallocator/blob/master/jemalloc-sys/README.md).
+The `tikv-jemallocator` crate re-exports the [features of the `tikv-jemalloc-sys`
+dependency](https://github.com/tikv/jemallocator/blob/master/jemalloc-sys/README.md).
 
 ## License
 
@@ -103,15 +86,14 @@ at your option.
 ## Contribution
 
 Unless you explicitly state otherwise, any contribution intentionally submitted
-for inclusion in `jemallocator` by you, as defined in the Apache-2.0 license,
+for inclusion in `tikv-jemallocator` by you, as defined in the Apache-2.0 license,
 shall be dual licensed as above, without any additional terms or conditions.
 
-[travis]: https://travis-ci.com/gnzlbg/jemallocator
-[Travis-CI Status]: https://travis-ci.com/gnzlbg/jemallocator.svg?branch=master
-[appveyor]: https://ci.appveyor.com/project/gnzlbg/jemallocator/branch/master
-[Appveyor Status]: https://ci.appveyor.com/api/projects/status/github/gnzlbg/jemallocator?branch=master&svg=true
-[Latest Version]: https://img.shields.io/crates/v/jemallocator.svg
-[crates.io]: https://crates.io/crates/jemallocator
-[docs]: https://docs.rs/jemallocator/badge.svg
-[docs.rs]: https://docs.rs/jemallocator/
-[master_docs]: https://gnzlbg.github.io/jemallocator/jemallocator
+[travis]: https://travis-ci.com/tikv/jemallocator
+[Travis-CI Status]: https://travis-ci.com/tikv/jemallocator.svg?branch=master
+[appveyor]: https://ci.appveyor.com/project/tikv/jemallocator/branch/master
+[Appveyor Status]: https://ci.appveyor.com/api/projects/status/github/tikv/jemallocator?branch=master&svg=true
+[Latest Version]: https://img.shields.io/crates/v/tikv-jemallocator.svg
+[crates.io]: https://crates.io/crates/tikv-jemallocator
+[docs]: https://docs.rs/tikv-jemallocator/badge.svg
+[docs.rs]: https://docs.rs/tikv-jemallocator/

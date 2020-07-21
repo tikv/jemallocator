@@ -11,7 +11,7 @@ Add it as a dependency:
 ```toml
 # Cargo.toml
 [dependencies]
-jemallocator-global = "0.3.0"
+tikv-jemallocator-global = "0.4.0"
 ```
 
 and `jemalloc` will be used as the `#[global_allocator]` on targets that support
@@ -22,7 +22,7 @@ it.
 * `force_global_jemalloc` (disabled by default): unconditionally sets `jemalloc`
   as the `#[global_allocator]`.
 
-[`jemallocator`]: https://github.com/gnzlbg/jemallocator/
+[`tikv-jemallocator`]: https://github.com/tikv/jemallocator/
 
 ## Platform support 
 
@@ -46,15 +46,14 @@ at your option.
 ## Contribution
 
 Unless you explicitly state otherwise, any contribution intentionally submitted
-for inclusion in `jemallocator-global` by you, as defined in the Apache-2.0 license,
+for inclusion in `tikv-jemallocator-global` by you, as defined in the Apache-2.0 license,
 shall be dual licensed as above, without any additional terms or conditions.
 
-[travis]: https://travis-ci.org/gnzlbg/jemallocator
-[Travis-CI Status]: https://travis-ci.org/gnzlbg/jemallocator.svg?branch=master
-[appveyor]: https://ci.appveyor.com/project/gnzlbg/jemallocator/branch/master
-[Appveyor Status]: https://ci.appveyor.com/api/projects/status/github/gnzlbg/jemallocator?branch=master&svg=true
-[Latest Version]: https://img.shields.io/crates/v/jemallocator-global.svg
-[crates.io]: https://crates.io/crates/jemallocator-global
-[docs]: https://docs.rs/jemallocator-global/badge.svg
-[docs.rs]: https://docs.rs/jemallocator-global/
-
+[travis]: https://travis-ci.com/tikv/jemallocator
+[Travis-CI Status]: https://travis-ci.com/tikv/jemallocator.svg?branch=master
+[appveyor]: https://ci.appveyor.com/project/tikv/jemallocator/branch/master
+[Appveyor Status]: https://ci.appveyor.com/api/projects/status/github/tikv/jemallocator?branch=master&svg=true
+[Latest Version]: https://img.shields.io/crates/v/tikv-jemallocator.svg
+[crates.io]: https://crates.io/crates/tikv-jemallocator
+[docs]: https://docs.rs/tikv-jemallocator/badge.svg
+[docs.rs]: https://docs.rs/tikv-jemallocator/

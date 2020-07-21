@@ -8,9 +8,6 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-extern crate cc;
-extern crate fs_extra;
-
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};

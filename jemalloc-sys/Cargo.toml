@@ -1,29 +1,30 @@
 [package]
-name = "jemalloc-sys"
-version = "0.3.2"
+name = "tikv-jemalloc-sys"
+version = "0.4.0+5.2.1"
 authors = [
     "Alex Crichton <alex@alexcrichton.com>",
     "Gonzalo Brito Gadeschi <gonzalobg88@gmail.com>",
+    "The TiKV Project Developers",
 ]
 build = "build.rs"
 links = "jemalloc"
 license = "MIT/Apache-2.0"
 readme = "README.md"
-repository = "https://github.com/gnzlbg/jemallocator"
-homepage = "https://github.com/gnzlbg/jemallocator"
-documentation = "https://docs.rs/jemallocator-sys"
+repository = "https://github.com/tikv/jemallocator"
+homepage = "https://github.com/tikv/jemallocator"
+documentation = "https://docs.rs/tikv-jemallocator-sys"
 keywords = ["allocator", "jemalloc"]
 description = """
 Rust FFI bindings to jemalloc
 """
-edition = "2015"
+edition = "2018"
 
 [badges]
-appveyor = { repository = "gnzlbg/jemallocator" }
-travis-ci = { repository = "gnzlbg/jemallocator" }
-codecov = { repository = "gnzlbg/jemallocator" }
-is-it-maintained-issue-resolution = { repository = "gnzlbg/jemallocator" }
-is-it-maintained-open-issues = { repository = "gnzlbg/jemallocator" }
+appveyor = { repository = "tikv/jemallocator" }
+travis-ci = { repository = "tikv/jemallocator" }
+codecov = { repository = "tikv/jemallocator" }
+is-it-maintained-issue-resolution = { repository = "tikv/jemallocator" }
+is-it-maintained-open-issues = { repository = "tikv/jemallocator" }
 maintenance = { status = "actively-developed" }
 
 [lib]

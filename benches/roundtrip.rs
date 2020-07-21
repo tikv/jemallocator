@@ -3,13 +3,8 @@
 #![feature(test, allocator_api)]
 #![cfg(feature = "alloc_trait")]
 
-extern crate jemalloc_sys;
-extern crate jemallocator;
-extern crate libc;
-extern crate paste;
 extern crate test;
 
-use jemalloc_sys::MALLOCX_ALIGN;
 use jemallocator::Jemalloc;
 use libc::c_int;
 use std::{
@@ -17,6 +12,7 @@ use std::{
     ptr,
 };
 use test::Bencher;
+use tikv_jemalloc_sys::MALLOCX_ALIGN;
 
 #[global_allocator]
 static A: Jemalloc = Jemalloc;

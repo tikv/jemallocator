@@ -19,9 +19,6 @@
 #![deny(missing_docs, intra_doc_link_resolution_failure)]
 #![no_std]
 
-extern crate jemalloc_sys;
-extern crate libc;
-
 #[cfg(feature = "alloc_trait")]
 use core::alloc::{Alloc, AllocErr, CannotReallocInPlace, Excess};
 use core::alloc::{GlobalAlloc, Layout};
@@ -287,5 +284,5 @@ pub unsafe fn usable_size<T>(ptr: *const T) -> usize {
 
 /// Raw bindings to jemalloc
 mod ffi {
-    pub use jemalloc_sys::*;
+    pub use tikv_jemalloc_sys::*;
 }

@@ -47,8 +47,6 @@
 )]
 #![deny(missing_docs, intra_doc_link_resolution_failure)]
 
-extern crate libc;
-
 use libc::{c_char, c_int, c_uint, c_void, size_t};
 type c_bool = c_int;
 

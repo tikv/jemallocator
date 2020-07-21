@@ -9,14 +9,12 @@ option! {
     /// # Examples
     ///
     /// ```
-    /// # extern crate jemallocator;
-    /// # extern crate jemalloc_ctl;
     /// #
     /// # #[global_allocator]
-    /// # static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
+    /// # static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
     /// #
     /// # fn main() {
-    /// use jemalloc_ctl::arenas;
+    /// use tikv_jemalloc_ctl::arenas;
     /// println!("number of arenas: {}", arenas::narenas::read().unwrap());
     ///
     /// let arenas_mib = arenas::narenas::mib().unwrap();

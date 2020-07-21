@@ -11,20 +11,18 @@
 
 ## Platform support
 
-Supported on all platforms supported by the [`jemallocator`] crate.
+Supported on all platforms supported by the [`tikv-jemallocator`] crate.
 
 ## Example
 
 ```no_run
-extern crate jemallocator;
-extern crate jemalloc_ctl;
 
 use std::thread;
 use std::time::Duration;
-use jemalloc_ctl::{stats, epoch};
+use tikv_jemalloc_ctl::{stats, epoch};
 
 #[global_allocator]
-static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
+static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 
 fn main() {
     // Obtain a MIB for the `epoch`, `stats.allocated`, and
@@ -64,13 +62,12 @@ Unless you explicitly state otherwise, any contribution intentionally submitted
 for inclusion in `jemalloc-ctl` by you, as defined in the Apache-2.0 license,
 shall be dual licensed as above, without any additional terms or conditions.
 
-[`jemallocator`]: https://github.com/gnzlbg/jemallocator
-[travis]: https://travis-ci.org/gnzlbg/jemallocator
-[Travis-CI Status]: https://travis-ci.org/gnzlbg/jemallocator.svg?branch=master
-[appveyor]: https://ci.appveyor.com/project/gnzlbg/jemallocator/branch/master
-[Appveyor Status]: https://ci.appveyor.com/api/projects/status/github/gnzlbg/jemallocator?branch=master&svg=true
-[Latest Version]: https://img.shields.io/crates/v/jemalloc-ctl.svg
-[crates.io]: https://crates.io/crates/jemalloc-ctl
-[docs]: https://docs.rs/jemalloc-ctl/badge.svg
-[docs.rs]: https://docs.rs/jemalloc-ctl/
-[master_docs]: https://gnzlbg.github.io/jemallocator/jemalloc-ctl
+[`tikv-jemallocator`]: https://github.com/tikv/jemallocator
+[travis]: https://travis-ci.com/tikv/jemallocator
+[Travis-CI Status]: https://travis-ci.com/tikv/jemallocator.svg?branch=master
+[appveyor]: https://ci.appveyor.com/project/tikv/jemallocator/branch/master
+[Appveyor Status]: https://ci.appveyor.com/api/projects/status/github/tikv/jemallocator?branch=master&svg=true
+[Latest Version]: https://img.shields.io/crates/v/tikv-jemallocator.svg
+[crates.io]: https://crates.io/crates/tikv-jemallocator
+[docs]: https://docs.rs/tikv-jemallocator/badge.svg
+[docs.rs]: https://docs.rs/tikv-jemallocator/

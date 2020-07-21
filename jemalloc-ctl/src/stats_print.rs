@@ -1,7 +1,5 @@
 //! Bulk statistics output.
 
-extern crate std;
-
 use libc::{c_char, c_void};
 use std::any::Any;
 use std::ffi::CStr;
@@ -54,7 +52,7 @@ pub struct Options {
 struct State<W> {
     writer: W,
     error: io::Result<()>,
-    panic: Result<(), Box<Any + Send>>,
+    panic: Result<(), Box<dyn Any + Send>>,
 }
 
 extern "C" fn callback<W>(opaque: *mut c_void, buf: *const c_char)
@@ -125,7 +123,7 @@ where
         }
         opts[i] = 0;
 
-        jemalloc_sys::malloc_stats_print(
+        tikv_jemalloc_sys::malloc_stats_print(
             Some(callback::<W>),
             &mut state as *mut _ as *mut c_void,
             opts.as_ptr(),

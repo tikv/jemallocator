@@ -14,14 +14,11 @@ option! {
     /// # Examples
     ///
     /// ```
-    /// # extern crate jemallocator;
-    /// # extern crate jemalloc_ctl;
-    /// #
     /// # #[global_allocator]
-    /// # static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
+    /// # static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
     /// #
     /// # fn main() {
-    /// use jemalloc_ctl::opt;
+    /// use tikv_jemalloc_ctl::opt;
     /// let abort = opt::abort::mib().unwrap();
     /// println!("abort on warning: {}", abort.read().unwrap());
     /// # }
@@ -44,14 +41,11 @@ option! {
     /// # Examples
     ///
     /// ```
-    /// # extern crate jemallocator;
-    /// # extern crate jemalloc_ctl;
-    /// #
     /// # #[global_allocator]
-    /// # static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
+    /// # static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
     /// #
     /// # fn main() {
-    /// use jemalloc_ctl::opt;
+    /// use tikv_jemalloc_ctl::opt;
     /// let dss = opt::dss::read().unwrap();
     /// println!("dss priority: {}", dss);
     /// # }
@@ -72,14 +66,11 @@ option! {
     /// # Examples
     ///
     /// ```
-    /// # extern crate jemallocator;
-    /// # extern crate jemalloc_ctl;
-    /// #
     /// # #[global_allocator]
-    /// # static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
+    /// # static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
     /// #
     /// # fn main() {
-    /// use jemalloc_ctl::opt;
+    /// use tikv_jemalloc_ctl::opt;
     /// let narenas = opt::narenas::read().unwrap();
     /// println!("number of arenas: {}", narenas);
     /// # }
@@ -109,14 +100,11 @@ option! {
     /// # Examples
     ///
     /// ```
-    /// # extern crate jemallocator;
-    /// # extern crate jemalloc_ctl;
-    /// #
     /// # #[global_allocator]
-    /// # static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
+    /// # static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
     /// #
     /// # fn main() {
-    /// use jemalloc_ctl::opt;
+    /// use tikv_jemalloc_ctl::opt;
     /// let junk = opt::junk::read().unwrap();
     /// println!("junk filling: {}", junk);
     /// # }
@@ -140,14 +128,11 @@ option! {
     /// # Examples
     ///
     /// ```
-    /// # extern crate jemallocator;
-    /// # extern crate jemalloc_ctl;
-    /// #
     /// # #[global_allocator]
-    /// # static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
+    /// # static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
     /// #
     /// # fn main() {
-    /// use jemalloc_ctl::opt;
+    /// use tikv_jemalloc_ctl::opt;
     /// let zero = opt::zero::read().unwrap();
     /// println!("zeroing: {}", zero);
     /// # }
@@ -168,14 +153,11 @@ option! {
     /// # Examples
     ///
     /// ```
-    /// # extern crate jemallocator;
-    /// # extern crate jemalloc_ctl;
-    /// #
     /// # #[global_allocator]
-    /// # static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
+    /// # static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
     /// #
     /// # fn main() {
-    /// use jemalloc_ctl::opt;
+    /// use tikv_jemalloc_ctl::opt;
     /// let tcache = opt::tcache::read().unwrap();
     /// println!("thread-local caching: {}", tcache);
     /// # }
@@ -196,14 +178,11 @@ option! {
     /// # Examples
     ///
     /// ```
-    /// # extern crate jemallocator;
-    /// # extern crate jemalloc_ctl;
-    /// #
     /// # #[global_allocator]
-    /// # static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
+    /// # static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
     /// #
     /// # fn main() {
-    /// use jemalloc_ctl::opt;
+    /// use tikv_jemalloc_ctl::opt;
     /// let lg_tcache_max = opt::lg_tcache_max::read().unwrap();
     /// println!("max cached allocation size: {}", 1 << lg_tcache_max);
     /// # }
@@ -225,14 +204,11 @@ option! {
     /// # Examples
     ///
     /// ```
-    /// # extern crate jemallocator;
-    /// # extern crate jemalloc_ctl;
-    /// #
     /// # #[global_allocator]
-    /// # static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
+    /// # static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
     /// #
     /// # fn main() {
-    /// use jemalloc_ctl::opt;
+    /// use tikv_jemalloc_ctl::opt;
     /// let background_thread = opt::background_thread::read().unwrap();
     /// println!("background threads since initialization: {}", background_thread);
     /// # }

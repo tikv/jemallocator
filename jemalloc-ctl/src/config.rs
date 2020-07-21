@@ -12,14 +12,11 @@ option! {
     /// # Examples
     ///
     /// ```
-    /// # extern crate jemallocator;
-    /// # extern crate jemalloc_ctl;
-    /// #
     /// # #[global_allocator]
-    /// # static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
+    /// # static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
     /// #
     /// # fn main() {
-    /// use jemalloc_ctl::config;
+    /// use tikv_jemalloc_ctl::config;
     /// let malloc_conf = config::malloc_conf::mib().unwrap();
     /// println!("default malloc conf: {}", malloc_conf.read().unwrap());
     /// # }

@@ -1,8 +1,8 @@
 //! Raw `unsafe` access to the `malloctl` API.
 
-use error::{cvt, Result};
+use crate::error::{cvt, Result};
+use crate::{mem, ptr, slice};
 use libc::c_char;
-use {mem, ptr, slice};
 
 /// Translates `name` to a `mib` (Management Information Base)
 ///
@@ -19,15 +19,11 @@ use {mem, ptr, slice};
 /// is legitimate to construct code like the following:
 ///
 /// ```
-/// extern crate libc;
-/// extern crate jemallocator;
-/// extern crate jemalloc_ctl;
-///
 /// #[global_allocator]
-/// static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
+/// static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 ///
 /// fn main() {
-///     use jemalloc_ctl::raw;
+///     use tikv_jemalloc_ctl::raw;
 ///     use libc::{c_uint, c_char};
 ///     unsafe {
 ///         let mut mib = [0; 4];
@@ -46,7 +42,7 @@ pub fn name_to_mib(name: &[u8], mib: &mut [usize]) -> Result<()> {
         validate_name(name);
 
         let mut len = mib.len();
-        cvt(jemalloc_sys::mallctlnametomib(
+        cvt(tikv_jemalloc_sys::mallctlnametomib(
             name as *const _ as *const c_char,
             mib.as_mut_ptr(),
             &mut len,
@@ -70,7 +66,7 @@ pub fn name_to_mib(name: &[u8], mib: &mut [usize]) -> Result<()> {
 pub unsafe fn read_mib<T: Copy>(mib: &[usize]) -> Result<T> {
     let mut value = MaybeUninit { init: () };
     let mut len = mem::size_of::<T>();
-    cvt(jemalloc_sys::mallctlbymib(
+    cvt(tikv_jemalloc_sys::mallctlbymib(
         mib.as_ptr(),
         mib.len(),
         &mut value.init as *mut _ as *mut _,
@@ -96,7 +92,7 @@ pub unsafe fn read<T: Copy>(name: &[u8]) -> Result<T> {
 
     let mut value = MaybeUninit { init: () };
     let mut len = mem::size_of::<T>();
-    cvt(jemalloc_sys::mallctl(
+    cvt(tikv_jemalloc_sys::mallctl(
         name as *const _ as *const c_char,
         &mut value.init as *mut _ as *mut _,
         &mut len,
@@ -119,7 +115,7 @@ pub unsafe fn read<T: Copy>(name: &[u8]) -> Result<T> {
 /// sizes of `bool` and `u8` match, but `bool` cannot represent all values that
 /// `u8` can.
 pub unsafe fn write_mib<T>(mib: &[usize], mut value: T) -> Result<()> {
-    cvt(jemalloc_sys::mallctlbymib(
+    cvt(tikv_jemalloc_sys::mallctlbymib(
         mib.as_ptr(),
         mib.len(),
         ptr::null_mut(),
@@ -141,7 +137,7 @@ pub unsafe fn write_mib<T>(mib: &[usize], mut value: T) -> Result<()> {
 pub unsafe fn write<T>(name: &[u8], mut value: T) -> Result<()> {
     validate_name(name);
 
-    cvt(jemalloc_sys::mallctl(
+    cvt(tikv_jemalloc_sys::mallctl(
         name as *const _ as *const c_char,
         ptr::null_mut(),
         ptr::null_mut(),
@@ -164,7 +160,7 @@ pub unsafe fn write<T>(name: &[u8], mut value: T) -> Result<()> {
 /// `u8` can.
 pub unsafe fn update_mib<T>(mib: &[usize], mut value: T) -> Result<T> {
     let mut len = mem::size_of::<T>();
-    cvt(jemalloc_sys::mallctlbymib(
+    cvt(tikv_jemalloc_sys::mallctlbymib(
         mib.as_ptr(),
         mib.len(),
         &mut value as *mut _ as *mut _,
@@ -189,7 +185,7 @@ pub unsafe fn update<T>(name: &[u8], mut value: T) -> Result<T> {
     validate_name(name);
 
     let mut len = mem::size_of::<T>();
-    cvt(jemalloc_sys::mallctl(
+    cvt(tikv_jemalloc_sys::mallctl(
         name as *const _ as *const c_char,
         &mut value as *mut _ as *mut _,
         &mut len,

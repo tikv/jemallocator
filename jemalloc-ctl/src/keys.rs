@@ -8,15 +8,11 @@
 //! # Example
 //!
 //! ```
-//! extern crate libc;
-//! extern crate jemallocator;
-//! extern crate jemalloc_ctl;
-//!
 //! #[global_allocator]
-//! static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
+//! static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 //!
 //! fn main() {
-//!     use jemalloc_ctl::{Access, AsName, Name, Mib};
+//!     use tikv_jemalloc_ctl::{Access, AsName, Name, Mib};
 //!     use libc::{c_uint, c_char};
 //!     let name = b"arenas.nbins\0".name();
 //!     let nbins: c_uint = name.read().unwrap();
@@ -29,9 +25,9 @@
 //! }
 //! ```
 
-use error::Result;
-use std::str;
-use {fmt, ops, raw};
+use crate::error::Result;
+use crate::std::str;
+use crate::{fmt, ops, raw};
 
 /// A `Name` in the _MALLCTL NAMESPACE_.
 #[repr(transparent)]

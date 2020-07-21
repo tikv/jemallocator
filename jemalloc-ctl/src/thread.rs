@@ -1,7 +1,7 @@
 //! Thread specific operations.
 
-use error::Result;
-use raw::{read, read_mib};
+use crate::error::Result;
+use crate::raw::{read, read_mib};
 
 option! {
     allocatedp[ str: b"thread.allocatedp\0", non_str: 2 ] => *mut u64 |
@@ -22,14 +22,11 @@ option! {
     /// # Example
     ///
     /// ```
-    /// # extern crate jemallocator;
-    /// # extern crate jemalloc_ctl;
-    /// #
     /// # #[global_allocator]
-    /// # static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
+    /// # static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
     /// #
     /// # fn main() {
-    /// use jemalloc_ctl::thread;
+    /// use tikv_jemalloc_ctl::thread;
     /// let allocated = thread::allocatedp::mib().unwrap();
     /// let allocated = allocated.read().unwrap();
     ///
@@ -75,14 +72,11 @@ option! {
     /// # Example
     ///
     /// ```
-    /// # extern crate jemallocator;
-    /// # extern crate jemalloc_ctl;
-    /// #
     /// # #[global_allocator]
-    /// # static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
+    /// # static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
     /// #
     /// # fn main() {
-    /// use jemalloc_ctl::thread;
+    /// use tikv_jemalloc_ctl::thread;
     /// let deallocated = thread::deallocatedp::mib().unwrap();
     /// let deallocated = deallocated.read().unwrap();
     ///

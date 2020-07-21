@@ -4,8 +4,8 @@
     allow(clippy::cast_sign_loss, clippy::cast_possible_wrap)
 )]
 
+use crate::{fmt, num, result};
 use libc::c_int;
-use {fmt, num, result};
 
 pub trait NonZeroT {
     type T;
@@ -19,7 +19,7 @@ impl NonZeroT for i64 {
 
 pub type NonZeroCInt = <c_int as NonZeroT>::T;
 
-/// Errors of the `jemalloc_sys::mallct`-family of functions.
+/// Errors of the `tikv_jemalloc_sys::mallct`-family of functions.
 ///
 /// The `jemalloc-sys` crate: `mallctl`, `mallctlnametomib`, and `mallctlbymib``
 /// functions return `0` on success; otherwise they return an error value.
@@ -102,7 +102,7 @@ mod tests {
 
     #[test]
     fn size_of_result_error() {
-        use mem::size_of;
+        use crate::mem::size_of;
         assert_eq!(size_of::<Result<()>>(), size_of::<Error>());
         assert_eq!(size_of::<Error>(), size_of::<libc::c_int>());
     }
