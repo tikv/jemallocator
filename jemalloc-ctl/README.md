@@ -7,7 +7,6 @@
 ## Documentation
 
 * [Latest release (docs.rs)][docs.rs]
-* [master branch`][master_docs]
 
 ## Platform support
 

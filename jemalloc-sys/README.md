@@ -8,7 +8,6 @@
 ## Documentation
 
 * [Latest release (docs.rs)][docs.rs]
-* [master branch`][master_docs]
 
 `jemalloc` is a general purpose memory allocator, its documentation
 

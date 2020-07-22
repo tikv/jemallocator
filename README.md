@@ -20,7 +20,6 @@ The `jemalloc` support ecosystem consists of the following crates:
 ## Documentation
 
 * [Latest release (docs.rs)][docs.rs]
-* [Master branch][master_docs]
 
 To use `tikv-jemallocator` add it as a dependency:
 
