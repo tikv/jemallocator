@@ -1,3 +1,8 @@
+# 0.4.1 - 2020-11-16
+
+- Updated jemalloc to fix deadlock during initialization
+- Fixed failure of generating docs on release version
+
 # 0.4.0 - 2020-07-21
 
 - Forked from jemallocator master
