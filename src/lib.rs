@@ -16,7 +16,7 @@
 //! and is suitable both as a memory allocator and as a global allocator.
 
 #![cfg_attr(feature = "alloc_trait", feature(allocator_api))]
-#![deny(missing_docs, intra_doc_link_resolution_failure)]
+#![deny(missing_docs, broken_intra_doc_links)]
 #![no_std]
 
 #[cfg(feature = "alloc_trait")]
