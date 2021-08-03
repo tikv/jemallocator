@@ -1,17 +1,66 @@
 name: CI
 
-on: [push]
+on:
+  pull_request:
+  push:
+    branches:
+    - switch-to-github-actions
 
 jobs:
-  build:
-
-    runs-on: ubuntu-latest
-
+  test:
+    name: ${{ matrix.name }}
+    strategy:
+      matrix:
+        include:
+          #- name: aarch64-unknown-linux-gnu
+          #  target: aarch64-unknown-linux-gnu
+          #  nobgt: 0
+          #  valgrind: 0
+          #  no_tests: 1
+          #  tag: arm64
+          - name: x86_64-unknown-linux-gnu (nightly)
+            target: x86_64-unknown-linux-gnu
+            nobgt: 0
+            valgrind: 1
+            no_tests: 0
+            rust: nightly
+            tag: ubuntu-latest
+          - name: x86_64-unknown-linux-gnu (stable)
+            target: x86_64-unknown-linux-gnu
+            nobgt: 0
+            valgrind: 1
+            no_tests: 0
+            rust: stable
+            tag: ubuntu-latest
+          - name: x86_64-unknown-linux-musl
+            target: x86_64-unknown-linux-musl
+            nobgt: 1
+            valgrind: 0
+            no_tests: 1
+            tag: ubuntu-latest
+          - name: x86_64-apple-darwin (stable)
+            target: x86_64-apple-darwin
+            nobgt: 0
+            valgrind: 0
+            no_tests: 1
+            tag: macos-latest
+    runs-on: ${{ matrix.tag }}
+    env:
+      TARGET: ${{ matrix.target }}
+      NO_JEMALLOC_TESTS: ${{ matrix.no_tests }}
+      VALGRIND: ${{ matrix.valgrind }}
+      NOBGT: ${{ matrix.nobgt }}
     steps:
     - uses: actions/checkout@v1
-    - name: Run a one-line script
-      run: echo Hello, world!
-    - name: Run a multi-line script
+    - name: install
       run: |
-        echo Add other actions to build,
-        echo test, and deploy your project.
+        rustup target add ${{ matrix.target }}
+        rustup component add llvm-tools-preview
+        if [[ "$VALGRIND" == "1" ]]; then
+          sudo apt install -y valgrind
+        fi
+        if [[ "$TARGET" == "x86_64-unknown-linux-musl" ]]; then
+          sudo apt install -y musl-tools
+        fi
+    - name: test
+      run: sh ci/run.sh
