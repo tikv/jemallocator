@@ -24,22 +24,6 @@ else
     export JEMALLOC_SYS_RUN_JEMALLOC_TESTS=1
 fi
 
-if [ "${VALGRIND}" = "1" ]
-then
-    case "${TARGET}" in
-        "x86_64-unknown-linux-gnu")
-            export CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER=valgrind
-            ;;
-        "x86_64-apple-darwin")
-            export CARGO_TARGET_X86_64_APPLE_DARWIN_RUNNER=valgrind
-            ;;
-        *)
-            echo "Specify how to run valgrind for TARGET=${TARGET}"
-            exit 1
-            ;;
-    esac
-fi
-
 if [ "${TARGET}" = "x86_64-unknown-linux-gnu" ] || [ "${TARGET}" = "x86_64-apple-darwin" ]
 then
     # Not using tee to avoid too much logs that exceeds travis' limit.
