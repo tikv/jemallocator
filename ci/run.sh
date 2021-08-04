@@ -66,7 +66,10 @@ case "${TARGET}" in
         ;;
 esac
 
-cargo test --target "${TARGET}" -p systest
+if rustc --version | grep -v nightly >/dev/null; then
+    # systest can't be built on nightly
+    cargo test --target "${TARGET}" -p systest
+fi
 cargo test --target "${TARGET}" --manifest-path jemallocator-global/Cargo.toml
 cargo test --target "${TARGET}" \
              --manifest-path jemallocator-global/Cargo.toml \
