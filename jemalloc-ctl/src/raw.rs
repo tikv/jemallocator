@@ -223,7 +223,7 @@ pub unsafe fn update<T>(name: &[u8], mut value: T) -> Result<T> {
 /// which is undefined behavior.
 pub unsafe fn read_str_mib(mib: &[usize]) -> Result<&'static [u8]> {
     let ptr: *const c_char = read_mib(mib)?;
-    ptr2str(ptr)
+    Ok(ptr2str(ptr))
 }
 
 /// Uses the MIB `mib` as key to the _MALLCTL NAMESPACE_ and writes its `value`.
@@ -274,7 +274,7 @@ pub unsafe fn update_str_mib(
     value: &'static [u8],
 ) -> Result<&'static [u8]> {
     let ptr: *const c_char = update_mib(mib, value.as_ptr() as *const c_char)?;
-    ptr2str(ptr)
+    Ok(ptr2str(ptr))
 }
 
 /// Uses the null-terminated string `name` as key to the _MALLCTL NAMESPACE_ and
@@ -302,7 +302,7 @@ pub unsafe fn update_str_mib(
 /// which is undefined behavior.
 pub unsafe fn read_str(name: &[u8]) -> Result<&'static [u8]> {
     let ptr: *const c_char = read(name)?;
-    ptr2str(ptr)
+    Ok(ptr2str(ptr))
 }
 
 /// Uses the null-terminated string `name` as key to the _MALLCTL NAMESPACE_ and
@@ -344,7 +344,7 @@ pub unsafe fn update_str(
     value: &'static [u8],
 ) -> Result<&'static [u8]> {
     let ptr: *const c_char = update(name, value.as_ptr() as *const c_char)?;
-    ptr2str(ptr)
+    Ok(ptr2str(ptr))
 }
 
 /// Converts a non-empty null-terminated character string at `ptr` into a valid
@@ -358,13 +358,13 @@ pub unsafe fn update_str(
 ///
 /// If `ptr` does not point to a null-terminated character string the behavior
 /// is undefined.
-unsafe fn ptr2str(ptr: *const c_char) -> Result<&'static [u8]> {
+unsafe fn ptr2str(ptr: *const c_char) -> &'static [u8] {
     assert!(
         !ptr.is_null(),
         "attempt to convert a null-ptr to a UTF-8 string"
     );
     let len = libc::strlen(ptr);
-    Ok(slice::from_raw_parts(ptr as *const u8, len + 1))
+    slice::from_raw_parts(ptr as *const u8, len + 1)
 }
 
 fn validate_name(name: &[u8]) {
@@ -396,16 +396,12 @@ mod tests {
             {
                 let cstr = b"\0";
                 let rstr = ptr2str(cstr as *const _ as *const c_char);
-                assert!(rstr.is_ok());
-                let rstr = rstr.unwrap();
                 assert_eq!(rstr.len(), 1);
                 assert_eq!(rstr, b"\0");
             }
             {
                 let cstr = b"foo  baaar\0";
                 let rstr = ptr2str(cstr as *const _ as *const c_char);
-                assert!(rstr.is_ok());
-                let rstr = rstr.unwrap();
                 assert_eq!(rstr.len(), b"foo  baaar\0".len());
                 assert_eq!(rstr, b"foo  baaar\0");
             }

@@ -275,7 +275,7 @@ unsafe impl Alloc for Jemalloc {
 /// and the size reported by this function should not be depended on,
 /// since such behavior is entirely implementation-dependent.
 ///
-/// # Unsafety
+/// # Safety
 ///
 /// `ptr` must have been allocated by `Jemalloc` and must not have been freed yet.
 pub unsafe fn usable_size<T>(ptr: *const T) -> usize {
