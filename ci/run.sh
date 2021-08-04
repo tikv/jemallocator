@@ -24,28 +24,7 @@ else
     export JEMALLOC_SYS_RUN_JEMALLOC_TESTS=1
 fi
 
-if [ "${TARGET}" = "x86_64-unknown-linux-gnu" ] || [ "${TARGET}" = "x86_64-apple-darwin" ]
-then
-    # Not using tee to avoid too much logs that exceeds travis' limit.
-    if ! cargo build -vv --target "${TARGET}" > build_no_std.txt 2>&1; then
-        tail -n 1024 build_no_std.txt
-        exit 1
-    fi
-
-    # Check that the no-std builds are not linked against a libc with default
-    # features or the `use_std` feature enabled:
-    ! grep -q "default" build_no_std.txt
-    ! grep -q "use_std" build_no_std.txt
-
-    RUST_SYS_ROOT=$(rustc --target="${TARGET}" --print sysroot)
-    RUST_LLVM_NM="${RUST_SYS_ROOT}/lib/rustlib/${TARGET}/bin/llvm-nm"
-
-    find target/ -iname '*jemalloc*.rlib' | while read -r rlib; do
-        echo "${RUST_LLVM_NM} ${rlib}"
-        ! $RUST_LLVM_NM "${rlib}" | grep "std"
-    done
-fi
-
+cargo build --target "${TARGET}"
 cargo test --target "${TARGET}"
 cargo test --target "${TARGET}" --features profiling
 cargo test --target "${TARGET}" --features debug
