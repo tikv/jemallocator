@@ -1,6 +1,6 @@
 # tikv-jemallocator
 
-[![CI](https://github.com/tikv/jemallocator/actions/workflows/main.yml/badge.svg)](https://github.com/tikv/jemallocator/actions/workflows/main.yml) [![Latest Version]][crates.io] [![docs]][docs.rs]
+[![ci]][github actions] [![Latest Version]][crates.io] [![docs]][docs.rs]
 
 This project is a simplified fork of [jemallocator](https://github.com/gnzlbg/jemallocator) focus on server.
 
@@ -53,18 +53,17 @@ The following table describes the supported platforms:
 * `build`: does the library compile for the target?
 * `run`: do `tikv-jemallocator` and `tikv-jemalloc-sys` tests pass on the target?
 * `jemalloc`: do `tikv-jemalloc`'s tests pass on the target?
-* `valgrind`: do the tests pass under valgrind?
 
 Tier 1 targets are tested on all Rust channels (stable, beta, and nightly). All
 other targets are only tested on Rust nightly.
 
-| Linux targets:                      | build     | run     | jemalloc     | valgrind     |
+| Linux targets:                      | build     | run     | jemalloc     |
 |-------------------------------------|-----------|---------|--------------|--------------|
-| `aarch64-unknown-linux-gnu`         | ✓         | ✓       | ✗            | ✗            |
-| `powerpc64le-unknown-linux-gnu`     | ✓         | ✓       | ✗            | ✗            |
-| `x86_64-unknown-linux-gnu` (tier 1) | ✓         | ✓       | ✓            | ✓            |
-| **MacOSX targets:**                 | **build** | **run** | **jemalloc** | **valgrind** |
-| `x86_64-apple-darwin` (tier 1)      | ✓         | ✓       | ✗            | ✗            |
+| `aarch64-unknown-linux-gnu`         | ✓         | ✓       | ✗            |
+| `powerpc64le-unknown-linux-gnu`     | ✓         | ✓       | ✗            |
+| `x86_64-unknown-linux-gnu` (tier 1) | ✓         | ✓       | ✓            |
+| **MacOSX targets:**                 | **build** | **run** | **jemalloc** |
+| `x86_64-apple-darwin` (tier 1)      | ✓         | ✓       | ✗            |
 
 ## Features
 
@@ -88,9 +87,9 @@ Unless you explicitly state otherwise, any contribution intentionally submitted
 for inclusion in `tikv-jemallocator` by you, as defined in the Apache-2.0 license,
 shall be dual licensed as above, without any additional terms or conditions.
 
-[travis]: https://travis-ci.com/tikv/jemallocator
-[Travis-CI Status]: https://travis-ci.com/tikv/jemallocator.svg?branch=master
 [Latest Version]: https://img.shields.io/crates/v/tikv-jemallocator.svg
 [crates.io]: https://crates.io/crates/tikv-jemallocator
 [docs]: https://docs.rs/tikv-jemallocator/badge.svg
 [docs.rs]: https://docs.rs/tikv-jemallocator/
+[ci]: https://github.com/tikv/jemallocator/actions/workflows/main.yml/badge.svg
+[github actions]: https://github.com/tikv/jemallocator/actions
