@@ -1,6 +1,6 @@
 # tikv-jemallocator
 
-[![Travis-CI Status]][travis] [![Latest Version]][crates.io] [![docs]][docs.rs]
+[![CI](https://github.com/tikv/jemallocator/actions/workflows/main.yml/badge.svg)](https://github.com/tikv/jemallocator/actions/workflows/main.yml) [![Latest Version]][crates.io] [![docs]][docs.rs]
 
 This project is a simplified fork of [jemallocator](https://github.com/gnzlbg/jemallocator) focus on server.
 
