@@ -47,7 +47,7 @@ fn layout_to_flags(layout: &Layout) -> c_int {
 
 macro_rules! rt {
     ($size:expr, $align:expr) => {
-        paste::item! {
+        paste::paste! {
             #[bench]
             fn [<rt_mallocx_size_ $size _align_ $align>](b: &mut Bencher) {
                 b.iter(|| unsafe {

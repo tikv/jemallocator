@@ -5,7 +5,7 @@ macro_rules! types {
      docs: $(#[$doc:meta])*
      mib_docs: $(#[$doc_mib:meta])*
     ) => {
-        paste::item! {
+        paste::paste! {
             $(#[$doc])*
             #[allow(non_camel_case_types)]
             pub struct $id;
@@ -44,7 +44,7 @@ macro_rules! types {
 /// Read
 macro_rules! r {
     ($id:ident => $ret_ty:ty) => {
-        paste::item! {
+        paste::paste! {
             impl $id {
                 /// Reads value using string API.
                 pub fn read() -> crate::error::Result<$ret_ty> {
@@ -93,7 +93,7 @@ macro_rules! r {
 /// Write
 macro_rules! w {
     ($id:ident => $ret_ty:ty) => {
-        paste::item! {
+        paste::paste! {
             impl $id {
                 /// Writes `value` using string API.
                 pub fn write(value: $ret_ty) -> crate::error::Result<()> {
@@ -142,7 +142,7 @@ macro_rules! w {
 /// Update
 macro_rules! u {
     ($id:ident  => $ret_ty:ty) => {
-        paste::item! {
+        paste::paste! {
             impl $id {
                 /// Updates key to `value` returning its old value using string API.
                 pub fn update(value: $ret_ty) -> crate::error::Result<$ret_ty> {
