@@ -309,6 +309,9 @@ fn main() {
     } else if !target.contains("windows") {
         println!("cargo:rustc-link-lib=pthread");
     }
+    if target.contains("riscv") {
+        println!("cargo:rustc-link-lib=atomic");
+    }
     println!("cargo:rerun-if-changed=jemalloc");
 }
 
