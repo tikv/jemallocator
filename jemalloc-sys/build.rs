@@ -309,6 +309,8 @@ fn main() {
     } else if !target.contains("windows") {
         println!("cargo:rustc-link-lib=pthread");
     }
+    // GCC may generate a __atomic_exchange_1 library call which requires -latomic
+    // during the final linking. https://github.com/riscv-collab/riscv-gcc/issues/12
     if target.contains("riscv") {
         println!("cargo:rustc-link-lib=atomic");
     }
