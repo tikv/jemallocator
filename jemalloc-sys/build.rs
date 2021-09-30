@@ -314,7 +314,6 @@ fn main() {
     if target.contains("riscv") {
         println!("cargo:rustc-link-lib=atomic");
     }
-    println!("cargo:rerun-if-changed=jemalloc");
 }
 
 fn run_and_log(cmd: &mut Command, log_file: &Path) {
