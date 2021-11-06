@@ -257,7 +257,7 @@ fn main() {
 
     cmd.arg(format!("--host={}", gnu_target(&target)));
     cmd.arg(format!("--build={}", gnu_target(&host)));
-    cmd.arg(format!("--prefix={}", out_dir.display()));
+    cmd.arg(format!("--prefix={}", out_dir.to_str().unwrap().replace("C:\\", "/c/").replace("\\", "/")));
 
     run_and_log(&mut cmd, &build_dir.join("config.log"));
 
@@ -289,6 +289,14 @@ fn main() {
         .arg("-j")
         .arg(num_jobs));
 
+    if target.contains("windows") && target.contains("gnu") {
+        run(Command::new("ar")
+            .current_dir(&build_dir)
+            .arg("rsc")
+            .arg("lib/libjemalloc.a")
+            .arg("src/*.o"));
+    }
+
     println!("cargo:root={}", out_dir.display());
 
     // Linkage directives to pull in jemalloc and its dependencies.
@@ -303,7 +311,7 @@ fn main() {
     } else {
         println!("cargo:rustc-link-lib=static=jemalloc_pic");
     }
-    println!("cargo:rustc-link-search=native={}/lib", build_dir.display());
+    println!("cargo:rustc-link-search=native={}", build_dir.join("lib").display());
     if target.contains("android") {
         println!("cargo:rustc-link-lib=gcc");
     } else if !target.contains("windows") {

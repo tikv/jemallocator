@@ -64,6 +64,11 @@ other targets are only tested on Rust nightly.
 | `x86_64-unknown-linux-gnu` (tier 1) | ✓         | ✓       | ✓            |
 | **MacOSX targets:**                 | **build** | **run** | **jemalloc** |
 | `x86_64-apple-darwin` (tier 1)      | ✓         | ✓       | ✗            |
+| **Windows targets:**                | **build** | **run** | **jemalloc** |
+| `x86_64-pc-windows-msvc` (tier 1)   | ✗         | ✗       | ✗            |
+| `i686-pc-windows-msvc` (tier 1)     | ✗         | ✗       | ✗            |
+| `x86_64-pc-windows-gnu` (tier 1)    | ✓         | ✓       | ✗            |
+| `i686-pc-windows-gnu` (tier 1)      | ✓         | ✓       | ✗            |
 
 ## Features
 
