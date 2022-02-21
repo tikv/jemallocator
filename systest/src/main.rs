@@ -1,4 +1,6 @@
-#![allow(bad_style, improper_ctypes, dead_code, unused_imports)]
+// TODO: remove systest
+#![allow(bad_style, improper_ctypes, dead_code, unused_imports, deref_nullptr)]
+#![allow(clippy::all)]
 
 use std::alloc::System;
 
