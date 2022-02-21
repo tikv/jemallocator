@@ -16,7 +16,9 @@
 //! and is suitable both as a memory allocator and as a global allocator.
 
 #![cfg_attr(feature = "alloc_trait", feature(allocator_api))]
-#![deny(missing_docs, rustdoc::broken_intra_doc_links)]
+// TODO: rename the following lint on next minor bump
+#![allow(renamed_and_removed_lints)]
+#![deny(missing_docs, broken_intra_doc_links)]
 #![no_std]
 
 #[cfg(feature = "alloc_trait")]

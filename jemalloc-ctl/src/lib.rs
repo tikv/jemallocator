@@ -64,7 +64,9 @@
 //!     }
 //! }
 //! ```
-#![deny(missing_docs, rustdoc::broken_intra_doc_links)]
+// TODO: rename the following lint on next minor bump
+#![allow(renamed_and_removed_lints)]
+#![deny(missing_docs, broken_intra_doc_links)]
 #![cfg_attr(not(feature = "use_std"), no_std)]
 #![cfg_attr(feature = "cargo-clippy", allow(clippy::module_name_repetitions))]
 

@@ -45,7 +45,9 @@
     feature = "cargo-clippy",
     allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)
 )]
-#![deny(missing_docs, rustdoc::broken_intra_doc_links)]
+// TODO: rename the following lint on next minor bump
+#![allow(renamed_and_removed_lints)]
+#![deny(missing_docs, broken_intra_doc_links)]
 
 use libc::{c_char, c_int, c_uint, c_void, size_t};
 type c_bool = c_int;
