@@ -1,6 +1,6 @@
 [package]
 name = "tikv-jemalloc-sys"
-version = "0.4.3+5.2.1-patched.2"
+version = "0.5.0-rc+5.3.0-rc.0"
 authors = [
     "Alex Crichton <alex@alexcrichton.com>",
     "Gonzalo Brito Gadeschi <gonzalobg88@gmail.com>",
@@ -20,15 +20,10 @@ Rust FFI bindings to jemalloc
 edition = "2018"
 
 [badges]
-travis-ci = { repository = "tikv/jemallocator" }
 codecov = { repository = "tikv/jemallocator" }
 is-it-maintained-issue-resolution = { repository = "tikv/jemallocator" }
 is-it-maintained-open-issues = { repository = "tikv/jemallocator" }
 maintenance = { status = "actively-developed" }
-
-[lib]
-test = false
-bench = false
 
 [dependencies]
 libc = { version = "^0.2.8", default-features = false }
@@ -36,6 +31,7 @@ libc = { version = "^0.2.8", default-features = false }
 [build-dependencies]
 cc = "^1.0.13"
 fs_extra = "^1.1"
+bindgen = { version = "0.59.0", optional = true, default-features = false, features = ["runtime"] }
 
 [features]
 default = ["background_threads_runtime_support"]
@@ -46,6 +42,7 @@ background_threads = [ "background_threads_runtime_support" ]
 stats = []
 unprefixed_malloc_on_supported_platforms = []
 disable_initial_exec_tls = []
+update-bindings = ["bindgen"]
 
 [package.metadata.docs.rs]
 rustdoc-args = [ "--cfg",  "jemallocator_docs" ]

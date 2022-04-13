@@ -13,32 +13,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-// `jemalloc` is known not to work on these targets:
-const UNSUPPORTED_TARGETS: &[&str] = &[
-    "rumprun",
-    "bitrig",
-    "emscripten",
-    "fuchsia",
-    "redox",
-    "wasm32",
-];
-
-// `jemalloc-sys` is not tested on these targets in CI:
-const UNTESTED_TARGETS: &[&str] = &["openbsd", "msvc"];
-
-// `jemalloc`'s background_thread support is known not to work on these targets:
-const NO_BG_THREAD_TARGETS: &[&str] = &["musl"];
-
-// targets that don't support unprefixed `malloc`
-//
-// “it was found that the `realpath` function in libc would allocate with libc malloc
-//  (not jemalloc malloc), and then the standard library would free with jemalloc free,
-//  causing a segfault.”
-// https://github.com/rust-lang/rust/commit/e3b414d8612314e74e2b0ebde1ed5c6997d28e8d
-// https://github.com/rust-lang/rust/commit/536011d929ecbd1170baf34e09580e567c971f95
-// https://github.com/rust-lang/rust/commit/9f3de647326fbe50e0e283b9018ab7c41abccde3
-// https://github.com/rust-lang/rust/commit/ed015456a114ae907a36af80c06f81ea93182a24
-const NO_UNPREFIXED_MALLOC: &[&str] = &["android", "dragonfly", "musl", "darwin"];
+include!("src/env.rs");
 
 macro_rules! info {
     ($($args:tt)*) => { println!($($args)*) }
@@ -78,7 +53,11 @@ fn main() {
     let mut use_prefix =
         env::var("CARGO_FEATURE_UNPREFIXED_MALLOC_ON_SUPPORTED_PLATFORMS").is_err();
 
-    if !use_prefix && NO_UNPREFIXED_MALLOC.iter().any(|i| target.contains(i)) {
+    if !use_prefix
+        && NO_UNPREFIXED_MALLOC_TARGETS
+            .iter()
+            .any(|i| target.contains(i))
+    {
         warning!(
             "Unprefixed `malloc` requested on unsupported platform `{}` => using prefixed `malloc`",
             target
@@ -157,7 +136,7 @@ fn main() {
             .to_str()
             .unwrap()
             .replace("C:\\", "/c/")
-            .replace("\\", "/"),
+            .replace('\\', "/"),
     )
     .current_dir(&build_dir)
     .env("CC", compiler.path())

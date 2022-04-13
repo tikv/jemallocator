@@ -166,7 +166,7 @@ option! {
 }
 
 option! {
-    lg_tcache_max[ str: b"opt.lg_tcache_max\0", non_str: 2 ] => libc::size_t |
+    tcache_max[ str: b"opt.tcache_max\0", non_str: 2 ] => libc::size_t |
     ops: r |
     docs:
     /// Maximum size class (log base 2) to cache in the thread-specific cache
@@ -183,11 +183,11 @@ option! {
     /// #
     /// # fn main() {
     /// use tikv_jemalloc_ctl::opt;
-    /// let lg_tcache_max = opt::lg_tcache_max::read().unwrap();
-    /// println!("max cached allocation size: {}", 1 << lg_tcache_max);
+    /// let tcache_max = opt::tcache_max::read().unwrap();
+    /// println!("max cached allocation size: {}", tcache_max);
     /// # }
     /// ```
-    mib_docs: /// See [`lg_tcache_max`].
+    mib_docs: /// See [`tcache_max`].
 }
 
 option! {
