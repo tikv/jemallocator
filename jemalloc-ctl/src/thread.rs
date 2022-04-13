@@ -9,7 +9,7 @@ option! {
     docs:
     /// Access to the total number of bytes allocated by the current thread.
     ///
-    /// Unlike [`::stats::allocated`], the value returned by this type is not the
+    /// Unlike [`crate::stats::allocated`], the value returned by this type is not the
     /// number of bytes *currently* allocated, but rather the number of bytes
     /// that have *ever* been allocated by this thread.
     ///

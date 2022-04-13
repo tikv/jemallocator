@@ -1,7 +1,7 @@
 //! Global allocator statistics.
 //!
 //! `jemalloc` tracks a wide variety of statistics. Many of them are cached, and
-//! only refreshed when the `jemalloc` "epoch" is advanced. See the [`::epoch`] type
+//! only refreshed when the `jemalloc` "epoch" is advanced. See the [`crate::epoch`] type
 //! for more information.
 
 option! {
@@ -11,7 +11,7 @@ option! {
     /// Total number of bytes allocated by the application.
     ///
     /// This statistic is cached, and is only refreshed when the epoch is
-    /// advanced. See the [`::epoch`] type for more information.
+    /// advanced. See the [`crate::epoch`] type for more information.
     ///
     /// This corresponds to `stats.allocated` in jemalloc's API.
     ///
@@ -46,7 +46,7 @@ option! {
     /// value returned by [`allocated`].
     ///
     /// This statistic is cached, and is only refreshed when the epoch is
-    /// advanced. See the [`::epoch`] type for more information.
+    /// advanced. See the [`crate::epoch`] type for more information.
     ///
     /// This corresponds to `stats.active` in jemalloc's API.
     ///
@@ -78,7 +78,7 @@ option! {
     /// Total number of bytes dedicated to `jemalloc` metadata.
     ///
     /// This statistic is cached, and is only refreshed when the epoch is
-    /// advanced. See the [`::epoch`] type for more information.
+    /// advanced. See the [`crate::epoch`] type for more information.
     ///
     /// This corresponds to `stats.metadata` in jemalloc's API.
     ///
@@ -116,7 +116,7 @@ option! {
     /// value returned by [`active`].
     ///
     /// This statistic is cached, and is only refreshed when the epoch is
-    /// advanced. See the [`::epoch`] type for more information.
+    /// advanced. See the [`crate::epoch`] type for more information.
     ///
     /// This corresponds to `stats.resident` in jemalloc's API.
     ///
@@ -151,7 +151,7 @@ option! {
     /// larger than the value returned by [`active`].
     ///
     /// This statistic is cached, and is only refreshed when the epoch is
-    /// advanced. See the [`::epoch`] type for more information.
+    /// advanced. See the [`crate::epoch`] type for more information.
     ///
     /// This corresponds to `stats.mapped` in jemalloc's API.
     ///
@@ -186,7 +186,7 @@ option! {
     /// excluded from mapped memory statistics, e.g. [`mapped`].
     ///
     /// This statistic is cached, and is only refreshed when the epoch is
-    /// advanced. See the [`::epoch`] type for more information.
+    /// advanced. See the [`crate::epoch`] type for more information.
     ///
     /// This corresponds to `stats.retained` in jemalloc's API.
     ///

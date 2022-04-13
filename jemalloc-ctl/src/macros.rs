@@ -26,7 +26,7 @@ macro_rules! types {
                     Ok([<$id _mib>](Self::NAME.$name_to_mib()?))
                 }
 
-                /// Key [`::keys::Name`].
+                /// Key [`crate::keys::Name`].
                 pub fn name() -> &'static crate::keys::Name {
                     Self::NAME
                 }
