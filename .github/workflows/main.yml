@@ -60,7 +60,7 @@ jobs:
           echo "$PWD/core-dump/corefile-%e-%p-%t" | sudo tee /proc/sys/kernel/core_pattern
           mkdir core-dump
         fi
-        sh ci/run.sh
+        env RUSTFLAGS="-C relocation-model=static" sh ci/run.sh
     - name: upload coredump
       uses: actions/upload-artifact@v2
       if: ${{ failure() }}
