@@ -54,21 +54,7 @@ jobs:
           sudo apt install -y musl-tools
         fi
     - name: test
-      run: |
-        if [[ "$TARGET" == "x86_64-unknown-linux-musl" ]]; then
-          ulimit -c unlimited
-          echo "$PWD/core-dump/corefile-%e-%p-%t" | sudo tee /proc/sys/kernel/core_pattern
-          mkdir core-dump
-        fi
-        env RUSTFLAGS="-C relocation-model=static" sh ci/run.sh
-    - name: upload coredump
-      uses: actions/upload-artifact@v2
-      if: ${{ failure() }}
-      with:
-        name: coredump
-        path: |
-          ./target/x86_64-unknown-linux-musl/debug/deps/tikv_jemalloc_sys-*
-          ./core-dump/*
+      run: sh ci/run.sh
   test_bench:
     name: Benchmarks using x86_64-unknown-linux-gnu (nightly)
     runs-on: ubuntu-latest

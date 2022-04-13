@@ -143,7 +143,9 @@ fn main() {
     .env("CFLAGS", cflags.clone())
     .env("LDFLAGS", cflags.clone())
     .env("CPPFLAGS", cflags)
-    .arg("--disable-cxx");
+    .arg("--disable-cxx")
+    .arg("--enable-doc=no")
+    .arg("--enable-shared=no");
 
     if target.contains("ios") {
         // newer iOS deviced have 16kb page sizes:
@@ -286,7 +288,7 @@ fn main() {
     if target.contains("android") {
         println!("cargo:rustc-link-lib=gcc");
     } else if !target.contains("windows") {
-        println!("cargo:rustc-link-lib=pthread");
+        println!("cargo:rustc-link-arg=-pthread");
     }
     // GCC may generate a __atomic_exchange_1 library call which requires -latomic
     // during the final linking. https://github.com/riscv-collab/riscv-gcc/issues/12
