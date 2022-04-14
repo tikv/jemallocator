@@ -1,7 +1,7 @@
 [package]
 name = "tikv-jemallocator"
 # Make sure to update the version in the README as well:
-version = "0.5.0-rc"
+version = "0.4.2"
 authors = [
     "Alex Crichton <alex@alexcrichton.com>",
     "Gonzalo Brito Gadeschi <gonzalobg88@gmail.com>",
@@ -33,12 +33,12 @@ test = false
 bench = false
 
 [dependencies]
-tikv-jemalloc-sys = { path = "../jemalloc-sys", version = "0.5.0-rc", default-features = false }
+tikv-jemalloc-sys = { path = "../jemalloc-sys", version = "0.4.0", default-features = false }
 libc = { version = "^0.2.8", default-features = false }
 
 [dev-dependencies]
 paste = "1"
-tikv-jemalloc-ctl = { path = "../jemalloc-ctl", version = "0.5.0-rc" }
+tikv-jemalloc-ctl = { path = "../jemalloc-ctl", version = "0.4.0" }
 
 [features]
 default = ["background_threads_runtime_support"]
