@@ -169,8 +169,8 @@ option! {
     /// use tikv_jemalloc_ctl::max_background_threads;
     /// let m = max_background_threads::mib().unwrap();
     /// println!("max_background_threads: {}", m.read().unwrap());
-    /// m.write(0).unwrap();
-    /// assert_eq!(m.read().unwrap(), 0);
+    /// m.write(2).unwrap();
+    /// assert_eq!(m.read().unwrap(), 2);
     /// #
     /// # } // #[cfg(..)]
     /// # }
