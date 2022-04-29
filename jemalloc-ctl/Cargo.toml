@@ -1,5 +1,5 @@
 [package]
-name = "tikv-jemalloc-ctl"
+name = "jemalloc-ctl"
 version = "0.4.2"
 authors = [
     "Steven Fackler <sfackler@gmail.com>",
@@ -12,7 +12,7 @@ categories = ["memory-management", "api-bindings", "development-tools" ]
 keywords = ["allocator", "jemalloc"]
 repository = "https://github.com/tikv/jemallocator"
 homepage = "https://github.com/tikv/jemallocator"
-documentation = "https://docs.rs/tikv-jemalloc-ctl"
+documentation = "https://docs.rs/jemalloc-ctl"
 description = """
 A safe wrapper over jemalloc's control and introspection APIs
 """
@@ -26,12 +26,12 @@ is-it-maintained-open-issues = { repository = "tikv/jemallocator" }
 maintenance = { status = "actively-developed" }
 
 [dependencies]
-tikv-jemalloc-sys = { path = "../jemalloc-sys", version = "0.4.0" }
+jemalloc-sys = { path = "../jemalloc-sys", version = "0.4.0" }
 libc = { version = "0.2", default-features = false }
 paste = "1"
 
 [dev-dependencies]
-tikv-jemallocator = { path = "../jemallocator", version = "0.4.0" }
+jemallocator = { path = "../jemallocator", version = "0.4.0" }
 
 [features]
 default = []

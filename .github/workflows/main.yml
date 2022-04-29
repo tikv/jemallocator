@@ -1,6 +1,14 @@
 name: CI
 
-on: [pull_request]
+on:
+  pull_request:
+    branches:    
+      - 'master'
+      - 'tikv-main'
+  push:
+    branches:
+      - 'master'
+      - 'tikv-main'
 
 jobs:
   test:
@@ -73,9 +81,9 @@ jobs:
         submodules: true
     - run: rustup component add rustfmt clippy
     - run: cargo fmt --all -- --check
-    - run: cargo clippy -p tikv-jemalloc-sys -- -D clippy::all
-    - run: cargo clippy -p tikv-jemallocator -- -D clippy::all
-    - run: cargo clippy -p tikv-jemallocator-global -- -D clippy::all
-    - run: cargo clippy -p tikv-jemalloc-ctl -- -D clippy::all
+    - run: cargo clippy -p jemalloc-sys -- -D clippy::all
+    - run: cargo clippy -p jemallocator -- -D clippy::all
+    - run: cargo clippy -p jemallocator-global -- -D clippy::all
+    - run: cargo clippy -p jemalloc-ctl -- -D clippy::all
     - run: env RUSTDOCFLAGS="--cfg jemallocator_docs" cargo doc
     - run: shellcheck ci/*.sh

@@ -287,5 +287,5 @@ pub unsafe fn usable_size<T>(ptr: *const T) -> usize {
 
 /// Raw bindings to jemalloc
 mod ffi {
-    pub use tikv_jemalloc_sys::*;
+    pub use jemalloc_sys::*;
 }

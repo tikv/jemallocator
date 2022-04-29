@@ -1,13 +1,13 @@
 //! Test background threads run-time default settings.
 
-use tikv_jemallocator::Jemalloc;
+use jemallocator::Jemalloc;
 
 #[global_allocator]
 static A: Jemalloc = Jemalloc;
 
 // Returns true if background threads are enabled.
 fn background_threads() -> bool {
-    tikv_jemalloc_ctl::opt::background_thread::read().unwrap()
+    jemalloc_ctl::opt::background_thread::read().unwrap()
 }
 
 #[test]

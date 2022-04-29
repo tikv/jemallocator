@@ -23,10 +23,10 @@ option! {
     ///
     /// ```
     /// # #[global_allocator]
-    /// # static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
+    /// # static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
     /// #
     /// # fn main() {
-    /// use tikv_jemalloc_ctl::thread;
+    /// use jemalloc_ctl::thread;
     /// let allocated = thread::allocatedp::mib().unwrap();
     /// let allocated = allocated.read().unwrap();
     ///
@@ -73,10 +73,10 @@ option! {
     ///
     /// ```
     /// # #[global_allocator]
-    /// # static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
+    /// # static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
     /// #
     /// # fn main() {
-    /// use tikv_jemalloc_ctl::thread;
+    /// use jemalloc_ctl::thread;
     /// let deallocated = thread::deallocatedp::mib().unwrap();
     /// let deallocated = deallocated.read().unwrap();
     ///

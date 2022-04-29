@@ -10,7 +10,7 @@
 
 ## Platform support
 
-Supported on all platforms supported by the [`tikv-jemallocator`] crate.
+Supported on all platforms supported by the [`jemallocator`] crate.
 
 ## Example
 
@@ -18,10 +18,10 @@ Supported on all platforms supported by the [`tikv-jemallocator`] crate.
 
 use std::thread;
 use std::time::Duration;
-use tikv_jemalloc_ctl::{stats, epoch};
+use jemalloc_ctl::{stats, epoch};
 
 #[global_allocator]
-static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
+static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
 
 fn main() {
     // Obtain a MIB for the `epoch`, `stats.allocated`, and
@@ -61,10 +61,10 @@ Unless you explicitly state otherwise, any contribution intentionally submitted
 for inclusion in `jemalloc-ctl` by you, as defined in the Apache-2.0 license,
 shall be dual licensed as above, without any additional terms or conditions.
 
-[`tikv-jemallocator`]: https://github.com/tikv/jemallocator
+[`jemallocator`]: https://github.com/tikv/jemallocator
 [travis]: https://travis-ci.com/tikv/jemallocator
 [Travis-CI Status]: https://travis-ci.com/tikv/jemallocator.svg?branch=master
-[Latest Version]: https://img.shields.io/crates/v/tikv-jemallocator.svg
-[crates.io]: https://crates.io/crates/tikv-jemallocator
-[docs]: https://docs.rs/tikv-jemallocator/badge.svg
-[docs.rs]: https://docs.rs/tikv-jemallocator/
+[Latest Version]: https://img.shields.io/crates/v/jemallocator.svg
+[crates.io]: https://crates.io/crates/jemallocator
+[docs]: https://docs.rs/jemallocator/badge.svg
+[docs.rs]: https://docs.rs/jemallocator/

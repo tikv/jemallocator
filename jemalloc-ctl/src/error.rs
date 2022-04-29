@@ -19,7 +19,7 @@ impl NonZeroT for i64 {
 
 pub type NonZeroCInt = <c_int as NonZeroT>::T;
 
-/// Errors of the `tikv_jemalloc_sys::mallct`-family of functions.
+/// Errors of the `jemalloc_sys::mallct`-family of functions.
 ///
 /// The `jemalloc-sys` crate: `mallctl`, `mallctlnametomib`, and `mallctlbymib``
 /// functions return `0` on success; otherwise they return an error value.

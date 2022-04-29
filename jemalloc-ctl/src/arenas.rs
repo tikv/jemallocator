@@ -11,10 +11,10 @@ option! {
     /// ```
     /// #
     /// # #[global_allocator]
-    /// # static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
+    /// # static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
     /// #
     /// # fn main() {
-    /// use tikv_jemalloc_ctl::arenas;
+    /// use jemalloc_ctl::arenas;
     /// println!("number of arenas: {}", arenas::narenas::read().unwrap());
     ///
     /// let arenas_mib = arenas::narenas::mib().unwrap();
