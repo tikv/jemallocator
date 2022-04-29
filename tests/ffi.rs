@@ -3,8 +3,8 @@ extern crate jemalloc_sys as ffi;
 use std::mem;
 use std::ptr;
 
-use libc::{c_char, c_void};
 use jemallocator::Jemalloc;
+use libc::{c_char, c_void};
 
 #[global_allocator]
 static A: Jemalloc = Jemalloc;
