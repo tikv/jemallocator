@@ -1,4 +1,4 @@
-# tikv-jemallocator
+# jemallocator
 
 [![ci]][github actions] [![Latest Version]][crates.io] [![docs]][docs.rs]
 
@@ -11,32 +11,32 @@ This project is a simplified fork of [jemallocator](https://github.com/gnzlbg/je
 
 The `jemalloc` support ecosystem consists of the following crates:
 
-* `tikv-jemalloc-sys`: builds and links against `jemalloc` exposing raw C bindings to it.
-* `tikv-jemallocator`: provides the `Jemalloc` type which implements the
+* `jemalloc-sys`: builds and links against `jemalloc` exposing raw C bindings to it.
+* `jemallocator`: provides the `Jemalloc` type which implements the
   `GlobalAlloc` and `Alloc` traits. 
-* `tikv-jemalloc-ctl`: high-level wrapper over `jemalloc`'s control and introspection
+* `jemalloc-ctl`: high-level wrapper over `jemalloc`'s control and introspection
   APIs (the `mallctl*()` family of functions and the _MALLCTL NAMESPACE_)'
 
 ## Documentation
 
 * [Latest release (docs.rs)][docs.rs]
 
-To use `tikv-jemallocator` add it as a dependency:
+To use `jemallocator` add it as a dependency:
 
 ```toml
 # Cargo.toml
 [dependencies]
 
 [target.'cfg(not(target_env = "msvc"))'.dependencies]
-tikv-jemallocator = "0.4.0"
+jemallocator = "0.4.0"
 ```
 
-To set `tikv_jemallocator::Jemalloc` as the global allocator add this to your project:
+To set `jemallocator::Jemalloc` as the global allocator add this to your project:
 
 ```rust
 # main.rs
 #[cfg(not(target_env = "msvc"))]
-use tikv_jemallocator::Jemalloc;
+use jemallocator::Jemalloc;
 
 #[cfg(not(target_env = "msvc"))]
 #[global_allocator]
@@ -51,8 +51,8 @@ all allocations requested by Rust code in the same program.
 The following table describes the supported platforms: 
 
 * `build`: does the library compile for the target?
-* `run`: do `tikv-jemallocator` and `tikv-jemalloc-sys` tests pass on the target?
-* `jemalloc`: do `tikv-jemalloc`'s tests pass on the target?
+* `run`: do `jemallocator` and `jemalloc-sys` tests pass on the target?
+* `jemalloc`: do `jemalloc`'s tests pass on the target?
 
 Tier 1 targets are tested on all Rust channels (stable, beta, and nightly). All
 other targets are only tested on Rust nightly.
@@ -67,7 +67,7 @@ other targets are only tested on Rust nightly.
 
 ## Features
 
-The `tikv-jemallocator` crate re-exports the [features of the `tikv-jemalloc-sys`
+The `jemallocator` crate re-exports the [features of the `jemalloc-sys`
 dependency](https://github.com/tikv/jemallocator/blob/master/jemalloc-sys/README.md).
 
 ## License
@@ -84,12 +84,12 @@ at your option.
 ## Contribution
 
 Unless you explicitly state otherwise, any contribution intentionally submitted
-for inclusion in `tikv-jemallocator` by you, as defined in the Apache-2.0 license,
+for inclusion in `jemallocator` by you, as defined in the Apache-2.0 license,
 shall be dual licensed as above, without any additional terms or conditions.
 
-[Latest Version]: https://img.shields.io/crates/v/tikv-jemallocator.svg
-[crates.io]: https://crates.io/crates/tikv-jemallocator
-[docs]: https://docs.rs/tikv-jemallocator/badge.svg
-[docs.rs]: https://docs.rs/tikv-jemallocator/
+[Latest Version]: https://img.shields.io/crates/v/jemallocator.svg
+[crates.io]: https://crates.io/crates/jemallocator
+[docs]: https://docs.rs/jemallocator/badge.svg
+[docs.rs]: https://docs.rs/jemallocator/
 [ci]: https://github.com/tikv/jemallocator/actions/workflows/main.yml/badge.svg
 [github actions]: https://github.com/tikv/jemallocator/actions

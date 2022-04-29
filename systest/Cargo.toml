@@ -6,7 +6,7 @@ build = "build.rs"
 edition = "2018"
 
 [dependencies]
-tikv-jemalloc-sys = { path = "../jemalloc-sys" }
+jemalloc-sys = { path = "../jemalloc-sys" }
 libc = "0.2"
 
 [build-dependencies]

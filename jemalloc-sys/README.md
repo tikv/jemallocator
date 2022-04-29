@@ -3,7 +3,7 @@
 [![Travis-CI Status]][travis] [![Latest Version]][crates.io] [![docs]][docs.rs]
 
 > Note: the Rust allocator API is implemented for `jemalloc` in the
-> [`tikv-jemallocator`](https://crates.io/crates/tikv-jemallocator) crate.
+> [`jemallocator`](https://crates.io/crates/jemallocator) crate.
 
 ## Documentation
 
@@ -24,7 +24,7 @@
 ## Platform support
 
 See the platform support of the
-[`tikv-jemallocator`](https://crates.io/crates/tikv-jemallocator) crate.
+[`jemallocator`](https://crates.io/crates/jemallocator) crate.
 
 ## Features
 
@@ -159,12 +159,12 @@ at your option.
 ## Contribution
 
 Unless you explicitly state otherwise, any contribution intentionally submitted
-for inclusion in `tikv-jemalloc-sys` by you, as defined in the Apache-2.0 license,
+for inclusion in `jemalloc-sys` by you, as defined in the Apache-2.0 license,
 shall be dual licensed as above, without any additional terms or conditions.
 
 [travis]: https://travis-ci.com/tikv/jemallocator
 [Travis-CI Status]: https://travis-ci.com/tikv/jemallocator.svg?branch=master
-[Latest Version]: https://img.shields.io/crates/v/tikv-jemallocator.svg
-[crates.io]: https://crates.io/crates/tikv-jemallocator
-[docs]: https://docs.rs/tikv-jemallocator/badge.svg
-[docs.rs]: https://docs.rs/tikv-jemallocator/
+[Latest Version]: https://img.shields.io/crates/v/jemallocator.svg
+[crates.io]: https://crates.io/crates/jemallocator
+[docs]: https://docs.rs/jemallocator/badge.svg
+[docs.rs]: https://docs.rs/jemallocator/

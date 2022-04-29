@@ -16,11 +16,11 @@ pub static malloc_conf: Option<&'static libc::c_char> = Some(unsafe {
 #[test]
 fn malloc_conf_set() {
     unsafe {
-        assert_eq!(tikv_jemalloc_sys::malloc_conf, malloc_conf);
+        assert_eq!(jemalloc_sys::malloc_conf, malloc_conf);
 
         let mut ptr: *const libc::c_char = std::ptr::null();
         let mut ptr_len: libc::size_t = std::mem::size_of::<*const libc::c_char>() as libc::size_t;
-        let r = tikv_jemalloc_sys::mallctl(
+        let r = jemalloc_sys::mallctl(
             &b"opt.stats_print_opts\0"[0] as *const _ as *const libc::c_char,
             &mut ptr as *mut *const _ as *mut libc::c_void,
             &mut ptr_len as *mut _,

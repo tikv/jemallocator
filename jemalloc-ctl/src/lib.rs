@@ -21,10 +21,10 @@
 //! ```no_run
 //! use std::thread;
 //! use std::time::Duration;
-//! use tikv_jemalloc_ctl::{stats, epoch};
+//! use jemalloc_ctl::{stats, epoch};
 //!
 //! #[global_allocator]
-//! static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
+//! static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
 //!
 //! fn main() {
 //!     loop {
@@ -44,10 +44,10 @@
 //! ```no_run
 //! use std::thread;
 //! use std::time::Duration;
-//! use tikv_jemalloc_ctl::{stats, epoch};
+//! use jemalloc_ctl::{stats, epoch};
 //!
 //! #[global_allocator]
-//! static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
+//! static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
 //!
 //! fn main() {
 //!     let e = epoch::mib().unwrap();
@@ -72,7 +72,7 @@
 
 #[cfg(test)]
 #[global_allocator]
-static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
+static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
 
 use crate::std::{fmt, mem, num, ops, ptr, result, slice, str};
 #[cfg(not(feature = "use_std"))]
@@ -107,10 +107,10 @@ option! {
     ///
     /// ```
     /// # #[global_allocator]
-    /// # static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
+    /// # static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
     /// #
     /// # fn main() {
-    /// use tikv_jemalloc_ctl::version;
+    /// use jemalloc_ctl::version;
     /// println!("jemalloc version {}", version::read().unwrap());
     /// let version_mib = version::mib().unwrap();
     /// println!("jemalloc version {}", version_mib.read().unwrap());
@@ -131,12 +131,12 @@ option! {
     ///
     /// ```
     /// # #[global_allocator]
-    /// # static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
+    /// # static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
     /// #
     /// # fn main() {
     /// # #[cfg(not(target_os = "macos"))] {
     /// #
-    /// use tikv_jemalloc_ctl::background_thread;
+    /// use jemalloc_ctl::background_thread;
     /// let bg = background_thread::mib().unwrap();
     /// let s = bg.read().unwrap();
     /// println!("background_threads enabled: {}", s);
@@ -161,12 +161,12 @@ option! {
     ///
     /// ```
     /// # #[global_allocator]
-    /// # static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
+    /// # static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
     /// #
     /// # fn main() {
     /// # #[cfg(not(target_os = "macos"))] {
     /// #
-    /// use tikv_jemalloc_ctl::max_background_threads;
+    /// use jemalloc_ctl::max_background_threads;
     /// let m = max_background_threads::mib().unwrap();
     /// println!("max_background_threads: {}", m.read().unwrap());
     /// m.write(0).unwrap();
@@ -193,11 +193,11 @@ option! {
     ///
     /// ```
     /// # #[global_allocator]
-    /// # static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
+    /// # static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
     /// #
     /// # fn main() {
     /// #
-    /// use tikv_jemalloc_ctl::epoch;
+    /// use jemalloc_ctl::epoch;
     /// let e = epoch::mib().unwrap();
     /// let a = e.advance().unwrap();
     /// let b = e.advance().unwrap();

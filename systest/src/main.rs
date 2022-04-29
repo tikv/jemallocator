@@ -8,6 +8,6 @@ use std::alloc::System;
 static A: System = System;
 
 use libc::{c_char, c_int, c_void};
-use tikv_jemalloc_sys::*;
+use jemalloc_sys::*;
 
 include!(concat!(env!("OUT_DIR"), "/all.rs"));

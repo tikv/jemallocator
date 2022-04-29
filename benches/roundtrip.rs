@@ -12,7 +12,7 @@ use std::{
     ptr,
 };
 use test::Bencher;
-use tikv_jemalloc_sys::MALLOCX_ALIGN;
+use jemalloc_sys::MALLOCX_ALIGN;
 
 #[global_allocator]
 static A: Jemalloc = Jemalloc;

@@ -28,7 +28,7 @@ cfg_if! {
     ))] {
         /// Sets `jemalloc` as the `#[global_allocator]`.
         #[global_allocator]
-        pub static JEMALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
+        pub static JEMALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
     }
 }
 
