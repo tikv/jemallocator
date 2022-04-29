@@ -1,6 +1,6 @@
 [package]
 name = "jemalloc-ctl"
-version = "0.4.2"
+version = "0.4.3"
 authors = [
     "Steven Fackler <sfackler@gmail.com>",
     "Gonzalo Brito Gadeschi <gonzalobg88@gmail.com>",

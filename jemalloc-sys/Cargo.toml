@@ -31,7 +31,6 @@ libc = { version = "^0.2.8", default-features = false }
 [build-dependencies]
 cc = "^1.0.13"
 fs_extra = "^1.1"
-bindgen = { version = "0.59.0", optional = true, default-features = false, features = ["runtime"] }
 
 [features]
 default = ["background_threads_runtime_support"]
@@ -42,7 +41,6 @@ background_threads = [ "background_threads_runtime_support" ]
 stats = []
 unprefixed_malloc_on_supported_platforms = []
 disable_initial_exec_tls = []
-update-bindings = ["bindgen"]
 
 [package.metadata.docs.rs]
 rustdoc-args = [ "--cfg",  "jemallocator_docs" ]
