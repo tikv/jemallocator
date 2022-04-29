@@ -2,9 +2,9 @@
 
 [![ci]][github actions] [![Latest Version]][crates.io] [![docs]][docs.rs]
 
-This project is a simplified fork of [jemallocator](https://github.com/gnzlbg/jemallocator) focus on server.
+This project is the successor of [jemallocator](https://github.com/gnzlbg/jemallocator).
 
-The difference between `tikv-jemallocator` and `jemallocator` is only name. The source is the same.
+The project is published as `tikv-jemallocator` and `jemallocator` for historical reasons. The two crates are the same except names. It's OK to use either crate. For new projects, `jemallocator` should be used.
 
 > Links against `jemalloc` and provides a `Jemalloc` unit type that implements
 > the allocator APIs and can be set as the `#[global_allocator]`
