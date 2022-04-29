@@ -4,6 +4,8 @@
 
 This project is a simplified fork of [jemallocator](https://github.com/gnzlbg/jemallocator) focus on server.
 
+The difference between `tikv-jemallocator` and `jemallocator` is only name. The source is the same.
+
 > Links against `jemalloc` and provides a `Jemalloc` unit type that implements
 > the allocator APIs and can be set as the `#[global_allocator]`
 
