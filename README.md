@@ -30,7 +30,7 @@ To use `jemallocator` add it as a dependency:
 [dependencies]
 
 [target.'cfg(not(target_env = "msvc"))'.dependencies]
-jemallocator = "0.5.0-rc"
+jemallocator = "0.4.3"
 ```
 
 To set `jemallocator::Jemalloc` as the global allocator add this to your project:
