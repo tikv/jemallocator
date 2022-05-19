@@ -11,7 +11,7 @@ Add it as a dependency:
 ```toml
 # Cargo.toml
 [dependencies]
-tikv-jemallocator-global = "0.4.0"
+tikv-jemallocator-global = "0.5.0"
 ```
 
 and `jemalloc` will be used as the `#[global_allocator]` on targets that support

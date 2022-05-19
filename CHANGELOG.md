@@ -1,3 +1,7 @@
+# 0.5.0 - 2022-05-19
+
+- Update jemalloc to 5.3.0 (#23)
+
 # 0.4.3 - 2022-02-21
 
 - Added riscv64 support (#14)

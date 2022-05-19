@@ -1,6 +1,6 @@
 [package]
 name = "tikv-jemalloc-ctl"
-version = "0.4.3"
+version = "0.5.0"
 authors = [
     "Steven Fackler <sfackler@gmail.com>",
     "Gonzalo Brito Gadeschi <gonzalobg88@gmail.com>",
@@ -26,12 +26,12 @@ is-it-maintained-open-issues = { repository = "tikv/jemallocator" }
 maintenance = { status = "actively-developed" }
 
 [dependencies]
-tikv-jemalloc-sys = { path = "../jemalloc-sys", version = "0.4.0" }
+tikv-jemalloc-sys = { path = "../jemalloc-sys", version = "0.5.0" }
 libc = { version = "0.2", default-features = false }
 paste = "1"
 
 [dev-dependencies]
-tikv-jemallocator = { path = "../jemallocator", version = "0.4.0" }
+tikv-jemallocator = { path = "../jemallocator", version = "0.5.0" }
 
 [features]
 default = []
