@@ -136,7 +136,7 @@ fn main() {
             .to_str()
             .unwrap()
             .replace("C:\\", "/c/")
-            .replace("\\", "/"),
+            .replace('\\', "/"),
     )
     .current_dir(&build_dir)
     .env("CC", compiler.path())

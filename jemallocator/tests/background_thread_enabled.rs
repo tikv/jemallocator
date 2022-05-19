@@ -28,8 +28,5 @@ pub static malloc_conf: Option<&'static libc::c_char> = Some(unsafe {
 #[test]
 fn background_threads_enabled() {
     // Background threads are unconditionally enabled at run-time by default.
-    assert_eq!(
-        tikv_jemalloc_ctl::opt::background_thread::read().unwrap(),
-        true
-    );
+    assert!(tikv_jemalloc_ctl::opt::background_thread::read().unwrap(),);
 }
