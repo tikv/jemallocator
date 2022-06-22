@@ -9,6 +9,7 @@
 // except according to those terms.
 
 use std::env;
+use std::ffi::OsString;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -23,6 +24,16 @@ macro_rules! warning {
     ($arg:tt, $($args:tt)*) => {
         println!(concat!(concat!("cargo:warning=\"", $arg), "\""), $($args)*)
     }
+}
+
+fn read_and_watch_env(name: &str) -> Result<String, env::VarError> {
+    println!("cargo:rerun-if-env-changed={}", name);
+    env::var(name)
+}
+
+fn read_and_watch_env_os(name: &str) -> Option<OsString> {
+    println!("cargo:rerun-if-env-changed={}", name);
+    env::var_os(name)
 }
 
 // TODO: split main functions and remove following allow.
@@ -70,7 +81,7 @@ fn main() {
         println!("cargo:rustc-cfg=prefixed");
     }
 
-    if let Some(jemalloc) = env::var_os("JEMALLOC_OVERRIDE") {
+    if let Some(jemalloc) = read_and_watch_env_os("JEMALLOC_OVERRIDE") {
         info!("jemalloc override set");
         let jemalloc = PathBuf::from(jemalloc);
         assert!(
@@ -176,7 +187,7 @@ fn main() {
         malloc_conf += "background_thread:false";
     }
 
-    if let Ok(malloc_conf_opts) = env::var("JEMALLOC_SYS_WITH_MALLOC_CONF") {
+    if let Ok(malloc_conf_opts) = read_and_watch_env("JEMALLOC_SYS_WITH_MALLOC_CONF") {
         malloc_conf += &format!(
             "{}{}",
             if malloc_conf.is_empty() { "" } else { "," },
@@ -189,22 +200,22 @@ fn main() {
         cmd.arg(format!("--with-malloc-conf={}", malloc_conf));
     }
 
-    if let Ok(lg_page) = env::var("JEMALLOC_SYS_WITH_LG_PAGE") {
+    if let Ok(lg_page) = read_and_watch_env("JEMALLOC_SYS_WITH_LG_PAGE") {
         info!("--with-lg-page={}", lg_page);
         cmd.arg(format!("--with-lg-page={}", lg_page));
     }
 
-    if let Ok(lg_hugepage) = env::var("JEMALLOC_SYS_WITH_LG_HUGEPAGE") {
+    if let Ok(lg_hugepage) = read_and_watch_env("JEMALLOC_SYS_WITH_LG_HUGEPAGE") {
         info!("--with-lg-hugepage={}", lg_hugepage);
         cmd.arg(format!("--with-lg-hugepage={}", lg_hugepage));
     }
 
-    if let Ok(lg_quantum) = env::var("JEMALLOC_SYS_WITH_LG_QUANTUM") {
+    if let Ok(lg_quantum) = read_and_watch_env("JEMALLOC_SYS_WITH_LG_QUANTUM") {
         info!("--with-lg-quantum={}", lg_quantum);
         cmd.arg(format!("--with-lg-quantum={}", lg_quantum));
     }
 
-    if let Ok(lg_vaddr) = env::var("JEMALLOC_SYS_WITH_LG_VADDR") {
+    if let Ok(lg_vaddr) = read_and_watch_env("JEMALLOC_SYS_WITH_LG_VADDR") {
         info!("--with-lg-vaddr={}", lg_vaddr);
         cmd.arg(format!("--with-lg-vaddr={}", lg_vaddr));
     }
@@ -249,6 +260,7 @@ fn main() {
         .arg("-j")
         .arg(num_jobs.clone()));
 
+    // Skip watching this environment variables to avoid rebuild in CI.
     if env::var("JEMALLOC_SYS_RUN_JEMALLOC_TESTS").is_ok() {
         info!("Building and running jemalloc tests...");
         // Make tests:
