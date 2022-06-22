@@ -1,3 +1,7 @@
+# jemalloc-sys 0.5.1 - 2022-06-22
+
+- Backport support for NetBSD
+
 # 0.5.0 - 2022-05-19
 
 - Update jemalloc to 5.3.0 (#23)
