@@ -1,6 +1,7 @@
 # jemalloc-sys 0.5.1 - 2022-06-22
 
-- Backport support for NetBSD
+- Backport support for NetBSD (#31)
+- Watch environment variable change in build script (#31)
 
 # 0.5.0 - 2022-05-19
 
