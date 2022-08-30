@@ -12,17 +12,21 @@
 //!
 //! This crate provides bindings to jemalloc as a memory allocator for Rust.
 //! This crate mainly exports, one type, `Jemalloc`, which implements the
-//! `GlobalAlloc` trait and optionally the `Alloc` trait,
+//! `GlobalAlloc` trait and optionally the `Allocator` trait,
 //! and is suitable both as a memory allocator and as a global allocator.
 
 #![cfg_attr(feature = "alloc_trait", feature(allocator_api))]
+#![cfg_attr(feature = "alloc_trait", feature(nonnull_slice_from_raw_parts))]
+#![cfg_attr(feature = "alloc_trait", feature(alloc_layout_extra))]
+#![cfg_attr(feature = "alloc_trait", feature(slice_ptr_get))]
 // TODO: rename the following lint on next minor bump
 #![allow(renamed_and_removed_lints)]
 #![deny(missing_docs, broken_intra_doc_links)]
 #![no_std]
 
 #[cfg(feature = "alloc_trait")]
-use core::alloc::{Alloc, AllocErr, CannotReallocInPlace, Excess};
+use core::alloc::{AllocError, Allocator};
+
 use core::alloc::{GlobalAlloc, Layout};
 #[cfg(feature = "alloc_trait")]
 use core::ptr::NonNull;
@@ -143,128 +147,156 @@ unsafe impl GlobalAlloc for Jemalloc {
 }
 
 #[cfg(feature = "alloc_trait")]
-unsafe impl Alloc for Jemalloc {
+impl Jemalloc {
     #[inline]
-    unsafe fn alloc(&mut self, layout: Layout) -> Result<NonNull<u8>, AllocErr> {
-        NonNull::new(GlobalAlloc::alloc(self, layout)).ok_or(AllocErr)
+    fn alloc_impl(&self, layout: Layout, zeroed: bool) -> Result<NonNull<[u8]>, AllocError> {
+        match layout.size() {
+            0 => Ok(NonNull::slice_from_raw_parts(layout.dangling(), 0)),
+            // SAFETY: `layout` is non-zero in size,
+            size => unsafe {
+                let raw_ptr = if zeroed {
+                    GlobalAlloc::alloc_zeroed(self, layout)
+                } else {
+                    GlobalAlloc::alloc(self, layout)
+                };
+                let ptr = NonNull::new(raw_ptr).ok_or(AllocError)?;
+                Ok(NonNull::slice_from_raw_parts(ptr, size))
+            },
+        }
     }
 
+    // SAFETY: Same as `Allocator::grow`
     #[inline]
-    unsafe fn alloc_zeroed(&mut self, layout: Layout) -> Result<NonNull<u8>, AllocErr> {
-        NonNull::new(GlobalAlloc::alloc_zeroed(self, layout)).ok_or(AllocErr)
-    }
-
-    #[inline]
-    unsafe fn dealloc(&mut self, ptr: NonNull<u8>, layout: Layout) {
-        GlobalAlloc::dealloc(self, ptr.as_ptr(), layout)
-    }
-
-    #[inline]
-    unsafe fn realloc(
-        &mut self,
+    unsafe fn grow_impl(
+        &self,
         ptr: NonNull<u8>,
-        layout: Layout,
-        new_size: usize,
-    ) -> Result<NonNull<u8>, AllocErr> {
-        NonNull::new(GlobalAlloc::realloc(self, ptr.as_ptr(), layout, new_size)).ok_or(AllocErr)
+        old_layout: Layout,
+        new_layout: Layout,
+        zeroed: bool,
+    ) -> Result<NonNull<[u8]>, AllocError> {
+        debug_assert!(
+            new_layout.size() >= old_layout.size(),
+            "`new_layout.size()` must be greater than or equal to `old_layout.size()`"
+        );
+
+        match old_layout.size() {
+            0 => self.alloc_impl(new_layout, zeroed),
+
+            // SAFETY: `new_size` is non-zero as `new_size` is greater than or equal to `old_size`
+            // as required by safety conditions and the `old_size == 0` case was handled in the
+            // previous match arm. Other conditions must be upheld by the caller
+            old_size if old_layout.align() == new_layout.align() => unsafe {
+                let new_size = new_layout.size();
+
+                // `realloc` probably checks for `new_size >= old_layout.size()` or something similar.
+                assume!(new_size >= old_layout.size());
+
+                let raw_ptr = GlobalAlloc::realloc(self, ptr.as_ptr(), old_layout, new_size);
+                let ptr = NonNull::new(raw_ptr).ok_or(AllocError)?;
+                if zeroed {
+                    raw_ptr.add(old_size).write_bytes(0, new_size - old_size);
+                }
+                Ok(NonNull::slice_from_raw_parts(ptr, new_size))
+            },
+
+            // SAFETY: because `new_layout.size()` must be greater than or equal to `old_size`,
+            // both the old and new memory allocation are valid for reads and writes for `old_size`
+            // bytes. Also, because the old allocation wasn't yet deallocated, it cannot overlap
+            // `new_ptr`. Thus, the call to `copy_nonoverlapping` is safe. The safety contract
+            // for `dealloc` must be upheld by the caller.
+            old_size => unsafe {
+                let new_ptr = self.alloc_impl(new_layout, zeroed)?;
+                core::ptr::copy_nonoverlapping(ptr.as_ptr(), new_ptr.as_mut_ptr(), old_size);
+                Allocator::deallocate(self, ptr, old_layout);
+                Ok(new_ptr)
+            },
+        }
+    }
+}
+
+#[cfg(feature = "alloc_trait")]
+unsafe impl Allocator for Jemalloc {
+    #[inline]
+    fn allocate(&self, layout: Layout) -> Result<NonNull<[u8]>, AllocError> {
+        self.alloc_impl(layout, false)
     }
 
     #[inline]
-    unsafe fn alloc_excess(&mut self, layout: Layout) -> Result<Excess, AllocErr> {
-        let flags = layout_to_flags(layout.align(), layout.size());
-        let ptr = ffi::mallocx(layout.size(), flags);
-        if let Some(nonnull) = NonNull::new(ptr as *mut u8) {
-            let excess = ffi::nallocx(layout.size(), flags);
-            Ok(Excess(nonnull, excess))
-        } else {
-            Err(AllocErr)
+    unsafe fn deallocate(&self, ptr: NonNull<u8>, layout: Layout) {
+        if layout.size() != 0 {
+            // SAFETY: `layout` is non-zero in size,
+            // other conditions must be upheld by the caller
+            unsafe { GlobalAlloc::dealloc(self, ptr.as_ptr(), layout) }
         }
     }
 
     #[inline]
-    unsafe fn realloc_excess(
-        &mut self,
+    fn allocate_zeroed(&self, layout: Layout) -> Result<NonNull<[u8]>, AllocError> {
+        self.alloc_impl(layout, true)
+    }
+
+    #[inline]
+    unsafe fn grow(
+        &self,
         ptr: NonNull<u8>,
-        layout: Layout,
-        new_size: usize,
-    ) -> Result<Excess, AllocErr> {
-        let flags = layout_to_flags(layout.align(), new_size);
-        let ptr = ffi::rallocx(ptr.cast().as_ptr(), new_size, flags);
-        if let Some(nonnull) = NonNull::new(ptr as *mut u8) {
-            let excess = ffi::nallocx(new_size, flags);
-            Ok(Excess(nonnull, excess))
-        } else {
-            Err(AllocErr)
-        }
+        old_layout: Layout,
+        new_layout: Layout,
+    ) -> Result<NonNull<[u8]>, AllocError> {
+        // SAFETY: all conditions must be upheld by the caller
+        unsafe { self.grow_impl(ptr, old_layout, new_layout, false) }
     }
 
     #[inline]
-    fn usable_size(&self, layout: &Layout) -> (usize, usize) {
-        let flags = layout_to_flags(layout.align(), layout.size());
-        unsafe {
-            let max = ffi::nallocx(layout.size(), flags);
-            (layout.size(), max)
-        }
-    }
-
-    #[inline]
-    unsafe fn grow_in_place(
-        &mut self,
+    unsafe fn grow_zeroed(
+        &self,
         ptr: NonNull<u8>,
-        layout: Layout,
-        new_size: usize,
-    ) -> Result<(), CannotReallocInPlace> {
-        let flags = layout_to_flags(layout.align(), new_size);
-        let usable_size = ffi::xallocx(ptr.cast().as_ptr(), new_size, 0, flags);
-        if usable_size >= new_size {
-            Ok(())
-        } else {
-            // `xallocx` returns a size smaller than the requested one to
-            // indicate that the allocation could not be grown in place
-            //
-            // the old allocation remains unaltered
-            Err(CannotReallocInPlace)
-        }
+        old_layout: Layout,
+        new_layout: Layout,
+    ) -> Result<NonNull<[u8]>, AllocError> {
+        // SAFETY: all conditions must be upheld by the caller
+        unsafe { self.grow_impl(ptr, old_layout, new_layout, true) }
     }
 
     #[inline]
-    unsafe fn shrink_in_place(
-        &mut self,
+    unsafe fn shrink(
+        &self,
         ptr: NonNull<u8>,
-        layout: Layout,
-        new_size: usize,
-    ) -> Result<(), CannotReallocInPlace> {
-        if new_size == layout.size() {
-            return Ok(());
-        }
-        let flags = layout_to_flags(layout.align(), new_size);
-        let usable_size = ffi::xallocx(ptr.cast().as_ptr(), new_size, 0, flags);
+        old_layout: Layout,
+        new_layout: Layout,
+    ) -> Result<NonNull<[u8]>, AllocError> {
+        debug_assert!(
+            new_layout.size() <= old_layout.size(),
+            "`new_layout.size()` must be smaller than or equal to `old_layout.size()`"
+        );
 
-        if usable_size < layout.size() {
-            // If `usable_size` is smaller than the original size, the
-            // size-class of the allocation was shrunk to the size-class of
-            // `new_size`, and it is safe to deallocate the allocation with
-            // `new_size`:
-            Ok(())
-        } else if usable_size == ffi::nallocx(new_size, flags) {
-            // If the allocation was not shrunk and the size class of `new_size`
-            // is the same as the size-class of `layout.size()`, then the
-            // allocation can be properly deallocated using `new_size` (and also
-            // using `layout.size()` because the allocation did not change)
+        match new_layout.size() {
+            // SAFETY: conditions must be upheld by the caller
+            0 => unsafe {
+                Allocator::deallocate(self, ptr, old_layout);
+                Ok(NonNull::slice_from_raw_parts(new_layout.dangling(), 0))
+            },
 
-            // note: when the allocation is not shrunk, `xallocx` returns the
-            // usable size of the original allocation, which in this case matches
-            // that of the requested allocation:
-            debug_assert_eq!(
-                ffi::nallocx(new_size, flags),
-                ffi::nallocx(layout.size(), flags)
-            );
-            Ok(())
-        } else {
-            // If the allocation was not shrunk, but the size-class of
-            // `new_size` is not the same as that of the original allocation,
-            // then shrinking the allocation failed:
-            Err(CannotReallocInPlace)
+            // SAFETY: `new_size` is non-zero. Other conditions must be upheld by the caller
+            new_size if old_layout.align() == new_layout.align() => unsafe {
+                // `realloc` probably checks for `new_size <= old_layout.size()` or something similar.
+                assume!(new_size <= old_layout.size());
+
+                let raw_ptr = GlobalAlloc::realloc(self, ptr.as_ptr(), old_layout, new_size);
+                let ptr = NonNull::new(raw_ptr).ok_or(AllocError)?;
+                Ok(NonNull::slice_from_raw_parts(ptr, new_size))
+            },
+
+            // SAFETY: because `new_size` must be smaller than or equal to `old_layout.size()`,
+            // both the old and new memory allocation are valid for reads and writes for `new_size`
+            // bytes. Also, because the old allocation wasn't yet deallocated, it cannot overlap
+            // `new_ptr`. Thus, the call to `copy_nonoverlapping` is safe. The safety contract
+            // for `dealloc` must be upheld by the caller.
+            new_size => unsafe {
+                let new_ptr = Allocator::allocate(self, new_layout)?;
+                core::ptr::copy_nonoverlapping(ptr.as_ptr(), new_ptr.as_mut_ptr(), new_size);
+                Allocator::deallocate(self, ptr, old_layout);
+                Ok(new_ptr)
+            },
         }
     }
 }
