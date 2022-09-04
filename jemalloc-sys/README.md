@@ -96,10 +96,10 @@ hyphens `-` are replaced with underscores `_`(see
   run-time options string that is processed prior to the `malloc_conf` global
   variable, the `/etc/malloc.conf` symlink, and the `MALLOC_CONF` environment
   variable (note: this variable might be prefixed as `_RJEM_MALLOC_CONF`). For
-  example, to change the default decay time to 30 seconds:
+  example, to change the default decay time for dirty pages to 30 seconds:
   
   ```
-  JEMALLOC_SYS_WITH_MALLOC_CONF=decay_ms:30000
+  JEMALLOC_SYS_WITH_MALLOC_CONF=dirty_decay_ms:30000
   ```
 
 * `JEMALLOC_SYS_WITH_LG_PAGE=<lg-page>`: Specify the base 2 log of the allocator
