@@ -188,11 +188,10 @@ fn main() {
     }
 
     if let Ok(malloc_conf_opts) = read_and_watch_env("JEMALLOC_SYS_WITH_MALLOC_CONF") {
-        malloc_conf += &format!(
-            "{}{}",
-            if malloc_conf.is_empty() { "" } else { "," },
-            malloc_conf_opts
-        );
+        if !malloc_conf.is_empty() {
+            malloc_conf.push(',');
+        }
+        malloc_conf.push_str(&malloc_conf_opts);
     }
 
     if !malloc_conf.is_empty() {
