@@ -1,3 +1,7 @@
+# jemalloc-sys 0.5.2 - 2022-09-29
+
+- Fix build on riscv64gc-unknown-linux-gnu (#40)
+
 # jemalloc-sys 0.5.1 - 2022-06-22
 
 - Backport support for NetBSD (#31)
