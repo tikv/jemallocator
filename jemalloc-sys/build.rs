@@ -8,7 +8,13 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use std::{env, ffi::OsString, fs, io, path::{Path, PathBuf}, process::Command};
+use std::{
+    env,
+    ffi::OsString,
+    fs, io,
+    path::{Path, PathBuf},
+    process::Command,
+};
 
 include!("src/env.rs");
 
@@ -136,7 +142,8 @@ fn main() {
         fs::remove_dir_all(build_dir.clone()).unwrap();
     }
     // Copy jemalloc submodule to the OUT_DIR
-    copy_recursively(&jemalloc_repo_dir, &build_dir).expect("failed to copy jemalloc source code to OUT_DIR");
+    copy_recursively(&jemalloc_repo_dir, &build_dir)
+        .expect("failed to copy jemalloc source code to OUT_DIR");
     assert!(build_dir.exists());
 
     // Configuration files
