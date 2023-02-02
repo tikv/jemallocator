@@ -8,11 +8,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use std::env;
-use std::ffi::OsString;
-use std::fs;
-use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::{env, ffi::OsString, fs, io, path::{Path, PathBuf}, process::Command};
 
 include!("src/env.rs");
 
@@ -34,6 +30,23 @@ fn read_and_watch_env(name: &str) -> Result<String, env::VarError> {
 fn read_and_watch_env_os(name: &str) -> Option<OsString> {
     println!("cargo:rerun-if-env-changed={}", name);
     env::var_os(name)
+}
+
+fn copy_recursively(src: &Path, dst: &Path) -> io::Result<()> {
+    if !dst.exists() {
+        fs::create_dir_all(dst)?;
+    }
+    for entry in fs::read_dir(src)? {
+        let entry = entry?;
+        let ft = entry.file_type()?;
+        if ft.is_dir() {
+            // There should be very few layer in the project, use recusion to keep simple.
+            copy_recursively(&entry.path(), &dst.join(entry.file_name()))?;
+        } else {
+            fs::copy(entry.path(), dst.join(entry.file_name()))?;
+        }
+    }
+    Ok(())
 }
 
 // TODO: split main functions and remove following allow.
@@ -123,11 +136,7 @@ fn main() {
         fs::remove_dir_all(build_dir.clone()).unwrap();
     }
     // Copy jemalloc submodule to the OUT_DIR
-    let mut copy_options = fs_extra::dir::CopyOptions::new();
-    copy_options.overwrite = true;
-    copy_options.copy_inside = true;
-    fs_extra::dir::copy(&jemalloc_repo_dir, &build_dir, &copy_options)
-        .expect("failed to copy jemalloc source code to OUT_DIR");
+    copy_recursively(&jemalloc_repo_dir, &build_dir).expect("failed to copy jemalloc source code to OUT_DIR");
     assert!(build_dir.exists());
 
     // Configuration files

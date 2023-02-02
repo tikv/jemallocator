@@ -30,7 +30,6 @@ libc = { version = "^0.2.8", default-features = false }
 
 [build-dependencies]
 cc = "^1.0.13"
-fs_extra = "^1.1"
 
 [features]
 default = ["background_threads_runtime_support"]
