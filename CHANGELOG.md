@@ -1,3 +1,7 @@
+# jemalloc-sys 0.5.3 - 2023-02-03
+
+- Remove fs-extra dependency (#47)
+
 # jemalloc-sys 0.5.2 - 2022-09-29
 
 - Fix build on riscv64gc-unknown-linux-gnu (#40)
