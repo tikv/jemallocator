@@ -7,6 +7,7 @@ static A: Jemalloc = Jemalloc;
 #[test]
 fn smoke() {
     let mut a = Vec::new();
+    a.reserve(1);
     a.push(3);
 }
 

@@ -9,7 +9,7 @@ static A: Jemalloc = Jemalloc;
 fn smoke() {
     let layout = Layout::from_size_align(100, 8).unwrap();
     unsafe {
-        let ptr = Jemalloc.alloc(layout.clone());
+        let ptr = Jemalloc.alloc(layout);
         assert!(!ptr.is_null());
         Jemalloc.dealloc(ptr, layout);
     }

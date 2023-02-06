@@ -29,12 +29,12 @@ macro_rules! warning {
 }
 
 fn read_and_watch_env(name: &str) -> Result<String, env::VarError> {
-    println!("cargo:rerun-if-env-changed={}", name);
+    println!("cargo:rerun-if-env-changed={name}");
     env::var(name)
 }
 
 fn read_and_watch_env_os(name: &str) -> Option<OsString> {
-    println!("cargo:rerun-if-env-changed={}", name);
+    println!("cargo:rerun-if-env-changed={name}");
     env::var_os(name)
 }
 
@@ -212,27 +212,27 @@ fn main() {
 
     if !malloc_conf.is_empty() {
         info!("--with-malloc-conf={}", malloc_conf);
-        cmd.arg(format!("--with-malloc-conf={}", malloc_conf));
+        cmd.arg(format!("--with-malloc-conf={malloc_conf}"));
     }
 
     if let Ok(lg_page) = read_and_watch_env("JEMALLOC_SYS_WITH_LG_PAGE") {
         info!("--with-lg-page={}", lg_page);
-        cmd.arg(format!("--with-lg-page={}", lg_page));
+        cmd.arg(format!("--with-lg-page={lg_page}"));
     }
 
     if let Ok(lg_hugepage) = read_and_watch_env("JEMALLOC_SYS_WITH_LG_HUGEPAGE") {
         info!("--with-lg-hugepage={}", lg_hugepage);
-        cmd.arg(format!("--with-lg-hugepage={}", lg_hugepage));
+        cmd.arg(format!("--with-lg-hugepage={lg_hugepage}"));
     }
 
     if let Ok(lg_quantum) = read_and_watch_env("JEMALLOC_SYS_WITH_LG_QUANTUM") {
         info!("--with-lg-quantum={}", lg_quantum);
-        cmd.arg(format!("--with-lg-quantum={}", lg_quantum));
+        cmd.arg(format!("--with-lg-quantum={lg_quantum}"));
     }
 
     if let Ok(lg_vaddr) = read_and_watch_env("JEMALLOC_SYS_WITH_LG_VADDR") {
         info!("--with-lg-vaddr={}", lg_vaddr);
-        cmd.arg(format!("--with-lg-vaddr={}", lg_vaddr));
+        cmd.arg(format!("--with-lg-vaddr={lg_vaddr}"));
     }
 
     if use_prefix {
@@ -336,7 +336,7 @@ fn run(cmd: &mut Command) {
 }
 
 fn execute(cmd: &mut Command, on_fail: impl FnOnce()) {
-    println!("running: {:?}", cmd);
+    println!("running: {cmd:?}");
     let status = match cmd.status() {
         Ok(status) => status,
         Err(e) => panic!("failed to execute command: {}", e),
