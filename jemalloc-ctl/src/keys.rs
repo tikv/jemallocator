@@ -25,6 +25,8 @@
 //! }
 //! ```
 
+#![allow(clippy::uninlined_format_args)]
+
 use crate::error::Result;
 use crate::std::str;
 use crate::{fmt, ops, raw};
