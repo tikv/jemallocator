@@ -40,6 +40,7 @@ background_threads = [ "background_threads_runtime_support" ]
 stats = []
 unprefixed_malloc_on_supported_platforms = []
 disable_initial_exec_tls = []
+disable_cache_oblivious = []
 
 [package.metadata.docs.rs]
 rustdoc-args = [ "--cfg",  "jemallocator_docs" ]

@@ -84,6 +84,13 @@ This crate provides following cargo feature flags:
   the error `yourlib.so: cannot allocate memory in static TLS block`, you'll 
   likely want to enable this.
 
+* `disable_cache_oblivious` (disabled by default): when enabled, jemalloc is
+  built with the `--disable-cache-oblivious` option. In that case, all large
+  allocations are page-aligned as an implementation artifact. It may severely
+  harm CPU cache utilization. However, the cache-oblivious layout has a cost of
+  one extra page per large allocation which can be unfeasible for certain
+  applications.
+
 ### Environment variables
 
 `jemalloc` options taking values are passed via environment variables using the

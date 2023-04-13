@@ -262,6 +262,11 @@ fn main() {
         cmd.arg("--disable-initial-exec-tls");
     }
 
+    if env::var("CARGO_FEATURE_DISABLE_CACHE_OBLIVIOUS").is_ok() {
+        info!("CARGO_FEATURE_DISABLE_CACHE_OBLIVIOUS set");
+        cmd.arg("--disable-cache-oblivious");
+    }
+
     cmd.arg(format!("--host={}", gnu_target(&target)));
     cmd.arg(format!("--build={}", gnu_target(&host)));
     cmd.arg(format!("--prefix={}", out_dir.display()));
