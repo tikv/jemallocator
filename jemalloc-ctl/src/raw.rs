@@ -146,6 +146,25 @@ pub unsafe fn write<T>(name: &[u8], mut value: T) -> Result<()> {
     ))
 }
 
+/// Uses the null-terminated string `name` as the key to the _MALLCTL NAMESPACE_
+/// and writes it string `value`
+///
+/// # Safety
+///
+/// This function is `unsafe` because it is possible to pass a string that does not
+/// match it's len. 
+pub unsafe fn write_str_unsafe(name: &[u8], mut value: *const c_char, len: usize) -> Result<()> {
+    validate_name(name);
+
+    cvt(tikv_jemalloc_sys::mallctl(
+        name as *const _ as *const c_char,
+        ptr::null_mut(),
+        ptr::null_mut(),
+        &mut value as *mut _ as *mut _,
+        len,
+    ))
+}
+
 /// Uses the MIB `mib` as key to the _MALLCTL NAMESPACE_ and writes its `value`
 /// returning its previous value.
 ///
@@ -313,7 +332,7 @@ pub fn write_str(name: &[u8], value: &'static [u8]) -> Result<()> {
     // This is safe because `value` will always point to a null-terminated
     // string, which makes it safe for all key value types: pointers to
     // null-terminated strings, pointers, pointer-sized integers, etc.
-    unsafe { write(name, value.as_ptr() as *const c_char) }
+    unsafe { write_str_unsafe(name, value.as_ptr() as *const c_char, value.len()) }
 }
 
 /// Uses the null-terminated string `name` as key to the _MALLCTL NAMESPACE_ and

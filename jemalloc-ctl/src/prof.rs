@@ -47,3 +47,27 @@ option! {
     /// ```
     mib_docs: /// See [`prefix`].
 }
+
+option! {
+    active[ str: b"prof.active\0", non_str: 2 ] => bool |
+    ops: r, w, u |
+    docs:
+    /// Control whether sampling is currently active. 
+    ///
+    /// See the `opt.prof_active` option for additional information, 
+    /// as well as the interrelated `thread.prof.active` mallctl.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # #[global_allocator]
+    /// # static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
+    /// #
+    /// # fn main() {
+    /// use tikv_jemalloc_ctl::prof;
+    /// let active = prof::active::mib().unwrap();
+    /// active.write(true).unwrap();
+    /// # }
+    /// ```
+    mib_docs: /// See [`active`].
+}
