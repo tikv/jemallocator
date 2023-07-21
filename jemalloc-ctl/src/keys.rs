@@ -31,6 +31,8 @@ use crate::error::Result;
 use crate::std::str;
 use crate::{fmt, ops, raw};
 
+use super::ffi::CStr;
+
 /// A `Name` in the _MALLCTL NAMESPACE_.
 #[repr(transparent)]
 #[derive(PartialEq, Eq)]
@@ -105,7 +107,8 @@ impl Name {
             | b"opt.thp"
             | b"opt.prof_prefix"
             | b"thread.prof.name"
-            | b"prof.dump" => true,
+            | b"prof.dump"
+            | b"prof.prefix" => true,
             v if v.starts_with(b"arena.") && v.ends_with(b".dss") => true,
             v if v.starts_with(b"stats.arenas.") && v.ends_with(b".dss") => {
                 true
@@ -352,6 +355,58 @@ impl Access<&'static str> for Name {
         // this is safe because the key refers to a byte string:
         let s = unsafe { raw::update_str(&self.0, value.as_bytes())? };
         Ok(str::from_utf8(s).unwrap())
+    }
+}
+
+impl<T: MibArg> Access<&'static CStr> for MibStr<T> {
+    fn read(&self) -> Result<&'static CStr> {
+        // this is safe because the only safe way to construct a `MibStr` is by
+        // validating that the key refers to a byte-string value
+        let s = unsafe { raw::read_str_mib(self.0.as_ref())? };
+        Ok(CStr::from_bytes_with_nul(s).unwrap())
+    }
+    fn write(&self, value: &'static CStr) -> Result<()> {
+        raw::write_str_mib(self.0.as_ref(), value.to_bytes_with_nul())
+    }
+    fn update(&self, value: &'static CStr) -> Result<&'static CStr> {
+        // this is safe because the only safe way to construct a `MibStr` is by
+        // validating that the key refers to a byte-string value
+        let s = unsafe {
+            raw::update_str_mib(self.0.as_ref(), value.to_bytes_with_nul())?
+        };
+        Ok(CStr::from_bytes_with_nul(s).unwrap())
+    }
+}
+
+impl Access<&'static CStr> for Name {
+    fn read(&self) -> Result<&'static CStr> {
+        assert!(
+            self.value_type_str(),
+            "the name \"{:?}\" does not refer to a byte string",
+            self
+        );
+        // this is safe because the key refers to a byte string:
+        let s = unsafe { raw::read_str(&self.0)? };
+        Ok(CStr::from_bytes_with_nul(s).unwrap())
+    }
+    fn write(&self, value: &'static CStr) -> Result<()> {
+        assert!(
+            self.value_type_str(),
+            "the name \"{:?}\" does not refer to a byte string",
+            self
+        );
+        raw::write_str(&self.0, value.to_bytes_with_nul())
+    }
+    fn update(&self, value: &'static CStr) -> Result<&'static CStr> {
+        assert!(
+            self.value_type_str(),
+            "the name \"{:?}\" does not refer to a byte string",
+            self
+        );
+        // this is safe because the key refers to a byte string:
+        let s =
+            unsafe { raw::update_str(&self.0, value.to_bytes_with_nul())? };
+        Ok(CStr::from_bytes_with_nul(s).unwrap())
     }
 }
 
