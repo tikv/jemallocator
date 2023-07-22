@@ -1,6 +1,6 @@
 [package]
 name = "tikv-jemalloc-ctl"
-version = "0.5.0"
+version = "0.5.4"
 authors = [
     "Steven Fackler <sfackler@gmail.com>",
     "Gonzalo Brito Gadeschi <gonzalobg88@gmail.com>",

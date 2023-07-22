@@ -1,3 +1,10 @@
+# 0.5.4 - 2023-07-22
+
+- Add disable_initial_exec_tls feature for jemalloc-ctl (#59)
+- Fix definition of `c_bool` for non-MSVC targets (#54)
+- Add `disable_cache_oblivious` feature (#51)
+- Add loongarch64 support (#42)
+
 # jemalloc-sys 0.5.3 - 2023-02-03
 
 - Remove fs-extra dependency (#47)
