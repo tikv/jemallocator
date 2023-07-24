@@ -18,8 +18,10 @@ option! {
     /// #
     /// # fn main() {
     /// use tikv_jemalloc_ctl::prof;
+    /// use std::ffi::CStr;
+    /// let dump_file_name = CStr::from_bytes_with_nul(b"dump\0").unwrap();
     /// let dump = prof::dump::mib().unwrap();
-    /// prof.write("prof.heap").unwrap();
+    /// dump.write(dump_file_name).unwrap();
     /// # }
     /// ```
     mib_docs: /// See [`dump`].
@@ -41,8 +43,10 @@ option! {
     /// #
     /// # fn main() {
     /// use tikv_jemalloc_ctl::prof;
+    /// use std::ffi::CStr;
+    /// let dump_file_name = CStr::from_bytes_with_nul(b"my_prefix\0").unwrap();
     /// let prefix = prof::prefix::mib().unwrap();
-    /// prefix.write("my_prefix").unwrap();
+    /// prefix.write(dump_file_name).unwrap();
     /// # }
     /// ```
     mib_docs: /// See [`prefix`].
@@ -52,9 +56,9 @@ option! {
     active[ str: b"prof.active\0", non_str: 2 ] => bool |
     ops: r, w, u |
     docs:
-    /// Control whether sampling is currently active. 
+    /// Control whether sampling is currently active.
     ///
-    /// See the `opt.prof_active` option for additional information, 
+    /// See the `opt.prof_active` option for additional information,
     /// as well as the interrelated `thread.prof.active` mallctl.
     ///
     /// # Examples

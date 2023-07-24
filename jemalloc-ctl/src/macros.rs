@@ -114,25 +114,25 @@ macro_rules! w {
             #[test]
             #[cfg(not(target_arch = "mips64el"))]
             fn [<$id _write_test>]() {
-                // /// Help test write
-                // pub trait WriteTestDefault {
-                //     fn default() -> Self;
-                // }
-                // macro_rules! impl_write_test_default {
-                //     ($write_ty:ty, $val:expr) => {
-                //         impl WriteTestDefault for $write_ty {
-                //             fn default() -> $write_ty {
-                //                 $val
-                //             }
-                //         }
-                //     };
-                // }
+                /// Help test write
+                pub trait WriteTestDefault {
+                    fn default() -> Self;
+                }
+                macro_rules! impl_write_test_default {
+                    ($write_ty:ty, $val:expr) => {
+                        impl WriteTestDefault for $write_ty {
+                            fn default() -> $write_ty {
+                                $val
+                            }
+                        }
+                    };
+                }
 
-                // use crate::ffi::CStr;
-                // impl_write_test_default! {libc::size_t, 0}
-                // impl_write_test_default! {u64, 0}
-                // impl_write_test_default! {bool, false}
-                // impl_write_test_default! {&'static CStr, CStr::from_bytes_with_nul(b"test\0").unwrap()}
+                use crate::ffi::CStr;
+                impl_write_test_default! {libc::size_t, 0}
+                impl_write_test_default! {u64, 0}
+                impl_write_test_default! {bool, false}
+                impl_write_test_default! {&'static CStr, CStr::from_bytes_with_nul(b"test\0").unwrap()}
 
                 match stringify!($id) {
                     "background_thread" |
@@ -141,10 +141,10 @@ macro_rules! w {
                     _ => (),
                 }
 
-                let _ = $id::write(<$ret_ty as Default>::default()).unwrap();
+                let _ = $id::write(<$ret_ty as WriteTestDefault>::default()).unwrap();
 
                 let mib = $id::mib().unwrap();
-                let _ = mib.write(<$ret_ty as Default>::default()).unwrap();
+                let _ = mib.write(<$ret_ty as WriteTestDefault>::default()).unwrap();
 
                 #[cfg(feature = "use_std")]
                 println!(
