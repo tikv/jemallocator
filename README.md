@@ -4,7 +4,7 @@
 
 This project is the successor of [jemallocator](https://github.com/gnzlbg/jemallocator).
 
-The project is published as `tikv-jemallocator` and `jemallocator` for historical reasons. The two crates are the same except names. It's OK to use either crate. But due to lack of permissions, only `jemallocator` and `jemalloc-sys` are updated. If you want to use other crates, `tikv-xxx` versions are still required.
+The project is also published as `jemallocator` for historical reasons. The two crates are the same except names. For new projects, it's recommended to use `tikv-xxx` versions instead.
 
 > Links against `jemalloc` and provides a `Jemalloc` unit type that implements
 > the allocator APIs and can be set as the `#[global_allocator]`
