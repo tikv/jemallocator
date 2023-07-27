@@ -215,3 +215,24 @@ option! {
     /// ```
     mib_docs: /// See [`background_thread`].
 }
+
+option! {
+    prof[ str: b"opt.prof\0", non_str: 2 ] => bool |
+    ops: r |
+    docs:
+    /// Memory profiling enabled/disabled. If enabled, profile memory allocation activity.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # #[global_allocator]
+    /// # static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
+    /// #
+    /// # fn main() {
+    /// use tikv_jemalloc_ctl::opt;
+    /// let prof = opt::prof::read().unwrap();
+    /// println!("Jemalloc profiling enabled: {}", prof);
+    /// # }
+    /// ```
+    mib_docs: /// See [`prof`].
+}
