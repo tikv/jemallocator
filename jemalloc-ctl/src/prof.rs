@@ -17,11 +17,14 @@ option! {
     /// # static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
     /// #
     /// # fn main() {
-    /// use tikv_jemalloc_ctl::prof;
-    /// use std::ffi::CStr;
-    /// let dump_file_name = CStr::from_bytes_with_nul(b"dump\0").unwrap();
-    /// let dump = prof::dump::mib().unwrap();
-    /// dump.write(dump_file_name).unwrap();
+    /// #[cfg(feature = "profiling")]
+    /// {
+    ///     use tikv_jemalloc_ctl::prof;
+    ///     use std::ffi::CStr;
+    ///     let dump_file_name = CStr::from_bytes_with_nul(b"dump\0").unwrap();
+    ///     let dump = prof::dump::mib().unwrap();
+    ///     dump.write(dump_file_name).unwrap();
+    /// }
     /// # }
     /// ```
     mib_docs: /// See [`dump`].
@@ -42,11 +45,14 @@ option! {
     /// # static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
     /// #
     /// # fn main() {
-    /// use tikv_jemalloc_ctl::prof;
-    /// use std::ffi::CStr;
-    /// let dump_file_name = CStr::from_bytes_with_nul(b"my_prefix\0").unwrap();
-    /// let prefix = prof::prefix::mib().unwrap();
-    /// prefix.write(dump_file_name).unwrap();
+    /// #[cfg(feature = "profiling")]
+    /// {
+    ///     use tikv_jemalloc_ctl::prof;
+    ///     use std::ffi::CStr;
+    ///     let dump_file_name = CStr::from_bytes_with_nul(b"my_prefix\0").unwrap();
+    ///     let prefix = prof::prefix::mib().unwrap();
+    ///     prefix.write(dump_file_name).unwrap();
+    /// }
     /// # }
     /// ```
     mib_docs: /// See [`prefix`].
@@ -68,9 +74,12 @@ option! {
     /// # static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
     /// #
     /// # fn main() {
-    /// use tikv_jemalloc_ctl::prof;
-    /// let active = prof::active::mib().unwrap();
-    /// active.write(true).unwrap();
+    /// #[cfg(feature = "profiling")]
+    /// {
+    ///     use tikv_jemalloc_ctl::prof;
+    ///     let active = prof::active::mib().unwrap();
+    ///     active.write(true).unwrap();
+    /// }    
     /// # }
     /// ```
     mib_docs: /// See [`active`].

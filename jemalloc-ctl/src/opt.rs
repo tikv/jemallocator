@@ -229,9 +229,12 @@ option! {
     /// # static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
     /// #
     /// # fn main() {
-    /// use tikv_jemalloc_ctl::opt;
-    /// let prof = opt::prof::read().unwrap();
-    /// println!("Jemalloc profiling enabled: {}", prof);
+    /// #[cfg(feature = "profiling")]
+    /// {
+    ///     use tikv_jemalloc_ctl::opt;
+    ///     let prof = opt::prof::read().unwrap();
+    ///     println!("Jemalloc profiling enabled: {}", prof);
+    /// }
     /// # }
     /// ```
     mib_docs: /// See [`prof`].

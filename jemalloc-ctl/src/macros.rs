@@ -43,7 +43,7 @@ macro_rules! types {
 
 /// Read
 macro_rules! r {
-    ($id:ident => $ret_ty:ty) => {
+    ($id:ident[ str: $byte_string:expr ] => $ret_ty:ty) => {
         paste::paste! {
             impl $id {
                 /// Reads value using string API.
@@ -72,6 +72,12 @@ macro_rules! r {
                     if cfg!(target_os = "macos") => return,
                     _ => (),
                 }
+                match $byte_string.as_slice() {
+                    b"opt.prof\0" |
+                    b"prof.active\0"
+                    if !cfg!(feature = "profiling") => return,
+                    _ => (),
+                }
 
                 let a = $id::read().unwrap();
 
@@ -92,7 +98,7 @@ macro_rules! r {
 
 /// Write
 macro_rules! w {
-    ($id:ident => $ret_ty:ty) => {
+    ($id:ident[ str: $byte_string:expr ] => $ret_ty:ty) => {
         paste::paste! {
             impl $id {
                 /// Writes `value` using string API.
@@ -140,6 +146,13 @@ macro_rules! w {
                         if cfg!(target_os = "macos") => return,
                     _ => (),
                 }
+                match $byte_string.as_slice() {
+                    b"prof.dump\0" |
+                    b"prof.active\0" |
+                    b"prof.prefix\0"
+                    if !cfg!(feature = "profiling") => return,
+                    _ => (),
+                }
 
                 let _ = $id::write(<$ret_ty as WriteTestDefault>::default()).unwrap();
 
@@ -161,7 +174,7 @@ macro_rules! w {
 
 /// Update
 macro_rules! u {
-    ($id:ident  => $ret_ty:ty) => {
+    ($id:ident[ str: $byte_string:expr ] => $ret_ty:ty) => {
         paste::paste! {
             impl $id {
                 /// Updates key to `value` returning its old value using string API.
@@ -188,6 +201,11 @@ macro_rules! u {
                     "background_thread" |
                     "max_background_threads"
                         if cfg!(target_os = "macos") => return,
+                    _ => (),
+                }
+                match $byte_string.as_slice() {
+                    b"prof.active\0"
+                        if !cfg!(feature = "profiling") => return,
                     _ => (),
                 }
 
@@ -223,7 +241,7 @@ macro_rules! option {
             mib_docs: $(#[$doc_mib])*
         }
         $(
-            $ops!($id => $ret_ty);
+            $ops!($id[ str: $byte_string ] => $ret_ty);
         )*
     };
     // Non-string option:
