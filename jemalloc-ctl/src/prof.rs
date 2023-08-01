@@ -79,7 +79,7 @@ option! {
     ///     use tikv_jemalloc_ctl::prof;
     ///     let active = prof::active::mib().unwrap();
     ///     active.write(true).unwrap();
-    /// }    
+    /// }
     /// # }
     /// ```
     mib_docs: /// See [`active`].
