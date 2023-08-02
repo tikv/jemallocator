@@ -1,6 +1,6 @@
 [package]
 name = "tikv-jemalloc-ctl"
-version = "0.5.0"
+version = "0.5.4"
 authors = [
     "Steven Fackler <sfackler@gmail.com>",
     "Gonzalo Brito Gadeschi <gonzalobg88@gmail.com>",
@@ -36,6 +36,7 @@ tikv-jemallocator = { path = "../jemallocator", version = "0.5.0" }
 [features]
 default = []
 use_std = [ "libc/use_std" ]
+disable_initial_exec_tls = ["tikv-jemalloc-sys/disable_initial_exec_tls"]
 
 [package.metadata.docs.rs]
 rustdoc-args = [ "--cfg", "jemallocator_docs" ]
