@@ -36,7 +36,7 @@ tikv-jemallocator = "0.5"
 To set `tikv_jemallocator::Jemalloc` as the global allocator add this to your project:
 
 ```rust
-# main.rs
+// main.rs
 #[cfg(not(target_env = "msvc"))]
 use tikv_jemallocator::Jemalloc;
 
