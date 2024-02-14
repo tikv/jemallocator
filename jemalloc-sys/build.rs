@@ -370,7 +370,14 @@ fn gnu_target(target: &str) -> String {
 }
 
 fn make_cmd(host: &str) -> &'static str {
-    const GMAKE_HOSTS: &[&str] = &["bitrig", "dragonfly", "freebsd", "netbsd", "openbsd"];
+    const GMAKE_HOSTS: &[&str] = &[
+        "bitrig",
+        "dragonfly",
+        "freebsd",
+        "netbsd",
+        "openbsd",
+        "chimera-linux",
+    ];
     if GMAKE_HOSTS.iter().any(|i| host.contains(i)) {
         "gmake"
     } else if host.contains("windows") {
