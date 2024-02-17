@@ -88,6 +88,8 @@ pub mod config;
 mod error;
 mod keys;
 pub mod opt;
+#[cfg(feature = "profiling")]
+pub mod profiling;
 pub mod raw;
 pub mod stats;
 #[cfg(feature = "use_std")]
