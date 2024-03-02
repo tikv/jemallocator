@@ -43,7 +43,7 @@ macro_rules! types {
 
 /// Read
 macro_rules! r {
-    ($id:ident => $ret_ty:ty) => {
+    ($id:ident[ str: $byte_string:expr ] => $ret_ty:ty) => {
         paste::paste! {
             impl $id {
                 /// Reads value using string API.
@@ -72,6 +72,12 @@ macro_rules! r {
                     if cfg!(target_os = "macos") => return,
                     _ => (),
                 }
+                match $byte_string.as_slice() {
+                    b"opt.prof\0" |
+                    b"prof.active\0"
+                    if !cfg!(feature = "profiling") => return,
+                    _ => (),
+                }
 
                 let a = $id::read().unwrap();
 
@@ -92,7 +98,7 @@ macro_rules! r {
 
 /// Write
 macro_rules! w {
-    ($id:ident => $ret_ty:ty) => {
+    ($id:ident[ str: $byte_string:expr ] => $ret_ty:ty) => {
         paste::paste! {
             impl $id {
                 /// Writes `value` using string API.
@@ -114,24 +120,51 @@ macro_rules! w {
             #[test]
             #[cfg(not(target_arch = "mips64el"))]
             fn [<$id _write_test>]() {
+                /// Help test write
+                pub trait WriteTestDefault {
+                    fn default() -> Self;
+                }
+                macro_rules! impl_write_test_default {
+                    ($write_ty:ty, $val:expr) => {
+                        impl WriteTestDefault for $write_ty {
+                            fn default() -> $write_ty {
+                                $val
+                            }
+                        }
+                    };
+                }
+
+                use crate::ffi::CStr;
+                impl_write_test_default! {libc::size_t, 0}
+                impl_write_test_default! {u64, 0}
+                impl_write_test_default! {bool, false}
+                impl_write_test_default! {&'static CStr, CStr::from_bytes_with_nul(b"test\0").unwrap()}
+
                 match stringify!($id) {
                     "background_thread" |
                     "max_background_threads"
                         if cfg!(target_os = "macos") => return,
                     _ => (),
                 }
+                match $byte_string.as_slice() {
+                    b"prof.dump\0" |
+                    b"prof.active\0" |
+                    b"prof.prefix\0"
+                    if !cfg!(feature = "profiling") => return,
+                    _ => (),
+                }
 
-                let _ = $id::write($ret_ty::default()).unwrap();
+                let _ = $id::write(<$ret_ty as WriteTestDefault>::default()).unwrap();
 
                 let mib = $id::mib().unwrap();
-                let _ = mib.write($ret_ty::default()).unwrap();
+                let _ = mib.write(<$ret_ty as WriteTestDefault>::default()).unwrap();
 
                 #[cfg(feature = "use_std")]
                 println!(
                     concat!(
                         stringify!($id),
                         " (write): \"{}\""),
-                    $ret_ty::default()
+                        <$ret_ty as Default>::default()
                 );
 
             }
@@ -141,7 +174,7 @@ macro_rules! w {
 
 /// Update
 macro_rules! u {
-    ($id:ident  => $ret_ty:ty) => {
+    ($id:ident[ str: $byte_string:expr ] => $ret_ty:ty) => {
         paste::paste! {
             impl $id {
                 /// Updates key to `value` returning its old value using string API.
@@ -168,6 +201,11 @@ macro_rules! u {
                     "background_thread" |
                     "max_background_threads"
                         if cfg!(target_os = "macos") => return,
+                    _ => (),
+                }
+                match $byte_string.as_slice() {
+                    b"prof.active\0"
+                        if !cfg!(feature = "profiling") => return,
                     _ => (),
                 }
 
@@ -203,7 +241,7 @@ macro_rules! option {
             mib_docs: $(#[$doc_mib])*
         }
         $(
-            $ops!($id => $ret_ty);
+            $ops!($id[ str: $byte_string ] => $ret_ty);
         )*
     };
     // Non-string option:

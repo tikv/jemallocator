@@ -74,7 +74,7 @@
 #[global_allocator]
 static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 
-use crate::std::{fmt, mem, num, ops, ptr, result, slice, str};
+use crate::std::{ffi, fmt, mem, num, ops, ptr, result, slice, str};
 #[cfg(not(feature = "use_std"))]
 use core as std;
 #[cfg(feature = "use_std")]
@@ -88,6 +88,7 @@ pub mod config;
 mod error;
 mod keys;
 pub mod opt;
+pub mod prof;
 pub mod raw;
 pub mod stats;
 #[cfg(feature = "use_std")]
