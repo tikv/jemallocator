@@ -1,7 +1,6 @@
 //! `jemalloc`'s run-time configuration for profiling-specific settings.
 //!
 //! These settings are controlled by the `MALLOC_CONF` environment variable.
-#![cfg(feature = "profiling")]
 
 option! {
     lg_prof_interval[ str: b"opt.lg_prof_interval\0", non_str: 2 ] => libc::ssize_t |
