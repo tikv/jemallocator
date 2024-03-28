@@ -55,12 +55,16 @@ fn copy_recursively(src: &Path, dst: &Path) -> io::Result<()> {
     Ok(())
 }
 
+fn expect_env(name: &str) -> String {
+    env::var(name).unwrap_or_else(|_| panic!("{} was not set", name))
+}
+
 // TODO: split main functions and remove following allow.
 #[allow(clippy::cognitive_complexity)]
 fn main() {
-    let target = env::var("TARGET").expect("TARGET was not set");
-    let host = env::var("HOST").expect("HOST was not set");
-    let num_jobs = env::var("NUM_JOBS").expect("NUM_JOBS was not set");
+    let target = expect_env("TARGET");
+    let host = expect_env("HOST");
+    let num_jobs = expect_env("NUM_JOBS");
     let out_dir = PathBuf::from(env::var_os("OUT_DIR").expect("OUT_DIR was not set"));
     let src_dir = env::current_dir().expect("failed to get current directory");
 
