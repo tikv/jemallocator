@@ -67,6 +67,11 @@ fn main() {
     let num_jobs = expect_env("NUM_JOBS");
     let out_dir = PathBuf::from(env::var_os("OUT_DIR").expect("OUT_DIR was not set"));
     let src_dir = env::current_dir().expect("failed to get current directory");
+    let version = expect_env("CARGO_PKG_VERSION");
+    let je_version = version
+        .split_once('+')
+        .expect("jemalloc version is missing")
+        .1;
 
     info!("TARGET={}", target);
     info!("HOST={}", host);
@@ -151,7 +156,7 @@ fn main() {
     assert!(build_dir.exists());
 
     // Configuration files
-    let config_files = ["configure", "VERSION"];
+    let config_files = ["configure"];
 
     // Copy the configuration files to jemalloc's source directory
     for f in &config_files {
@@ -174,6 +179,7 @@ fn main() {
     .env("CFLAGS", cflags.clone())
     .env("LDFLAGS", cflags.clone())
     .env("CPPFLAGS", cflags)
+    .arg(format!("--with-version={je_version}"))
     .arg("--disable-cxx")
     .arg("--enable-doc=no")
     .arg("--enable-shared=no");
