@@ -2,7 +2,7 @@ name: CI
 
 on:
   pull_request:
-    branches:    
+    branches:
       - 'master'
       - 'main'
   push:
@@ -21,6 +21,11 @@ jobs:
             nobgt: 0
             no_tests: 1
             tag: arm64
+          - name: aarch64-apple-darwin
+            target: aarch64-apple-darwin
+            nobgt: 0
+            no_tests: 1
+            tag: macos-14
           - name: x86_64-unknown-linux-gnu (nightly)
             target: x86_64-unknown-linux-gnu
             nobgt: 0
