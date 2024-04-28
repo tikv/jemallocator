@@ -265,6 +265,9 @@ fn main() {
     if env::var("CARGO_FEATURE_STATS").is_ok() {
         info!("CARGO_FEATURE_STATS set");
         cmd.arg("--enable-stats");
+    } else {
+        info!("CARGO_FEATURE_STATS not set");
+        cmd.arg("--disable-stats");
     }
 
     if env::var("CARGO_FEATURE_DISABLE_INITIAL_EXEC_TLS").is_ok() {
