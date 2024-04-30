@@ -339,10 +339,15 @@ fn main() {
     }
     println!("cargo:rerun-if-changed=jemalloc");
 
-    cc::Build::new()
-        .file("src/pthread_atfork.c")
-        .compile("pthread_atfork");
-    println!("cargo:rerun-if-changed=src/pthread_atfork.c");
+    if target.contains("android") {
+        // These symbols are used by jemalloc on android but the really old android
+        // we're building on doesn't have them defined, so just make sure the symbols
+        // are available.
+        cc::Build::new()
+            .file("src/pthread_atfork.c")
+            .compile("pthread_atfork");
+        println!("cargo:rerun-if-changed=src/pthread_atfork.c");
+    }
 }
 
 fn run_and_log(cmd: &mut Command, log_file: &Path) {
