@@ -338,6 +338,11 @@ fn main() {
         println!("cargo:rustc-link-lib=atomic");
     }
     println!("cargo:rerun-if-changed=jemalloc");
+
+    cc::Build::new()
+        .file("src/pthread_atfork.c")
+        .compile("pthread_atfork");
+    println!("cargo:rerun-if-changed=src/pthread_atfork.c");
 }
 
 fn run_and_log(cmd: &mut Command, log_file: &Path) {
