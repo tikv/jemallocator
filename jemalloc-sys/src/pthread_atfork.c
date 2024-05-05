@@ -1,5 +1,3 @@
-#include <pthread.h>
-
 /*
  * These symbols are used by jemalloc on android but the really old android
  * we're building on doesn't have them defined, so just make sure the symbols
