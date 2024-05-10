@@ -32,7 +32,7 @@ libc = { version = "^0.2.8", default-features = false }
 cc = "^1.0.13"
 
 [features]
-default = ["background_threads_runtime_support"]
+default = ["stats", "background_threads_runtime_support"]
 profiling = []
 debug = []
 background_threads_runtime_support = []
