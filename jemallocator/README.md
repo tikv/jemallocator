@@ -65,7 +65,7 @@ other targets are only tested on Rust nightly.
 | `powerpc64le-unknown-linux-gnu`     | ✓         | ✓       | ✗            |
 | `x86_64-unknown-linux-gnu` (tier 1) | ✓         | ✓       | ✓            |
 | **MacOSX targets:**                 | **build** | **run** | **jemalloc** |
-| `aarch64-apple-darwin` (tier 1)      | ✓         | ✓       | ✗            |
+| `aarch64-apple-darwin`              | ✓         | ✓       | ✗            |
 
 ## Features
 
