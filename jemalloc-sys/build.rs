@@ -328,6 +328,9 @@ fn main() {
         .arg("install_lib_static")
         .arg("install_include"));
 
+    // Try to remove the build directory to avoid it wasting disk space in the target directory
+    let _ = fs::remove_dir_all(build_dir);
+
     println!("cargo:root={}", out_dir.display());
 
     // Linkage directives to pull in jemalloc and its dependencies.
@@ -342,7 +345,7 @@ fn main() {
     } else {
         println!("cargo:rustc-link-lib=static=jemalloc_pic");
     }
-    println!("cargo:rustc-link-search=native={}/lib", build_dir.display());
+    println!("cargo:rustc-link-search=native={}/lib", out_dir.display());
     if target.contains("android") {
         println!("cargo:rustc-link-lib=gcc");
     } else if !target.contains("windows") {
