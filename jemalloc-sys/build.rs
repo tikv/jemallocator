@@ -32,20 +32,12 @@ macro_rules! warning {
 fn env_inner_os(name: &str) -> Option<OsString> {
     let var = env::var_os(name);
     println!("cargo:rerun-if-env-changed={}", name);
-    match var {
-        Some(ref v) => println!("{} = {}", name, v.to_string_lossy()),
-        None => println!("{} unset", name),
-    }
     var
 }
 
 fn env_inner(name: &str) -> Result<String, env::VarError> {
     let var = env::var(name);
     println!("cargo:rerun-if-env-changed={}", name);
-    match &var {
-        Ok(v) => println!("{} = {}", name, v),
-        Err(_) => println!("{} unset", name),
-    }
     var
 }
 
