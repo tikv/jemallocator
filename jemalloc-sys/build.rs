@@ -28,14 +28,40 @@ macro_rules! warning {
     }
 }
 
+// Stolen from openssl-sys
+fn env_inner_os(name: &str) -> Option<OsString> {
+    let var = env::var_os(name);
+    println!("cargo:rerun-if-env-changed={}", name);
+    match var {
+        Some(ref v) => println!("{} = {}", name, v.to_string_lossy()),
+        None => println!("{} unset", name),
+    }
+    var
+}
+
+fn env_inner(name: &str) -> Result<String, env::VarError> {
+    let var = env::var(name);
+    println!("cargo:rerun-if-env-changed={}", name);
+    match &var {
+        Ok(v) => println!("{} = {}", name, v),
+        Err(_) => println!("{} unset", name),
+    }
+    var
+}
+
+fn construct_prefixed_name(name: &str) -> String {
+    let prefix = env::var("TARGET").unwrap().to_uppercase().replace('-', "_");
+    format!("{}_{}", prefix, name)
+}
+
 fn read_and_watch_env(name: &str) -> Result<String, env::VarError> {
-    println!("cargo:rerun-if-env-changed={name}");
-    env::var(name)
+    let prefixed = construct_prefixed_name(name);
+    env_inner(&prefixed).or_else(|| env_inner(name))
 }
 
 fn read_and_watch_env_os(name: &str) -> Option<OsString> {
-    println!("cargo:rerun-if-env-changed={name}");
-    env::var_os(name)
+    let prefixed = construct_prefixed_name(name);
+    env_inner_os(&prefixed).or_else(|| env_inner_os(name))
 }
 
 fn copy_recursively(src: &Path, dst: &Path) -> io::Result<()> {
