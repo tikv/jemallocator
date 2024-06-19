@@ -28,14 +28,28 @@ macro_rules! warning {
     }
 }
 
+fn read_and_watch_env_impl<T, F>(name: &str, env_getter: F) -> Option<T>
+where
+    F: Fn(&str) -> Option<T>,
+{
+    let prefix = env::var("TARGET").unwrap().to_uppercase().replace('-', "_");
+    let prefixed_name = format!("{}_{}", prefix, name);
+
+    println!("cargo:rerun-if-env-changed={}", prefixed_name);
+    if let Some(value) = env_getter(&prefixed_name) {
+        return Some(value);
+    }
+
+    println!("cargo:rerun-if-env-changed={}", name);
+    env_getter(name)
+}
+
 fn read_and_watch_env(name: &str) -> Result<String, env::VarError> {
-    println!("cargo:rerun-if-env-changed={name}");
-    env::var(name)
+    read_and_watch_env_impl(name, |n| env::var(n).ok()).ok_or(env::VarError::NotPresent)
 }
 
 fn read_and_watch_env_os(name: &str) -> Option<OsString> {
-    println!("cargo:rerun-if-env-changed={name}");
-    env::var_os(name)
+    read_and_watch_env_impl(name, |n| env::var_os(n))
 }
 
 fn copy_recursively(src: &Path, dst: &Path) -> io::Result<()> {
