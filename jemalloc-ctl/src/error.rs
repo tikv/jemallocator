@@ -1,8 +1,4 @@
 //! Error type
-#![cfg_attr(
-    feature = "cargo-clippy",
-    allow(clippy::cast_sign_loss, clippy::cast_possible_wrap)
-)]
 
 use crate::{fmt, num, result};
 use libc::c_int;

@@ -41,10 +41,6 @@
 //! [jemalloc_mallctl]: http://jemalloc.net/jemalloc.3.html#mallctl_namespace
 #![no_std]
 #![allow(non_snake_case, non_camel_case_types)]
-#![cfg_attr(
-    feature = "cargo-clippy",
-    allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)
-)]
 // TODO: rename the following lint on next minor bump
 #![allow(renamed_and_removed_lints)]
 #![deny(missing_docs, broken_intra_doc_links)]
