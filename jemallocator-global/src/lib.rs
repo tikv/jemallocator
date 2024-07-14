@@ -5,7 +5,7 @@
 //! ```toml
 //! # Cargo.toml
 //! [dependencies]
-//! jemallocator-global = "0.5.0"
+//! jemallocator-global = "0.6.0"
 //! ```
 //!
 //! and `jemalloc` will be used as the `#[global_allocator]` on targets that
