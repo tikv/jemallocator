@@ -16,11 +16,6 @@ jobs:
     strategy:
       matrix:
         include:
-          - name: aarch64-unknown-linux-gnu
-            target: aarch64-unknown-linux-gnu
-            nobgt: 0
-            no_tests: 1
-            tag: arm64
           - name: x86_64-apple-darwin
             target: x86_64-apple-darwin
             nobgt: 0
@@ -48,6 +43,12 @@ jobs:
             nobgt: 0
             no_tests: 1
             tag: macos-latest
+          - name: x86_64-unknown-linux-gnu (msrv)
+            target: x86_64-unknown-linux-gnu
+            nobgt: 0
+            no_tests: 0
+            rust: msrv
+            tag: ubuntu-latest
     runs-on: ${{ matrix.tag }}
     env:
       TARGET: ${{ matrix.target }}
@@ -61,6 +62,9 @@ jobs:
       run: |
         if [[ "${{ matrix.rust }}" == "nightly" ]]; then
             rustup default nightly
+        fi
+        if [[ "${{ matrix.rust }}" == "msrv" ]]; then
+            rustup default 1.71.0
         fi
         rustup target add ${{ matrix.target }}
         if [[ "$TARGET" == "x86_64-unknown-linux-musl" ]]; then

@@ -1,3 +1,20 @@
+# 0.6.0 - 2024-07-14
+
+- Fix build on riscv64gc-unknown-linux-musl (#67) (#75)
+- Allow jemalloc-sys to be the default allocator on musl linux (#70)
+- Add Chimera Linux to gmake targets (#73)
+- Add profiling options to jemalloc-ctl (#74)
+- Fix jemalloc version not shown in API (#77)
+- Fix jemalloc stats is still enabled when stats feature is disabled (#82)
+- Fix duplicated symbol when build and link on aarch64-linux-android (#83)
+- Revise CI runner platform on macOS (#86)
+- Allow setting per-target env (#91)
+- Remove outdated clippy allows (#94)
+- Set MSRV to 1.71.0 (#95)
+
+Note since 0.6.0, if you want to use jemalloc stats, you have to enable the
+feature explicitly.
+
 # 0.5.4 - 2023-07-22
 
 - Add disable_initial_exec_tls feature for jemalloc-ctl (#59)
