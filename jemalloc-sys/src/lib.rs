@@ -41,10 +41,6 @@
 //! [jemalloc_mallctl]: http://jemalloc.net/jemalloc.3.html#mallctl_namespace
 #![no_std]
 #![allow(non_snake_case, non_camel_case_types)]
-#![cfg_attr(
-    feature = "cargo-clippy",
-    allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)
-)]
 // TODO: rename the following lint on next minor bump
 #![allow(renamed_and_removed_lints)]
 #![deny(missing_docs, broken_intra_doc_links)]
@@ -889,20 +885,6 @@ pub type extent_merge_t = unsafe extern "C" fn(
     committed: c_bool,
     arena_ind: c_uint,
 ) -> c_bool;
-
-// These symbols are used by jemalloc on android but the really old android
-// we're building on doesn't have them defined, so just make sure the symbols
-// are available.
-#[no_mangle]
-#[cfg(target_os = "android")]
-#[doc(hidden)]
-pub extern "C" fn pthread_atfork(
-    _prefork: *mut u8,
-    _postfork_parent: *mut u8,
-    _postfork_child: *mut u8,
-) -> i32 {
-    0
-}
 
 #[allow(missing_docs)]
 mod env;

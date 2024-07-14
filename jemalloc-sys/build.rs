@@ -28,14 +28,28 @@ macro_rules! warning {
     }
 }
 
+fn read_and_watch_env_impl<T, F>(name: &str, env_getter: F) -> Option<T>
+where
+    F: Fn(&str) -> Option<T>,
+{
+    let prefix = env::var("TARGET").unwrap().to_uppercase().replace('-', "_");
+    let prefixed_name = format!("{}_{}", prefix, name);
+
+    println!("cargo:rerun-if-env-changed={}", prefixed_name);
+    if let Some(value) = env_getter(&prefixed_name) {
+        return Some(value);
+    }
+
+    println!("cargo:rerun-if-env-changed={}", name);
+    env_getter(name)
+}
+
 fn read_and_watch_env(name: &str) -> Result<String, env::VarError> {
-    println!("cargo:rerun-if-env-changed={name}");
-    env::var(name)
+    read_and_watch_env_impl(name, |n| env::var(n).ok()).ok_or(env::VarError::NotPresent)
 }
 
 fn read_and_watch_env_os(name: &str) -> Option<OsString> {
-    println!("cargo:rerun-if-env-changed={name}");
-    env::var_os(name)
+    read_and_watch_env_impl(name, |n| env::var_os(n))
 }
 
 fn copy_recursively(src: &Path, dst: &Path) -> io::Result<()> {
@@ -55,14 +69,23 @@ fn copy_recursively(src: &Path, dst: &Path) -> io::Result<()> {
     Ok(())
 }
 
+fn expect_env(name: &str) -> String {
+    env::var(name).unwrap_or_else(|_| panic!("{} was not set", name))
+}
+
 // TODO: split main functions and remove following allow.
 #[allow(clippy::cognitive_complexity)]
 fn main() {
-    let target = env::var("TARGET").expect("TARGET was not set");
-    let host = env::var("HOST").expect("HOST was not set");
-    let num_jobs = env::var("NUM_JOBS").expect("NUM_JOBS was not set");
+    let target = expect_env("TARGET");
+    let host = expect_env("HOST");
+    let num_jobs = expect_env("NUM_JOBS");
     let out_dir = PathBuf::from(env::var_os("OUT_DIR").expect("OUT_DIR was not set"));
     let src_dir = env::current_dir().expect("failed to get current directory");
+    let version = expect_env("CARGO_PKG_VERSION");
+    let je_version = version
+        .split_once('+')
+        .expect("jemalloc version is missing")
+        .1;
 
     info!("TARGET={}", target);
     info!("HOST={}", host);
@@ -147,7 +170,7 @@ fn main() {
     assert!(build_dir.exists());
 
     // Configuration files
-    let config_files = ["configure", "VERSION"];
+    let config_files = ["configure"];
 
     // Copy the configuration files to jemalloc's source directory
     for f in &config_files {
@@ -170,6 +193,7 @@ fn main() {
     .env("CFLAGS", cflags.clone())
     .env("LDFLAGS", cflags.clone())
     .env("CPPFLAGS", cflags)
+    .arg(format!("--with-version={je_version}"))
     .arg("--disable-cxx")
     .arg("--enable-doc=no")
     .arg("--enable-shared=no");
@@ -255,6 +279,9 @@ fn main() {
     if env::var("CARGO_FEATURE_STATS").is_ok() {
         info!("CARGO_FEATURE_STATS set");
         cmd.arg("--enable-stats");
+    } else {
+        info!("CARGO_FEATURE_STATS not set");
+        cmd.arg("--disable-stats");
     }
 
     if env::var("CARGO_FEATURE_DISABLE_INITIAL_EXEC_TLS").is_ok() {
@@ -328,6 +355,16 @@ fn main() {
         println!("cargo:rustc-link-lib=atomic");
     }
     println!("cargo:rerun-if-changed=jemalloc");
+
+    if target.contains("android") {
+        // These symbols are used by jemalloc on android but the really old android
+        // we're building on doesn't have them defined, so just make sure the symbols
+        // are available.
+        cc::Build::new()
+            .file("src/pthread_atfork.c")
+            .compile("pthread_atfork");
+        println!("cargo:rerun-if-changed=src/pthread_atfork.c");
+    }
 }
 
 fn run_and_log(cmd: &mut Command, log_file: &Path) {
@@ -364,12 +401,20 @@ fn gnu_target(target: &str) -> String {
         "x86_64-pc-windows-gnu" => "x86_64-w64-mingw32".to_string(),
         "armv7-linux-androideabi" => "arm-linux-androideabi".to_string(),
         "riscv64gc-unknown-linux-gnu" => "riscv64-linux-gnu".to_string(),
+        "riscv64gc-unknown-linux-musl" => "riscv64-linux-musl".to_string(),
         s => s.to_string(),
     }
 }
 
 fn make_cmd(host: &str) -> &'static str {
-    const GMAKE_HOSTS: &[&str] = &["bitrig", "dragonfly", "freebsd", "netbsd", "openbsd"];
+    const GMAKE_HOSTS: &[&str] = &[
+        "bitrig",
+        "dragonfly",
+        "freebsd",
+        "netbsd",
+        "openbsd",
+        "chimera-linux",
+    ];
     if GMAKE_HOSTS.iter().any(|i| host.contains(i)) {
         "gmake"
     } else if host.contains("windows") {

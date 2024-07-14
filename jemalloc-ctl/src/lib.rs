@@ -13,62 +13,66 @@
 //! `$op::{read(), write(x), update(x)}` on the type calls `mallctl` with the
 //! string-based API. If the operation will be repeatedly performed, a MIB for
 //! the operation can be obtained using `$op.mib()`.
-//!
-//! # Examples
-//!
-//! Repeatedly printing allocation statistics:
-//!
-//! ```no_run
-//! use std::thread;
-//! use std::time::Duration;
-//! use jemalloc_ctl::{stats, epoch};
-//!
-//! #[global_allocator]
-//! static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
-//!
-//! fn main() {
-//!     loop {
-//!         // many statistics are cached and only updated when the epoch is advanced.
-//!         epoch::advance().unwrap();
-//!
-//!         let allocated = stats::allocated::read().unwrap();
-//!         let resident = stats::resident::read().unwrap();
-//!         println!("{} bytes allocated/{} bytes resident", allocated, resident);
-//!         thread::sleep(Duration::from_secs(10));
-//!     }
-//! }
-//! ```
-//!
-//! Doing the same with the MIB-based API:
-//!
-//! ```no_run
-//! use std::thread;
-//! use std::time::Duration;
-//! use jemalloc_ctl::{stats, epoch};
-//!
-//! #[global_allocator]
-//! static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
-//!
-//! fn main() {
-//!     let e = epoch::mib().unwrap();
-//!     let allocated = stats::allocated::mib().unwrap();
-//!     let resident = stats::resident::mib().unwrap();
-//!     loop {
-//!         // many statistics are cached and only updated when the epoch is advanced.
-//!         e.advance().unwrap();
-//!
-//!         let allocated = allocated.read().unwrap();
-//!         let resident = resident.read().unwrap();
-//!         println!("{} bytes allocated/{} bytes resident", allocated, resident);
-//!         thread::sleep(Duration::from_secs(10));
-//!     }
-//! }
-//! ```
+#![cfg_attr(
+    feature = "stats",
+    doc = r##"
+
+# Examples
+
+Repeatedly printing allocation statistics:
+
+```no_run
+use std::thread;
+use std::time::Duration;
+use jemalloc_ctl::{stats, epoch};
+
+#[global_allocator]
+static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
+
+fn main() {
+    loop {
+        // many statistics are cached and only updated when the epoch is advanced.
+        epoch::advance().unwrap();
+
+        let allocated = stats::allocated::read().unwrap();
+        let resident = stats::resident::read().unwrap();
+        println!("{} bytes allocated/{} bytes resident", allocated, resident);
+        thread::sleep(Duration::from_secs(10));
+    }
+}
+```
+
+Doing the same with the MIB-based API:
+
+```no_run
+use std::thread;
+use std::time::Duration;
+use jemalloc_ctl::{stats, epoch};
+
+#[global_allocator]
+static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
+
+fn main() {
+    let e = epoch::mib().unwrap();
+    let allocated = stats::allocated::mib().unwrap();
+    let resident = stats::resident::mib().unwrap();
+    loop {
+        // many statistics are cached and only updated when the epoch is advanced.
+        e.advance().unwrap();
+
+        let allocated = allocated.read().unwrap();
+        let resident = resident.read().unwrap();
+        println!("{} bytes allocated/{} bytes resident", allocated, resident);
+        thread::sleep(Duration::from_secs(10));
+    }
+}
+```
+"##
+)]
 // TODO: rename the following lint on next minor bump
 #![allow(renamed_and_removed_lints)]
 #![deny(missing_docs, broken_intra_doc_links)]
 #![cfg_attr(not(feature = "use_std"), no_std)]
-#![cfg_attr(feature = "cargo-clippy", allow(clippy::module_name_repetitions))]
 
 #[cfg(test)]
 #[global_allocator]
@@ -88,7 +92,10 @@ pub mod config;
 mod error;
 mod keys;
 pub mod opt;
+#[cfg(feature = "profiling")]
+pub mod profiling;
 pub mod raw;
+#[cfg(feature = "stats")]
 pub mod stats;
 #[cfg(feature = "use_std")]
 pub mod stats_print;
