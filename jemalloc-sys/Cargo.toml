@@ -18,7 +18,7 @@ description = """
 Rust FFI bindings to jemalloc
 """
 edition = "2018"
-rust-version = "1.71"
+rust-version = "1.71.0"
 
 [badges]
 codecov = { repository = "tikv/jemallocator" }
