@@ -1,7 +1,7 @@
 [package]
 name = "jemallocator"
 # Make sure to update the version in the README as well:
-version = "0.5.4"
+version = "0.6.0"
 authors = [
     "Alex Crichton <alex@alexcrichton.com>",
     "Gonzalo Brito Gadeschi <gonzalobg88@gmail.com>",
@@ -32,13 +32,17 @@ maintenance = { status = "actively-developed" }
 test = false
 bench = false
 
+[[test]]
+name = "ffi"
+required-features = ["stats"]
+
 [dependencies]
-jemalloc-sys = { path = "../jemalloc-sys", version = "0.5.0", default-features = false }
+jemalloc-sys = { path = "../jemalloc-sys", version = "0.6.0", default-features = false }
 libc = { version = "^0.2.8", default-features = false }
 
 [dev-dependencies]
 paste = "1"
-jemalloc-ctl = { path = "../jemalloc-ctl", version = "0.5.0" }
+jemalloc-ctl = { path = "../jemalloc-ctl", version = "0.6.0" }
 
 [features]
 default = ["background_threads_runtime_support"]

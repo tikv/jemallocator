@@ -1,6 +1,6 @@
 [package]
 name = "jemalloc-ctl"
-version = "0.5.4"
+version = "0.6.0"
 authors = [
     "Steven Fackler <sfackler@gmail.com>",
     "Gonzalo Brito Gadeschi <gonzalobg88@gmail.com>",
@@ -26,17 +26,20 @@ is-it-maintained-open-issues = { repository = "tikv/jemallocator" }
 maintenance = { status = "actively-developed" }
 
 [dependencies]
-jemalloc-sys = { path = "../jemalloc-sys", version = "0.5.0" }
+jemalloc-sys = { path = "../jemalloc-sys", version = "0.6.0" }
 libc = { version = "0.2", default-features = false }
 paste = "1"
 
 [dev-dependencies]
-jemallocator = { path = "../jemallocator", version = "0.5.0" }
+jemallocator = { path = "../jemallocator", version = "0.6.0" }
 
 [features]
 default = []
+stats = ["jemalloc-sys/stats"]
+profiling = ["jemalloc-sys/profiling"]
 use_std = [ "libc/use_std" ]
 disable_initial_exec_tls = ["jemalloc-sys/disable_initial_exec_tls"]
 
 [package.metadata.docs.rs]
 rustdoc-args = [ "--cfg", "jemallocator_docs" ]
+features = ["stats", "profiling", "use_std"]

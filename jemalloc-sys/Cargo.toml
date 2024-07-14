@@ -1,6 +1,6 @@
 [package]
 name = "jemalloc-sys"
-version = "0.5.4+5.3.0-patched"
+version = "0.6.0+5.3.0-1-ge13ca993e8ccb9ba9847cc330696e02839f328f7"
 authors = [
     "Alex Crichton <alex@alexcrichton.com>",
     "Gonzalo Brito Gadeschi <gonzalobg88@gmail.com>",
@@ -18,6 +18,7 @@ description = """
 Rust FFI bindings to jemalloc
 """
 edition = "2018"
+rust-version = "1.71.0"
 
 [badges]
 codecov = { repository = "tikv/jemallocator" }
