@@ -339,7 +339,7 @@ fn main() {
     // intrinsics that are libgcc specific (e.g. those intrinsics aren't present in
     // libcompiler-rt), so link that in to get that support.
     if target.contains("windows") {
-        println!("cargo:rustc-link-lib=static=jemalloc");
+        println!("cargo:rustc-link-lib=static=jemalloc_s");
     } else {
         println!("cargo:rustc-link-lib=static=jemalloc_pic");
     }
