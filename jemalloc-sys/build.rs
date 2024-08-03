@@ -198,6 +198,13 @@ fn main() {
     .arg("--enable-doc=no")
     .arg("--enable-shared=no");
 
+    for (env_key, env_value) in compiler.env() {
+        // MSVC compilers require a handful of environment variables to be set
+        // to work properly, so they can find their built-in include folders and
+        // default library path.
+        cmd.env(env_key, env_value);
+    }
+
     if target.contains("ios") {
         // newer iOS deviced have 16kb page sizes:
         // closed: https://github.com/gnzlbg/jemallocator/issues/68
@@ -302,10 +309,19 @@ fn main() {
 
     // Make:
     let make = make_cmd(&host);
-    run(Command::new(make)
+    let mut make_cmd = Command::new(make);
+    make_cmd
         .current_dir(&build_dir)
         .arg("-j")
-        .arg(num_jobs.clone()));
+        .arg(num_jobs.clone());
+
+    for (env_key, env_value) in compiler.env() {
+        // MSVC compilers require a handful of environment variables to be set
+        // to work properly, so they can find their built-in include folders and
+        // default library path.
+        make_cmd.env(env_key, env_value);
+    }
+    run(&mut make_cmd);
 
     // Skip watching this environment variables to avoid rebuild in CI.
     if env::var("JEMALLOC_SYS_RUN_JEMALLOC_TESTS").is_ok() {
