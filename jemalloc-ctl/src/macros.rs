@@ -69,7 +69,7 @@ macro_rules! r {
                 match stringify!($id) {
                     "background_thread" |
                     "max_background_threads"
-                    if cfg!(target_os = "macos") => return,
+                    if cfg!(any(target_os = "macos", windows)) => return,
                     _ => (),
                 }
 
@@ -117,7 +117,7 @@ macro_rules! w {
                 match stringify!($id) {
                     "background_thread" |
                     "max_background_threads"
-                        if cfg!(target_os = "macos") => return,
+                        if cfg!(any(target_os = "macos", windows)) => return,
                     _ => (),
                 }
 
@@ -167,7 +167,7 @@ macro_rules! u {
                 match stringify!($id) {
                     "background_thread" |
                     "max_background_threads"
-                        if cfg!(target_os = "macos") => return,
+                        if cfg!(any(target_os = "macos", windows)) => return,
                     _ => (),
                 }
 

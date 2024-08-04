@@ -12,7 +12,7 @@ pub static UNSUPPORTED_TARGETS: &[&str] = &[
 pub static UNTESTED_TARGETS: &[&str] = &["openbsd", "msvc"];
 
 /// `jemalloc`'s background_thread support is known not to work on these targets:
-pub static NO_BG_THREAD_TARGETS: &[&str] = &["musl"];
+pub static NO_BG_THREAD_TARGETS: &[&str] = &["musl", "windows"];
 
 /// targets that don't support unprefixed `malloc`
 // “it was found that the `realpath` function in libc would allocate with libc malloc
