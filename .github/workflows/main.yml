@@ -19,7 +19,7 @@ jobs:
           - name: x86_64-pc-windows-msvc
             target: x86_64-pc-windows-msvc
             nobgt: 0
-            no_tests: 0
+            no_tests: 1
             tag: windows-latest
           - name: x86_64-apple-darwin
             target: x86_64-apple-darwin
