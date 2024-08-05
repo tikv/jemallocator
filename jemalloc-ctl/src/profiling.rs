@@ -24,9 +24,13 @@ option! {
     /// # static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
     /// #
     /// # fn main() {
+    /// # #[cfg(not(windows))] {
+    /// #
     /// use tikv_jemalloc_ctl::profiling;
     /// let lg_prof_interval = profiling::lg_prof_interval::read().unwrap();
     /// println!("average interval between memory profile dumps: {}", lg_prof_interval);
+    /// #
+    /// # } // #[cfg(..)]
     /// # }
     /// ```
     mib_docs: /// See [`lg_prof_interval`].
@@ -49,9 +53,13 @@ option! {
     /// # static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
     /// #
     /// # fn main() {
+    /// # #[cfg(not(windows))] {
+    /// #
     /// use tikv_jemalloc_ctl::profiling;
     /// let lg_prof_sample = profiling::lg_prof_sample::read().unwrap();
     /// println!("average interval between allocation samples: {}", lg_prof_sample);
+    /// #
+    /// # } // #[cfg(..)]
     /// # }
     /// ```
     mib_docs: /// See [`lg_prof_sample`].
@@ -79,9 +87,13 @@ option! {
     /// # static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
     /// #
     /// # fn main() {
+    /// # #[cfg(not(windows))] {
+    /// #
     /// use tikv_jemalloc_ctl::profiling;
     /// let prof_final = profiling::prof_final::read().unwrap();
     /// println!("dump final memory usage to file: {}", prof_final);
+    /// #
+    /// # } // #[cfg(..)]
     /// # }
     /// ```
     mib_docs: /// See [`prof_final`].
@@ -116,9 +128,13 @@ option! {
     /// # static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
     /// #
     /// # fn main() {
+    /// # #[cfg(not(windows))] {
+    /// #
     /// use tikv_jemalloc_ctl::profiling;
     /// let prof = profiling::prof::read().unwrap();
     /// println!("is memory profiling enabled: {}", prof);
+    /// #
+    /// # } // #[cfg(..)]
     /// # }
     /// ```
     mib_docs: /// See [`prof`].
@@ -146,9 +162,13 @@ option! {
     /// # static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
     /// #
     /// # fn main() {
+    /// # #[cfg(not(windows))] {
+    /// #
     /// use tikv_jemalloc_ctl::profiling;
     /// let prof_leak = profiling::prof_leak::read().unwrap();
     /// println!("is leak reporting enabled: {}", prof_leak);
+    /// #
+    /// # } // #[cfg(..)]
     /// # }
     /// ```
     mib_docs: /// See [`prof_leak`].

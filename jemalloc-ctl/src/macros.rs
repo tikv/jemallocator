@@ -70,6 +70,12 @@ macro_rules! r {
                     "background_thread" |
                     "max_background_threads"
                     if cfg!(any(target_os = "macos", windows)) => return,
+                    "lg_prof_interval" |
+                    "lg_prof_sample" |
+                    "prof_final" |
+                    "prof_leak" |
+                    "prof"
+                    if cfg!(windows) => return,
                     _ => (),
                 }
 
