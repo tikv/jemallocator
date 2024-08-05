@@ -2,7 +2,7 @@
 //! library was compiled with background thread run-time support.
 #![cfg(feature = "background_threads_runtime_support")]
 #![cfg(not(feature = "unprefixed_malloc_on_supported_platforms"))]
-#![cfg(not(target_env = "musl"))]
+#![cfg(not(any(windows, target_env = "musl")))]
 
 use tikv_jemallocator::Jemalloc;
 
