@@ -69,8 +69,14 @@ other targets are only tested on Rust nightly.
 
 ## Features
 
-The `tikv-jemallocator` crate re-exports the [features of the `tikv-jemalloc-sys`
-dependency](https://github.com/tikv/jemallocator/blob/master/jemalloc-sys/README.md).
+This crate provides following cargo feature flags:
+
+* `alloc_trait` When the `alloc_trait` feature of this crate is enabled, it also implements the `Alloc` trait, allowing usage in collections.
+
+* `default` feature is `background_threads_runtime_support`.
+
+* The `tikv-jemallocator` crate re-exports the [features of the `tikv-jemalloc-sys`
+dependency](https://github.com/tikv/jemallocator/blob/master/jemalloc-sys/README.md#features).
 
 ## License
 
