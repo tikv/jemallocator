@@ -42,19 +42,13 @@ use libc::{c_int, c_void};
 // _Alignof(max_align_t), the malloc-APIs return memory whose alignment is
 // either the requested size if its a power-of-two, or the next smaller
 // power-of-two.
-#[cfg(any(
-    target_arch = "arm",
-    target_arch = "mips",
-    target_arch = "mipsel",
-    target_arch = "powerpc"
-))]
+#[cfg(any(target_arch = "arm", target_arch = "mips", target_arch = "powerpc"))]
 const ALIGNOF_MAX_ALIGN_T: usize = 8;
 #[cfg(any(
     target_arch = "x86",
     target_arch = "x86_64",
     target_arch = "aarch64",
     target_arch = "powerpc64",
-    target_arch = "powerpc64le",
     target_arch = "loongarch64",
     target_arch = "mips64",
     target_arch = "riscv64",
