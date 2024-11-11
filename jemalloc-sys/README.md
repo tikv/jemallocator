@@ -150,6 +150,19 @@ hyphens `-` are replaced with underscores `_`(see
   virtual address size on those platforms where it knows how, and picks a
   default otherwise. This option may be useful when cross-compiling.
 
+By default this crate builds and links against a vendored version of `jemalloc`. To
+provide your own `jemalloc` version, set `JEMALLOC_OVERRIDE` to point to a built
+version of `jemalloc`. This can point to either a shared or static library. For
+instance: `JEMALLOC_OVERRIDE=/path/to/libjemalloc.a`.
+
+`JEMALLOC_OVERRIDE` is for advanced usage only. Providing your own library means
+most features of jemalloc-sys will be ignored in build script, and you are
+responsible for compiling the library to match what `jemalloc-sys` expects.
+Especially, handle API prefix as whatever feature
+`unprefixed_malloc_on_supported_platforms` says.
+
+For more information see [`jemalloc/INSTALL.md`][jemalloc_install].
+
 [jemalloc_install]: https://github.com/jemalloc/jemalloc/blob/dev/INSTALL.md#advanced-configuration
 
 ## License
