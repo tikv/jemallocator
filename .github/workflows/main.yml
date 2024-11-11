@@ -16,6 +16,11 @@ jobs:
     strategy:
       matrix:
         include:
+          - name: x86_64-pc-windows-msvc
+            target: x86_64-pc-windows-msvc
+            nobgt: 1
+            no_tests: 1
+            tag: windows-latest
           - name: x86_64-apple-darwin
             target: x86_64-apple-darwin
             nobgt: 0
@@ -59,6 +64,7 @@ jobs:
       with:
         submodules: true
     - name: install
+      shell: bash
       run: |
         if [[ "${{ matrix.rust }}" == "nightly" ]]; then
             rustup default nightly

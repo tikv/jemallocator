@@ -8615,7 +8615,21 @@ _ACEOF
 
 
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing log" >&5
+
+# On MSVC, log is an intrinsic that doesn't require libm. However,
+# AC_SEARCH_LIBS does not successfully detect this, as it will try to compile
+# a program using the wrong signature for log. Newer versions of MSVC CL detects
+# this and rejects the program with the following messages.
+#
+# conftest.c(40): warning C4391: 'char log()': incorrect return type for intrinsic function, expected 'double'
+# conftest.c(44): error C2168: 'log': too few actual parameters for intrinsic function
+#
+# Since log is always available on MSVC (it's been around since the dawn of
+# time), we simply always assume it's there if MSVC is detected.
+if test "x$je_cv_msvc" = "xyes" ; then
+  LM=
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing log" >&5
 $as_echo_n "checking for library containing log... " >&6; }
 if ${ac_cv_search_log+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -8673,10 +8687,11 @@ else
   as_fn_error $? "Missing math functions" "$LINENO" 5
 fi
 
-if test "x$ac_cv_search_log" != "xnone required" ; then
-  LM="$ac_cv_search_log"
-else
-  LM=
+    if test "x$ac_cv_search_log" != "xnone required" ; then
+      LM="$ac_cv_search_log"
+    else
+      LM=
+    fi
 fi
 
 

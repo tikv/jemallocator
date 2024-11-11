@@ -141,7 +141,7 @@ option! {
     /// # static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
     /// #
     /// # fn main() {
-    /// # #[cfg(not(target_os = "macos"))] {
+    /// # #[cfg(not(any(target_os = "macos", windows)))] {
     /// #
     /// use tikv_jemalloc_ctl::background_thread;
     /// let bg = background_thread::mib().unwrap();
@@ -171,7 +171,7 @@ option! {
     /// # static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
     /// #
     /// # fn main() {
-    /// # #[cfg(not(target_os = "macos"))] {
+    /// # #[cfg(not(any(target_os = "macos", windows)))] {
     /// #
     /// use tikv_jemalloc_ctl::max_background_threads;
     /// let m = max_background_threads::mib().unwrap();
