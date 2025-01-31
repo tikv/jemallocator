@@ -148,7 +148,7 @@ fn main() {
 
     let compiler = cc::Build::new().get_compiler();
     info!("CC={:?}", compiler.path());
-    
+
     assert!(out_dir.exists(), "OUT_DIR does not exist");
     let jemalloc_repo_dir = PathBuf::from("jemalloc");
     info!("JEMALLOC_REPO_DIR={:?}", jemalloc_repo_dir);
