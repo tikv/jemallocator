@@ -145,9 +145,17 @@ fn main() {
         println!("cargo:rustc-link-lib={}={}", kind, &stem[3..]);
         return;
     }
-
-    let compiler = cc::Build::new().get_compiler();
+    // Disable -Wextra warnings - jemalloc doesn't compile free of warnings with
+    // it enabled: https://github.com/jemalloc/jemalloc/issues/1196
+    let compiler = cc::Build::new().extra_warnings(false).get_compiler();
+    let cflags = compiler
+        .args()
+        .iter()
+        .map(|s| s.to_str().unwrap())
+        .collect::<Vec<_>>()
+        .join(" ");
     info!("CC={:?}", compiler.path());
+    info!("CFLAGS={:?}", cflags);
 
     assert!(out_dir.exists(), "OUT_DIR does not exist");
     let jemalloc_repo_dir = PathBuf::from("jemalloc");
@@ -182,6 +190,9 @@ fn main() {
     )
     .current_dir(&build_dir)
     .env("CC", compiler.path())
+    .env("CFLAGS", cflags.clone())
+    .env("LDFLAGS", cflags.clone())
+    .env("CPPFLAGS", cflags)
     .arg(format!("--with-version={je_version}"))
     .arg("--disable-cxx")
     .arg("--enable-doc=no")

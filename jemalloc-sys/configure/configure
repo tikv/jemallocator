@@ -14143,6 +14143,41 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $je_cv_strerror_r_returns_char_with_gnu_source" >&5
 $as_echo "$je_cv_strerror_r_returns_char_with_gnu_source" >&6; }
 
+if test "x${je_cv_strerror_r_returns_char_with_gnu_source}" = "xno" ; then
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether strerror_r header only is compilable" >&5
+$as_echo_n "checking whether strerror_r header only is compilable... " >&6; }
+if ${je_cv_strerror_r_header_pass+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  je_cv_strerror_r_header_pass=yes
+else
+  je_cv_strerror_r_header_pass=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $je_cv_strerror_r_header_pass" >&5
+$as_echo "$je_cv_strerror_r_header_pass" >&6; }
+
+fi
 CONFIGURE_CFLAGS="${SAVED_CONFIGURE_CFLAGS}"
 if test "x${CONFIGURE_CFLAGS}" = "x" -o "x${SPECIFIED_CFLAGS}" = "x" ; then
   CFLAGS="${CONFIGURE_CFLAGS}${SPECIFIED_CFLAGS}"
@@ -14155,6 +14190,8 @@ if test "x${je_cv_strerror_r_returns_char_with_gnu_source}" = "xyes" ; then
 
 $as_echo "#define JEMALLOC_STRERROR_R_RETURNS_CHAR_WITH_GNU_SOURCE  " >>confdefs.h
 
+elif test "x${je_cv_strerror_r_header_pass}" = "xno" ; then
+  as_fn_error $? "cannot determine return type of strerror_r" "$LINENO" 5
 fi
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for stdbool.h that conforms to C99" >&5
