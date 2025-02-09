@@ -8256,7 +8256,7 @@ done
 # Check whether --with-version was given.
 if test "${with_version+set}" = set; then :
   withval=$with_version;
-    echo "${with_version}" | grep '^[0-9]\+\.[0-9]\+\.[0-9]\+-[0-9]\+-g[0-9a-f]\+$' 2>&1 1>/dev/null
+    echo "${with_version}" | grep '^[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*-[0-9][0-9]*-g[0-9a-f][0-9a-f]*$' 2>&1 1>/dev/null
     if test $? -eq 0 ; then
       echo "$with_version" > "${objroot}VERSION"
     else
