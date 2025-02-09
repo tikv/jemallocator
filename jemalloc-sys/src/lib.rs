@@ -890,3 +890,58 @@ pub type extent_merge_t = unsafe extern "C" fn(
 mod env;
 
 pub use env::*;
+
+// When using the `"unprefixed_malloc_on_supported_platforms"` feature flag to
+// override the system allocator, make sure that all allocator functions are
+// visible to the linker, such that it will override all of them.
+//
+// For example, this would fail horribly if one used a dynamic library that
+// calls `malloc`, and then later `free`'d that in Rust code that used
+// jemalloc-sys, since then the linker might think that only `free` from
+// jemalloc is needed, and wouldn't override `malloc`.
+#[cfg(not(prefixed))]
+mod set_up_statics {
+    use super::*;
+
+    #[used]
+    static USED_MALLOC: unsafe extern "C" fn(usize) -> *mut c_void = malloc;
+    #[used]
+    static USED_CALLOC: unsafe extern "C" fn(usize, usize) -> *mut c_void = calloc;
+    #[used]
+    static USED_POSIX_MEMALIGN: unsafe extern "C" fn(*mut *mut c_void, usize, usize) -> c_int =
+        posix_memalign;
+    #[used]
+    static USED_ALLOC: unsafe extern "C" fn(usize, usize) -> *mut c_void = aligned_alloc;
+    #[used]
+    static USED_REALLOC: unsafe extern "C" fn(*mut c_void, usize) -> *mut c_void = realloc;
+    #[used]
+    static USED_FREE: unsafe extern "C" fn(*mut c_void) = free;
+}
+
+// On macOS, jemalloc doesn't directly override malloc/free, but instead
+// registers itself with the allocator's zone APIs in a ctor. However, ld64
+// doesn't consider ctors as "used" when defined in an object file / archive
+// member in a static library, so we need to explicitly depend on the function
+// using Rust's `#[used]`.
+//
+// NOTE: `#[used]` currently doesn't actually work on macOS, but that's an
+// upstream rustc issue, see https://github.com/rust-lang/rust/issues/133491.
+#[cfg(all(
+    feature = "unprefixed_malloc_on_supported_platforms",
+    target_vendor = "apple"
+))]
+#[used]
+static USED_ZONE_REGISTER: unsafe extern "C" fn() = {
+    extern "C" {
+        #[cfg_attr(prefixed, link_name = "_rjem_je_zone_register")]
+        #[cfg_attr(not(prefixed), link_name = "je_zone_register")]
+        fn zone_register();
+    }
+
+    // NOTE: This internal function is marked as __attribute__((constructor)),
+    // and thus we neither can nor should call it ourselves.
+    //
+    // Instead, we simply need to reference it in a `#[used]` static to get
+    // the linker to see that it should be registering it as a constructor.
+    zone_register
+};
