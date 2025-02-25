@@ -302,10 +302,14 @@ fn main() {
 
     // Make:
     let make = make_cmd(&host);
-    run(Command::new(make)
-        .current_dir(&build_dir)
-        .arg("-j")
-        .arg(num_jobs.clone()));
+    let mut cmd = Command::new(make);
+    cmd.current_dir(&build_dir);
+    if let Ok(makeflags) = std::env::var("CARGO_MAKEFLAGS") {
+        cmd.env("MAKEFLAGS", makeflags);
+    } else {
+        cmd.arg("-j").arg(num_jobs.clone());
+    }
+    run(&mut cmd);
 
     // Skip watching this environment variables to avoid rebuild in CI.
     if env::var("JEMALLOC_SYS_RUN_JEMALLOC_TESTS").is_ok() {
