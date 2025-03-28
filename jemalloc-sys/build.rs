@@ -145,9 +145,11 @@ fn main() {
         println!("cargo:rustc-link-lib={}={}", kind, &stem[3..]);
         return;
     }
-
-    let compiler = cc::Build::new().get_compiler();
+    let build = cc::Build::new();
+    let compiler = build.get_compiler();
+    let archiver = build.get_archiver();
     info!("CC={:?}", compiler.path());
+    info!("AR={:?}", archiver.get_program());
 
     assert!(out_dir.exists(), "OUT_DIR does not exist");
     let jemalloc_repo_dir = PathBuf::from("jemalloc");
@@ -182,6 +184,7 @@ fn main() {
     )
     .current_dir(&build_dir)
     .env("CC", compiler.path())
+    .env("AR", archiver.get_program())
     .arg(format!("--with-version={je_version}"))
     .arg("--disable-cxx")
     .arg("--enable-doc=no")
