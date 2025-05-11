@@ -52,3 +52,9 @@ disable_cache_oblivious = []
 
 [package.metadata.docs.rs]
 rustdoc-args = [ "--cfg",  "jemallocator_docs" ]
+
+[target.'cfg(target_env = "msvc")'.dependencies]
+winapi = { version = "0.3", features = ["minwindef", "winnt"] }
+
+[target.'cfg(target_env = "msvc")'.build-dependencies]
+cc = "1.0"

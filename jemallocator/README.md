@@ -14,6 +14,7 @@ The project is also published as `jemallocator` for historical reasons. The two 
 The `jemalloc` support ecosystem consists of the following crates:
 
 * `tikv-jemalloc-sys`: builds and links against `jemalloc` exposing raw C bindings to it.
+  * On MSVC targets, it provides a stub implementation that forwards to the system allocator to avoid linking conflicts.
 * `tikv-jemallocator`: provides the `Jemalloc` type which implements the
   `GlobalAlloc` and `Alloc` traits. 
 * `tikv-jemalloc-ctl`: high-level wrapper over `jemalloc`'s control and introspection
@@ -42,7 +43,7 @@ static GLOBAL: Jemalloc = Jemalloc;
 ```
 
 And that's it! Once you've defined this `static` then jemalloc will be used for
-all allocations requested by Rust code in the same program.
+all allocations requested by Rust code in the same program. On MSVC targets, the system allocator will be used instead to avoid linking conflicts.
 
 ## Platform support
 
