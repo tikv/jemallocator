@@ -28,8 +28,6 @@ To use `tikv-jemallocator` add it as a dependency:
 ```toml
 # Cargo.toml
 [dependencies]
-
-[target.'cfg(not(target_env = "msvc"))'.dependencies]
 tikv-jemallocator = "0.6"
 ```
 
@@ -37,10 +35,8 @@ To set `tikv_jemallocator::Jemalloc` as the global allocator add this to your pr
 
 ```rust
 // main.rs
-#[cfg(not(target_env = "msvc"))]
 use tikv_jemallocator::Jemalloc;
 
-#[cfg(not(target_env = "msvc"))]
 #[global_allocator]
 static GLOBAL: Jemalloc = Jemalloc;
 ```
@@ -66,6 +62,10 @@ other targets are only tested on Rust nightly.
 | `x86_64-unknown-linux-gnu` (tier 1) | ✓         | ✓       | ✓            |
 | **MacOSX targets:**                 | **build** | **run** | **jemalloc** |
 | `aarch64-apple-darwin`              | ✓         | ✓       | ✗            |
+| **Windows targets:**                | **build** | **run** | **jemalloc** |
+| `x86_64-pc-windows-msvc`            | ✓         | ✓       | Note 1       |
+
+Note 1: Refers to jemalloc's own comprehensive test suite. Basic allocator functionality provided by `tikv-jemallocator` is expected to work.
 
 ## Features
 
