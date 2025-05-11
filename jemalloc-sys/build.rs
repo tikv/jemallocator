@@ -75,6 +75,18 @@ fn expect_env(name: &str) -> String {
 
 #[allow(clippy::cognitive_complexity)]
 fn main() {
+    // Only link to jemalloc on non-MSVC targets
+    // This allows MSVC targets to use the stub implementation without linking conflicts
+    if !cfg!(target_env = "msvc") {
+        println!("cargo:links=jemalloc");
+    } else {
+        // On MSVC, we don't link to jemalloc, but use a stub implementation
+        println!("cargo:rustc-cfg=msvc_stub");
+    }
+
+    // Make sure Cargo knows to rebuild if any of the build script inputs change
+    println!("cargo:rerun-if-changed=build.rs");
+
     let target = expect_env("TARGET");
     let host = expect_env("HOST");
     let num_jobs = expect_env("NUM_JOBS");

@@ -29,7 +29,10 @@ To use `tikv-jemallocator` add it as a dependency:
 ```toml
 # Cargo.toml
 [dependencies]
-tikv-jemallocator = "0.6"
+tikv-jemallocator = { git = "https://github.com/jamesatomc/jemallocator.git", features = [
+    "unprefixed_malloc_on_supported_platforms",
+    "profiling",
+] }
 ```
 
 To set `tikv_jemallocator::Jemalloc` as the global allocator add this to your project:
@@ -44,6 +47,16 @@ static GLOBAL: Jemalloc = Jemalloc;
 
 And that's it! Once you've defined this `static` then jemalloc will be used for
 all allocations requested by Rust code in the same program. On MSVC targets, the system allocator will be used instead to avoid linking conflicts.
+
+## Avoiding Link Conflicts
+
+When using this crate with other libraries that also link to jemalloc (such as RocksDB with the jemalloc feature enabled), you might encounter linking conflicts on some platforms. 
+
+On MSVC targets, `tikv-jemalloc-sys` automatically uses a stub implementation that forwards to the system allocator and doesn't actually link to jemalloc, avoiding these conflicts.
+
+If you're still experiencing linking conflicts, you may need to:
+1. Disable jemalloc in one of the dependencies (e.g., use RocksDB without the jemalloc feature)
+2. Ensure you're using a consistent version of jemalloc throughout your dependency tree
 
 ## Platform support
 
