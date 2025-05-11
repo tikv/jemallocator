@@ -9,9 +9,7 @@
 
 * [Latest release (docs.rs)][docs.rs]
 
-`jemalloc` is a general purpose memory allocator, its documentation
-
- can be found here:
+`jemalloc` is a general purpose memory allocator, its documentation can be found here:
 
 * [API documentation][jemalloc_docs]
 * [Wiki][jemalloc_wiki] (design documents, presentations, profiling, debugging, tuning, ...)
@@ -25,6 +23,12 @@
 
 See the platform support of the
 [`tikv-jemallocator`](https://crates.io/crates/tikv-jemallocator) crate.
+
+### Note on MSVC Support
+
+MSVC targets are not supported as jemalloc requires a Unix-style build environment 
+with autotools. If you need to use jemalloc on Windows, please use the MinGW 
+(GNU) toolchain instead.
 
 ## Features
 
@@ -119,7 +123,6 @@ hyphens `-` are replaced with underscores `_`(see
 * `JEMALLOC_SYS_WITH_LG_HUGEPAGE=<lg-hugepage>`: Specify the base 2 log of the
   system huge page size. This option is useful when cross compiling, or when
   overriding the default for systems that do not explicitly support huge pages.
-  
   
 * `JEMALLOC_SYS_WITH_LG_QUANTUM=<lg-quantum>`: Specify the base 2 log of the
   minimum allocation alignment. jemalloc needs to know the minimum alignment

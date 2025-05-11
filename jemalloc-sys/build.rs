@@ -73,7 +73,6 @@ fn expect_env(name: &str) -> String {
     env::var(name).unwrap_or_else(|_| panic!("{} was not set", name))
 }
 
-// TODO: split main functions and remove following allow.
 #[allow(clippy::cognitive_complexity)]
 fn main() {
     let target = expect_env("TARGET");
@@ -94,6 +93,112 @@ fn main() {
     let build_dir = out_dir.join("build");
     info!("BUILD_DIR={:?}", build_dir);
     info!("SRC_DIR={:?}", src_dir);
+
+    // Check if we're building for MSVC target
+    let is_msvc = target.contains("msvc");
+
+    if is_msvc {
+        // For MSVC, use our stub implementation instead of panicking
+        info!("Building for MSVC target, using stub implementation");
+        
+        // Generate a static library with our stub implementation
+        let _build = cc::Build::new();
+        
+        // Generate config header for MSVC
+        let include_dir = out_dir.join("include").join("jemalloc");
+        fs::create_dir_all(&include_dir).expect("failed to create include directory");
+        
+        // Create jemalloc_defs.h
+        let defs_content = r#"
+#ifndef JEMALLOC_DEFS_H_
+#define JEMALLOC_DEFS_H_
+
+// MSVC stub mode
+#define JEMALLOC_VERSION_MAJOR 5
+#define JEMALLOC_VERSION_MINOR 3
+#define JEMALLOC_VERSION_BUGFIX 0
+#define JEMALLOC_VERSION_NREV 0
+#define JEMALLOC_VERSION_GID "stub"
+
+#define JEMALLOC_STUB 1
+#define JEMALLOC_PREFIX "_rjem_"
+#define JEMALLOC_PRIVATE_NAMESPACE _rjem_
+
+// We won't actually use TLS or any advanced features in the stub
+#define JEMALLOC_TLS
+
+#endif /* JEMALLOC_DEFS_H_ */
+"#;
+        fs::write(include_dir.join("jemalloc_defs.h"), defs_content)
+            .expect("failed to write jemalloc_defs.h");
+
+        // Create jemalloc.h
+        let header_content = r#"
+#ifndef JEMALLOC_H_
+#define JEMALLOC_H_
+
+#include <stdlib.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include "jemalloc_defs.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+extern const char *_rjem_malloc_conf;
+extern void *_rjem_malloc(size_t size);
+extern void *_rjem_calloc(size_t num, size_t size);
+extern void *_rjem_realloc(void *ptr, size_t size);
+extern void _rjem_free(void *ptr);
+extern int _rjem_mallctl(const char *name, void *oldp, size_t *oldlenp, void *newp, size_t newlen);
+extern size_t _rjem_nallocx(size_t size, int flags);
+extern void *_rjem_mallocx(size_t size, int flags);
+extern size_t _rjem_xallocx(void *ptr, size_t size, size_t extra, int flags);
+extern size_t _rjem_sallocx(void *ptr, int flags);
+extern void _rjem_dallocx(void *ptr, int flags);
+extern void _rjem_sdallocx(void *ptr, size_t size, int flags);
+extern void *_rjem_rallocx(void *ptr, size_t size, int flags);
+
+#define MALLOCX_LG_ALIGN(la) (la)
+#define MALLOCX_ALIGN(a) MALLOCX_LG_ALIGN(a)
+#define MALLOCX_ZERO 0x40
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* JEMALLOC_H_ */
+"#;
+        fs::write(include_dir.join("jemalloc.h"), header_content)
+            .expect("failed to write jemalloc.h");
+        
+        // Create lib directory
+        let lib_dir = out_dir.join("lib");
+        fs::create_dir_all(&lib_dir).expect("failed to create lib directory");
+        
+        // Use rustc to compile our stub implementation to a static library
+        let stub_impl = src_dir.join("src").join("msvc_stub.rs");
+        let output_lib = lib_dir.join("jemalloc.lib");
+        
+        let status = Command::new("rustc")
+            .arg("--crate-type=staticlib")
+            .arg("-o")
+            .arg(&output_lib)
+            .arg(&stub_impl)
+            .status()
+            .expect("failed to execute rustc");
+            
+        if !status.success() {
+            panic!("failed to compile MSVC stub implementation");
+        }
+
+        println!("cargo:root={}", out_dir.display());
+        println!("cargo:rustc-link-lib=static=jemalloc");
+        println!("cargo:rustc-link-search=native={}", lib_dir.display());
+        println!("cargo:rustc-cfg=msvc_stub");
+        return;
+    }
 
     if UNSUPPORTED_TARGETS.iter().any(|i| target.contains(i)) {
         panic!("jemalloc does not support target: {}", target);

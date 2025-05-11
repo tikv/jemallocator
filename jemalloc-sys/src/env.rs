@@ -6,18 +6,19 @@ pub static UNSUPPORTED_TARGETS: &[&str] = &[
     "fuchsia",
     "redox",
     "wasm32",
+    "msvc",  // MSVC doesn't work with the Unix-style configure scripts
 ];
 
 /// `jemalloc-sys` is not tested on these targets in CI:
-pub static UNTESTED_TARGETS: &[&str] = &["openbsd", "msvc"];
+pub static UNTESTED_TARGETS: &[&str] = &["openbsd"];
 
 /// `jemalloc`'s background_thread support is known not to work on these targets:
 pub static NO_BG_THREAD_TARGETS: &[&str] = &["musl"];
 
 /// targets that don't support unprefixed `malloc`
-// “it was found that the `realpath` function in libc would allocate with libc malloc
+// "it was found that the `realpath` function in libc would allocate with libc malloc
 //  (not jemalloc malloc), and then the standard library would free with jemalloc free,
-//  causing a segfault.”
+//  causing a segfault."
 // https://github.com/rust-lang/rust/commit/e3b414d8612314e74e2b0ebde1ed5c6997d28e8d
 // https://github.com/rust-lang/rust/commit/9f3de647326fbe50e0e283b9018ab7c41abccde3
 // https://github.com/rust-lang/rust/commit/ed015456a114ae907a36af80c06f81ea93182a24

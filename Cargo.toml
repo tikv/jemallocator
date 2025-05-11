@@ -1,2 +1,9 @@
 [workspace]
 members = ["jemallocator", "jemallocator-global", "jemalloc-ctl", "jemalloc-sys"]
+resolver = "2"
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"
