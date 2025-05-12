@@ -64,6 +64,8 @@ jobs:
       with:
         submodules: true
     - name: install
+      shell: bash
+      if: runner.os != 'Windows'
       run: |
         if [[ "${{ matrix.rust }}" == "nightly" ]]; then
             rustup default nightly
@@ -75,6 +77,18 @@ jobs:
         if [[ "$TARGET" == "x86_64-unknown-linux-musl" ]]; then
           sudo apt install -y musl-tools
         fi
+    - name: install (Windows)
+      shell: pwsh
+      if: runner.os == 'Windows'
+      run: |
+        if ("${{ matrix.rust }}" -eq "nightly") {
+            rustup default nightly
+        }
+        if ("${{ matrix.rust }}" -eq "msrv") {
+            $msrv = (Get-Content jemalloc-sys/Cargo.toml | Select-String 'rust-version').ToString().Split('"')[1]
+            rustup default $msrv
+        }
+        rustup target add ${{ matrix.target }}
     - name: test
       run: sh ci/run.sh
   test_bench:
