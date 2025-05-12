@@ -3,10 +3,14 @@ name: CI
 on:
   pull_request:
     branches:
+      - 'master'
+      - 'main'
       - 'windows'
 
   push:
     branches:
+      - 'master'
+      - 'main'
       - 'windows'
 
 
