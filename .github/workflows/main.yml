@@ -119,11 +119,43 @@ jobs:
       if: runner.os == 'Windows'
       shell: pwsh
       run: |
-        # Source the run script contents but execute commands in PowerShell
-        $env:CARGO_BUILD_TARGET = "${{ matrix.target }}"
-        cargo build --target "${{ matrix.target }}"
-        if ($env:NO_JEMALLOC_TESTS -ne "1") {
-          cargo test --target "${{ matrix.target }}"
+        try {
+            # Setup VS Developer environment
+            $vsPath = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath
+            Import-Module (Join-Path $vsPath "Common7\Tools\Microsoft.VisualStudio.DevShell.dll")
+            Enter-VsDevShell -VsInstallPath $vsPath -SkipAutomaticLocation
+
+            # Set build environment
+            $env:CARGO_BUILD_TARGET = "${{ matrix.target }}"
+            
+            # Basic build first
+            Write-Host "Building basic target..."
+            cargo build --target "${{ matrix.target }}"
+            if ($LASTEXITCODE -ne 0) { throw "Basic build failed" }
+
+            # Run tests if enabled
+            if ($env:NO_JEMALLOC_TESTS -ne "1") {
+                Write-Host "Running tests..."
+                
+                # Run basic tests
+                cargo test --target "${{ matrix.target }}"
+                if ($LASTEXITCODE -ne 0) { throw "Basic tests failed" }
+
+                # Run tests with different features
+                cargo test --target "${{ matrix.target }}" --features unprefixed_malloc_on_supported_platforms
+                if ($LASTEXITCODE -ne 0) { throw "Feature tests failed" }
+                
+                # Run debug tests
+                cargo test --target "${{ matrix.target }}" --features debug
+                if ($LASTEXITCODE -ne 0) { throw "Debug tests failed" }
+            }
+            else {
+                Write-Host "Skipping tests as NO_JEMALLOC_TESTS=1"
+            }
+        }
+        catch {
+            Write-Error "Test step failed: $_"
+            exit 1
         }
   test_bench:
     name: Benchmarks using x86_64-unknown-linux-gnu (nightly)
