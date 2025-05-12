@@ -3,12 +3,12 @@ name: CI
 on:
   pull_request:
     branches:
-      - 'master'
-      - 'main'
+      - 'windows'
+
   push:
     branches:
-      - 'master'
-      - 'main'
+      - 'windows'
+
 
 jobs:
   test:
@@ -49,13 +49,18 @@ jobs:
             no_tests: 0
             rust: msrv
             tag: ubuntu-latest
+          - name: x86_64-windows-msvc
+            target: x86_64-pc-windows-msvc
+            nobgt: 0
+            no_tests: 1
+            tag: windows-latest
     runs-on: ${{ matrix.tag }}
     env:
       TARGET: ${{ matrix.target }}
       NO_JEMALLOC_TESTS: ${{ matrix.no_tests }}
       NOBGT: ${{ matrix.nobgt }}
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
       with:
         submodules: true
     - name: install
@@ -76,7 +81,7 @@ jobs:
     name: Benchmarks using x86_64-unknown-linux-gnu (nightly)
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
       with:
         submodules: true
     - run: rustup default nightly
@@ -85,7 +90,7 @@ jobs:
     name: Rustfmt and Clippy
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
       with:
         submodules: true
     - run: rustup component add rustfmt clippy
