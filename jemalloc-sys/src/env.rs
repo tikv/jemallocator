@@ -6,7 +6,7 @@ pub static UNSUPPORTED_TARGETS: &[&str] = &[
     "fuchsia",
     "redox",
     "wasm32",
-    "msvc",  // MSVC doesn't work with the Unix-style configure scripts
+    "msvc", // doesn't work with the Unix-style configure scripts
 ];
 
 /// `jemalloc-sys` is not tested on these targets in CI:

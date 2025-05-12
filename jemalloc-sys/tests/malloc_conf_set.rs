@@ -17,8 +17,6 @@ pub static malloc_conf: Option<&'static libc::c_char> = Some(unsafe {
 
 #[test]
 fn malloc_conf_set() {
-
-    
     // Skip test on MSVC stub implementation
     if cfg!(msvc_stub) {
         println!("Skipping test on MSVC stub implementation");
@@ -31,7 +29,9 @@ fn malloc_conf_set() {
             assert_eq!(tikv_jemalloc_sys::malloc_conf, malloc_conf);
 
             let mut ptr: *const libc::c_char = std::ptr::null();
-            let mut ptr_len: libc::size_t = std::mem::size_of::<*const libc::c_char>() as libc::size_t;
+            let mut ptr_len: libc::size_t =
+                std::mem::size_of::<*const libc::c_char>() as libc::size_t;
+
             let r = tikv_jemalloc_sys::mallctl(
                 &b"opt.stats_print_opts\0"[0] as *const _ as *const libc::c_char,
                 &mut ptr as *mut *const _ as *mut libc::c_void,

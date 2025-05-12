@@ -61,7 +61,7 @@ pub extern "C" fn _rjem_mallctl(
     name: *const c_char,
     oldp: *mut c_void,
     oldlenp: *mut usize,
-    newp: *mut c_void, 
+    newp: *mut c_void,
     newlen: usize,
 ) -> c_int {
     // Return error code - not implemented
@@ -85,7 +85,12 @@ pub extern "C" fn _rjem_mallocx(size: usize, flags: c_int) -> *mut c_void {
 /// Resizes/reallocates memory with specified `flags`.
 /// This stub implementation simply returns the size.
 #[no_mangle]
-pub extern "C" fn _rjem_xallocx(ptr: *mut c_void, size: usize, extra: usize, flags: c_int) -> usize {
+pub extern "C" fn _rjem_xallocx(
+    ptr: *mut c_void,
+    size: usize,
+    extra: usize,
+    flags: c_int,
+) -> usize {
     size
 }
 

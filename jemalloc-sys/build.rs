@@ -112,14 +112,14 @@ fn main() {
     if is_msvc {
         // For MSVC, use our stub implementation instead of panicking
         info!("Building for MSVC target, using stub implementation");
-        
+
         // Generate a static library with our stub implementation
         let _build = cc::Build::new();
-        
+
         // Generate config header for MSVC
         let include_dir = out_dir.join("include").join("jemalloc");
         fs::create_dir_all(&include_dir).expect("failed to create include directory");
-        
+
         // Create jemalloc_defs.h
         let defs_content = r#"
 #ifndef JEMALLOC_DEFS_H_
@@ -184,15 +184,15 @@ extern void *_rjem_rallocx(void *ptr, size_t size, int flags);
 "#;
         fs::write(include_dir.join("jemalloc.h"), header_content)
             .expect("failed to write jemalloc.h");
-        
+
         // Create lib directory
         let lib_dir = out_dir.join("lib");
         fs::create_dir_all(&lib_dir).expect("failed to create lib directory");
-        
+
         // Use rustc to compile our stub implementation to a static library
         let stub_impl = src_dir.join("src").join("msvc_stub.rs");
         let output_lib = lib_dir.join("jemalloc.lib");
-        
+
         let status = Command::new("rustc")
             .arg("--crate-type=staticlib")
             .arg("-o")
@@ -200,7 +200,7 @@ extern void *_rjem_rallocx(void *ptr, size_t size, int flags);
             .arg(&stub_impl)
             .status()
             .expect("failed to execute rustc");
-            
+
         if !status.success() {
             panic!("failed to compile MSVC stub implementation");
         }
