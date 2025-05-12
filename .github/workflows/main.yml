@@ -63,9 +63,10 @@ jobs:
     - uses: actions/checkout@v4
       with:
         submodules: true
-    - name: install
-      shell: bash
+
+    - name: Install Rust (non-Windows)
       if: runner.os != 'Windows'
+      shell: bash
       run: |
         if [[ "${{ matrix.rust }}" == "nightly" ]]; then
             rustup default nightly
@@ -77,18 +78,38 @@ jobs:
         if [[ "$TARGET" == "x86_64-unknown-linux-musl" ]]; then
           sudo apt install -y musl-tools
         fi
-    - name: install (Windows)
-      shell: pwsh
+
+    - name: Install Rust (Windows)
       if: runner.os == 'Windows'
+      shell: pwsh
       run: |
-        if ("${{ matrix.rust }}" -eq "nightly") {
-            rustup default nightly
+        # Install appropriate Rust version
+        try {
+            if ("${{ matrix.rust }}" -eq "nightly") {
+                rustup default nightly
+                if ($LASTEXITCODE -ne 0) { throw "Failed to set nightly" }
+            }
+            elseif ("${{ matrix.rust }}" -eq "msrv") {
+                $msrv = (Get-Content jemalloc-sys/Cargo.toml | Select-String 'rust-version').ToString().Split('"')[1]
+                rustup default $msrv
+                if ($LASTEXITCODE -ne 0) { throw "Failed to set MSRV" }
+            }
+            
+            # Install target
+            rustup target add ${{ matrix.target }}
+            if ($LASTEXITCODE -ne 0) { throw "Failed to add target" }
+
+            # For MSVC we need to ensure Visual Studio environment is available
+            if ("${{ matrix.target }}" -like "*msvc*") {
+                # Load VS environment if needed
+                & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath
+            }
         }
-        if ("${{ matrix.rust }}" -eq "msrv") {
-            $msrv = (Get-Content jemalloc-sys/Cargo.toml | Select-String 'rust-version').ToString().Split('"')[1]
-            rustup default $msrv
+        catch {
+            Write-Error "Failed to setup Rust environment: $_"
+            exit 1
         }
-        rustup target add ${{ matrix.target }}
+
     - name: test (non-Windows)
       if: runner.os != 'Windows'
       shell: bash
