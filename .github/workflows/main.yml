@@ -89,8 +89,21 @@ jobs:
             rustup default $msrv
         }
         rustup target add ${{ matrix.target }}
-    - name: test
+    - name: test (non-Windows)
+      if: runner.os != 'Windows'
+      shell: bash
       run: sh ci/run.sh
+    
+    - name: test (Windows) 
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        # Source the run script contents but execute commands in PowerShell
+        $env:CARGO_BUILD_TARGET = "${{ matrix.target }}"
+        cargo build --target "${{ matrix.target }}"
+        if ($env:NO_JEMALLOC_TESTS -ne "1") {
+          cargo test --target "${{ matrix.target }}"
+        }
   test_bench:
     name: Benchmarks using x86_64-unknown-linux-gnu (nightly)
     runs-on: ubuntu-latest
