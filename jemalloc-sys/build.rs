@@ -302,36 +302,25 @@ fn main() {
 
     // Make:
     let make = make_cmd(&host);
-    let mut cmd = Command::new(make);
-    cmd.current_dir(&build_dir);
-    if let Ok(makeflags) = std::env::var("CARGO_MAKEFLAGS") {
-        cmd.env("MAKEFLAGS", makeflags);
-    } else {
-        cmd.arg("-j").arg(num_jobs.clone());
-    }
-    run(&mut cmd);
+    run(&mut make_command(make, &build_dir, &num_jobs));
 
     // Skip watching this environment variables to avoid rebuild in CI.
     if env::var("JEMALLOC_SYS_RUN_JEMALLOC_TESTS").is_ok() {
         info!("Building and running jemalloc tests...");
+
+        let mut cmd = make_command(make, &build_dir, &num_jobs);
+
         // Make tests:
-        run(Command::new(make)
-            .current_dir(&build_dir)
-            .arg("-j")
-            .arg(num_jobs.clone())
-            .arg("tests"));
+        run(cmd.arg("tests"));
 
         // Run tests:
-        run(Command::new(make).current_dir(&build_dir).arg("check"));
+        run(make_command(make, &build_dir, &num_jobs).arg("check"));
     }
 
     // Make install:
-    run(Command::new(make)
-        .current_dir(&build_dir)
+    run(make_command(make, &build_dir, &num_jobs)
         .arg("install_lib_static")
-        .arg("install_include")
-        .arg("-j")
-        .arg(num_jobs));
+        .arg("install_include"));
 
     println!("cargo:root={}", out_dir.display());
 
@@ -369,6 +358,23 @@ fn main() {
             .compile("pthread_atfork");
         println!("cargo:rerun-if-changed=src/pthread_atfork.c");
     }
+}
+
+fn make_command(make_cmd: &str, build_dir: &Path, num_jobs: &str) -> Command {
+    let mut cmd = Command::new(make_cmd);
+    cmd.current_dir(build_dir);
+
+    if let Ok(makeflags) = std::env::var("CARGO_MAKEFLAGS") {
+        let makeflags = if let Ok(orig_makeflags) = std::env::var("MAKEFLAGS") {
+            format!("{orig_makeflags} {makeflags}")
+        } else {
+            makeflags
+        };
+        cmd.env("MAKEFLAGS", makeflags);
+    } else {
+        cmd.arg("-j").arg(num_jobs);
+    }
+    cmd
 }
 
 fn run_and_log(cmd: &mut Command, log_file: &Path) {
