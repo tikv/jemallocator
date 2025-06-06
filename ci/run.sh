@@ -77,3 +77,14 @@ cargo test --target "${TARGET}" \
 #     # The Alloc trait is unstable:
 #     ${CARGO_CMD} test --target "${TARGET}" --features alloc_trait
 # fi
+
+# Test that unprefixed_malloc_on_supported_platforms works in dylibs.
+case "$TARGET" in
+  *gnu*)
+    cargo run --target "${TARGET}" \
+        -p test-dylib \
+        --features unprefixed_malloc_on_supported_platforms
+    ;;
+  *)
+    ;;
+esac

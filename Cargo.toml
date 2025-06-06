@@ -1,2 +1,8 @@
 [workspace]
-members = ["jemallocator", "jemallocator-global", "jemalloc-ctl", "jemalloc-sys"]
+members = [
+    "jemallocator",
+    "jemallocator-global",
+    "jemalloc-ctl",
+    "jemalloc-sys",
+    "test-dylib",
+]
