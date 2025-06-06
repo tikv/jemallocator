@@ -111,10 +111,15 @@ fn main() {
             .iter()
             .any(|i| target.contains(i))
     {
-        warning!(
-            "Unprefixed `malloc` requested on unsupported platform `{}` => using prefixed `malloc`",
-            target
-        );
+        // Apple targets don't support unprefixed, but they do support
+        // overriding (if you do the `zone_register` trick), so no need to
+        // warn there.
+        if !target.contains("apple") {
+            warning!(
+                "Unprefixed `malloc` requested on unsupported platform `{}` => using prefixed `malloc`",
+                target
+            );
+        }
         use_prefix = true;
     }
 
