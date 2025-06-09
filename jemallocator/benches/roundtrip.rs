@@ -18,19 +18,13 @@ use tikv_jemalloc_sys::MALLOCX_ALIGN;
 static A: Jemalloc = Jemalloc;
 
 // FIXME: replace with jemallocator::layout_to_flags
-#[cfg(all(any(
-    target_arch = "arm",
-    target_arch = "mips",
-    target_arch = "mipsel",
-    target_arch = "powerpc"
-)))]
+#[cfg(all(any(target_arch = "arm", target_arch = "mips", target_arch = "powerpc")))]
 const MIN_ALIGN: usize = 8;
 #[cfg(all(any(
     target_arch = "x86",
     target_arch = "x86_64",
     target_arch = "aarch64",
     target_arch = "powerpc64",
-    target_arch = "powerpc64le",
     target_arch = "loongarch64",
     target_arch = "mips64",
     target_arch = "riscv64",

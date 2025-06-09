@@ -26,6 +26,12 @@ is-it-maintained-issue-resolution = { repository = "tikv/jemallocator" }
 is-it-maintained-open-issues = { repository = "tikv/jemallocator" }
 maintenance = { status = "actively-developed" }
 
+[lints.rust]
+unexpected_cfgs = { level = "allow", check-cfg = [
+    'cfg(jemallocator_docs)',
+    'cfg(prefixed)',
+] }
+
 [dependencies]
 libc = { version = "^0.2.8", default-features = false }
 

@@ -387,9 +387,9 @@ extern "C" {
     /// The behavior is _undefined_ if:
     ///
     /// * `size` is not in range `[req_size, alloc_size]`, where `req_size` is
-    /// the size requested when performing the allocation, and `alloc_size` is
-    /// the allocation size returned by [`nallocx`], [`sallocx`], or
-    /// [`xallocx`],
+    ///   the size requested when performing the allocation, and `alloc_size` is
+    ///   the allocation size returned by [`nallocx`], [`sallocx`], or
+    ///   [`xallocx`],
     /// * `ptr` does not match a pointer earlier returned by the memory
     ///   allocation functions of this crate, or
     /// * `ptr` is null, or
@@ -453,8 +453,8 @@ extern "C" {
     /// Returns `0` on success, otherwise returns:
     ///
     /// * `EINVAL`: if `newp` is not null, and `newlen` is too large or too
-    /// small. Alternatively, `*oldlenp` is too large or too small; in this case
-    /// as much data as possible are read despite the error.
+    ///   small. Alternatively, `*oldlenp` is too large or too small; in this case
+    ///   as much data as possible are read despite the error.
     ///
     /// * `ENOENT`: `name` or mib specifies an unknown/invalid value.
     ///
@@ -463,7 +463,7 @@ extern "C" {
     /// * `EAGAIN`: A memory allocation failure occurred.
     ///
     /// * `EFAULT`: An interface with side effects failed in some way not
-    /// directly related to `mallctl` read/write processing.
+    ///   directly related to `mallctl` read/write processing.
     ///
     /// [jemalloc_mallctl]: http://jemalloc.net/jemalloc.3.html#mallctl_namespace
     #[cfg_attr(prefixed, link_name = "_rjem_mallctl")]
