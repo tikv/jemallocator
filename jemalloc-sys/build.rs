@@ -314,7 +314,7 @@ fn main() {
         run(cmd.arg("tests"));
 
         // Run tests:
-        run(make_command(make, &build_dir, &num_jobs).arg("check"));
+        run(Command::new(make).current_dir(&build_dir).arg("check"));
     }
 
     // Make install:
