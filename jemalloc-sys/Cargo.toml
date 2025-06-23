@@ -2,9 +2,9 @@
 name = "tikv-jemalloc-sys"
 version = "0.6.0+5.3.0-1-ge13ca993e8ccb9ba9847cc330696e02839f328f7"
 authors = [
-    "Alex Crichton <alex@alexcrichton.com>",
-    "Gonzalo Brito Gadeschi <gonzalobg88@gmail.com>",
-    "The TiKV Project Developers",
+  "Alex Crichton <alex@alexcrichton.com>",
+  "Gonzalo Brito Gadeschi <gonzalobg88@gmail.com>",
+  "The TiKV Project Developers",
 ]
 build = "build.rs"
 links = "jemalloc"
@@ -28,8 +28,8 @@ maintenance = { status = "actively-developed" }
 
 [lints.rust]
 unexpected_cfgs = { level = "allow", check-cfg = [
-    'cfg(jemallocator_docs)',
-    'cfg(prefixed)',
+  'cfg(jemallocator_docs)',
+  'cfg(prefixed)',
 ] }
 
 [dependencies]
@@ -43,11 +43,11 @@ default = ["background_threads_runtime_support"]
 profiling = []
 debug = []
 background_threads_runtime_support = []
-background_threads = [ "background_threads_runtime_support" ]
+background_threads = ["background_threads_runtime_support"]
 stats = []
 unprefixed_malloc_on_supported_platforms = []
 disable_initial_exec_tls = []
 disable_cache_oblivious = []
 
 [package.metadata.docs.rs]
-rustdoc-args = [ "--cfg",  "jemallocator_docs" ]
+rustdoc-args = ["--cfg", "jemallocator_docs"]

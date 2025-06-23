@@ -5,7 +5,7 @@ macro_rules! types {
      docs: $(#[$doc:meta])*
      mib_docs: $(#[$doc_mib:meta])*
     ) => {
-        paste::paste! {
+        preinterpret::preinterpret! {
             $(#[$doc])*
             #[allow(non_camel_case_types)]
             pub struct $id;
@@ -22,8 +22,8 @@ macro_rules! types {
                 /// Returns Management Information Base (MIB)
                 ///
                 /// This value can be used to access the key without doing string lookup.
-                pub fn mib() -> crate::error::Result<[<$id _mib>]> {
-                    Ok([<$id _mib>](Self::NAME.$name_to_mib()?))
+                pub fn mib() -> crate::error::Result<[!ident! $id _mib]> {
+                    Ok([!ident! $id _mib](Self::NAME.$name_to_mib()?))
                 }
 
                 /// Key [`crate::keys::Name`].
@@ -36,7 +36,7 @@ macro_rules! types {
             #[repr(transparent)]
             #[derive(Copy, Clone)]
             #[allow(non_camel_case_types)]
-            pub struct [<$id _mib>](pub crate::keys::$mib);
+            pub struct [!ident! $id _mib](pub crate::keys::$mib);
         }
     };
 }
@@ -44,7 +44,7 @@ macro_rules! types {
 /// Read
 macro_rules! r {
     ($id:ident => $ret_ty:ty) => {
-        paste::paste! {
+        preinterpret::preinterpret! {
             impl $id {
                 /// Reads value using string API.
                 pub fn read() -> crate::error::Result<$ret_ty> {
@@ -53,7 +53,7 @@ macro_rules! r {
                 }
             }
 
-            impl [<$id _mib>] {
+            impl [!ident! $id _mib] {
                 /// Reads value using MIB API.
                 pub fn read(self) -> crate::error::Result<$ret_ty> {
                     use crate::keys::Access;
@@ -64,7 +64,7 @@ macro_rules! r {
             #[cfg(test)]
             #[test]
             #[allow(unused)]
-            fn [<$id _read_test>]() {
+            fn [!ident! $id _read_test]() {
                 match stringify!($id) {
                     "background_thread" |
                     "max_background_threads"
@@ -92,7 +92,7 @@ macro_rules! r {
 /// Write
 macro_rules! w {
     ($id:ident => $ret_ty:ty) => {
-        paste::paste! {
+        preinterpret::preinterpret! {
             impl $id {
                 /// Writes `value` using string API.
                 pub fn write(value: $ret_ty) -> crate::error::Result<()> {
@@ -101,7 +101,7 @@ macro_rules! w {
                 }
             }
 
-            impl [<$id _mib>] {
+            impl [!ident! $id _mib] {
                 /// Writes `value` using MIB API.
                 pub fn write(self, value: $ret_ty) -> crate::error::Result<()> {
                     use crate::keys::Access;
@@ -111,7 +111,7 @@ macro_rules! w {
 
             #[cfg(test)]
             #[test]
-            fn [<$id _write_test>]() {
+            fn [!ident! $id _write_test]() {
                 match stringify!($id) {
                     "background_thread" |
                     "max_background_threads"
@@ -140,7 +140,7 @@ macro_rules! w {
 /// Update
 macro_rules! u {
     ($id:ident  => $ret_ty:ty) => {
-        paste::paste! {
+        preinterpret::preinterpret! {
             impl $id {
                 /// Updates key to `value` returning its old value using string API.
                 pub fn update(value: $ret_ty) -> crate::error::Result<$ret_ty> {
@@ -149,7 +149,7 @@ macro_rules! u {
                 }
             }
 
-            impl [<$id _mib>] {
+            impl [!ident! $id _mib] {
                 /// Updates key to `value` returning its old value using MIB API.
                 pub fn update(self, value: $ret_ty) -> crate::error::Result<$ret_ty> {
                     use crate::keys::Access;
@@ -160,7 +160,7 @@ macro_rules! u {
             #[cfg(test)]
             #[test]
             #[allow(unused)]
-            fn [<$id _update_test>]() {
+            fn [!ident! $id _update_test]() {
                 match stringify!($id) {
                     "background_thread" |
                     "max_background_threads"
