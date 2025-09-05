@@ -385,7 +385,14 @@ fn make_command(make_cmd: &str, build_dir: &Path, num_jobs: &str) -> Command {
 
 fn run_and_log(cmd: &mut Command, log_file: &Path) {
     execute(cmd, || {
-        run(Command::new("tail").arg("-n").arg("100").arg(log_file));
+        // In CI systems print the whole log since it can be difficult to get to
+        // a log file after the build fails. Otherwise print the last 100 lines
+        // to keep the output concise.
+        if env::var_os("CI").is_some() {
+            run(Command::new("cat").arg(log_file));
+        } else {
+            run(Command::new("tail").arg("-n").arg("100").arg(log_file));
+        }
     })
 }
 
