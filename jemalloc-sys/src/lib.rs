@@ -891,7 +891,7 @@ mod env;
 
 pub use env::*;
 
-// When using the `"unprefixed_malloc_on_supported_platforms"` feature flag,
+// When using the `"override_allocator_on_supported_platforms"` feature flag,
 // the user wants us to globally override the system allocator.
 //
 // However, since we build `jemalloc` as a static library (an archive), the
@@ -930,7 +930,10 @@ pub use env::*;
 // how this works:
 // <https://github.com/rust-lang/rust/pull/95604>
 
-#[cfg(not(prefixed))]
+#[cfg(all(
+    feature = "override_allocator_on_supported_platforms",
+    not(target_vendor = "apple")
+))]
 mod set_up_statics {
     use super::*;
 
@@ -958,7 +961,7 @@ mod set_up_statics {
 // to explicitly reference the function via. Rust's `#[used]`.
 
 #[cfg(all(
-    feature = "unprefixed_malloc_on_supported_platforms",
+    feature = "override_allocator_on_supported_platforms",
     target_vendor = "apple"
 ))]
 #[used]

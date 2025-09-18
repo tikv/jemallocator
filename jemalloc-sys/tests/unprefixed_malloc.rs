@@ -13,7 +13,7 @@ fn malloc_is_overridden() {
 #[cfg(any(
     not(prefixed),
     all(
-        feature = "unprefixed_malloc_on_supported_platforms",
+        feature = "override_allocator_on_supported_platforms",
         target_vendor = "apple"
     ),
 ))]

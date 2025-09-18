@@ -46,6 +46,7 @@ background_threads_runtime_support = []
 background_threads = [ "background_threads_runtime_support" ]
 stats = []
 unprefixed_malloc_on_supported_platforms = []
+override_allocator_on_supported_platforms = [ "unprefixed_malloc_on_supported_platforms" ]
 disable_initial_exec_tls = []
 disable_cache_oblivious = []
 

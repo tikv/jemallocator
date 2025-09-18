@@ -32,7 +32,7 @@ fn main() {
 
     // If overidden, test that the same is true for `tikv_jemalloc_sys`'
     // symbols being interoperable with `free`.
-    if cfg!(feature = "unprefixed_malloc_on_supported_platforms") {
+    if cfg!(feature = "override_allocator_on_supported_platforms") {
         let ptr = unsafe { tikv_jemalloc_sys::malloc(10) };
         unsafe { dep_free(ptr) };
         let ptr = unsafe { tikv_jemalloc_sys::malloc(10) };

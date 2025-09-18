@@ -14,8 +14,8 @@ tikv-jemalloc-sys = { path = "../jemalloc-sys" }
 cc = "^1.0.13"
 
 [features]
-unprefixed_malloc_on_supported_platforms = [
-    "tikv-jemalloc-sys/unprefixed_malloc_on_supported_platforms",
+override_allocator_on_supported_platforms = [
+    "tikv-jemalloc-sys/override_allocator_on_supported_platforms",
 ]
 
 [[bin]]

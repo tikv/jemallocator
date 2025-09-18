@@ -76,6 +76,14 @@ This crate provides following cargo feature flags:
   program to use `jemalloc` as well. On some platforms prefixes are always used
   because unprefixing is known to cause segfaults due to allocator mismatches.
 
+* `override_allocator_on_supported_platforms`: override the system allocator,
+  even outside Rust code.
+
+  This enables the `unprefixed_malloc_on_supported_platforms` feature, with the
+  addition that it forces overriding the allocator even if `malloc` and `free`
+  would not usually have been seen by the linker. It also overrides the
+  allocator on Apple platforms.
+
   Note that to use this, the `jemalloc-sys` crate must actually be visible to
   `rustc` (it is not enough to only declare it in `Cargo.toml`). This can be
   done by adding:
