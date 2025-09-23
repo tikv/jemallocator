@@ -158,6 +158,7 @@ fn main() {
         .args()
         .iter()
         .map(|s| s.to_str().unwrap())
+        .filter(|s| !s.starts_with("-flto"))
         .collect::<Vec<_>>()
         .join(" ");
     info!("CC={:?}", compiler.path());
@@ -196,9 +197,7 @@ fn main() {
     )
     .current_dir(&build_dir)
     .env("CC", compiler.path())
-    .env("CFLAGS", cflags.clone())
-    .env("LDFLAGS", cflags.clone())
-    .env("CPPFLAGS", cflags)
+    .env("CFLAGS", cflags)
     .arg(format!("--with-version={je_version}"))
     .arg("--disable-cxx")
     .arg("--enable-doc=no")
