@@ -1,3 +1,14 @@
+# 0.6.1 - 2025-10-15
+
+- Fix compiler and clippy warnings (#105)
+- Add feature `disable_cache_oblivious` to jemallocator re-exports (#104)
+- Document `JEMALLOC_OVERRIDE` (#107)
+- Harden `strerror_r` function detection (#117)
+- Respect jobserver set by Cargo (#120)
+- Make unprefixed consistently override the system allocator (#109)
+  - Adds new Cargo feature `override_allocator_on_supported_platforms`.
+- `cat` the entire `config.log` (#142)
+
 # 0.6.0 - 2024-07-14
 
 - Fix build on riscv64gc-unknown-linux-musl (#67) (#75)
