@@ -33,14 +33,14 @@ where
     F: Fn(&str) -> Option<T>,
 {
     let prefix = env::var("TARGET").unwrap().to_uppercase().replace('-', "_");
-    let prefixed_name = format!("{}_{}", prefix, name);
+    let prefixed_name = format!("{prefix}_{name}");
 
-    println!("cargo:rerun-if-env-changed={}", prefixed_name);
+    println!("cargo:rerun-if-env-changed={prefixed_name}");
     if let Some(value) = env_getter(&prefixed_name) {
         return Some(value);
     }
 
-    println!("cargo:rerun-if-env-changed={}", name);
+    println!("cargo:rerun-if-env-changed={name}");
     env_getter(name)
 }
 
@@ -366,19 +366,29 @@ fn main() {
     }
 }
 
+/// Trimmed env `var`, otherwise empty string
+fn env_var(var: &str) -> String {
+    env::var(var)
+        .ok()
+        .map_or_else(String::new, |s| s.trim().to_owned())
+}
+
+/// Concatenate or use `CARGO_MAKEFLAGS` as `MAKEFLAGS`, otherwise use -jN `num_jobs`
 fn make_command(make_cmd: &str, build_dir: &Path, num_jobs: &str) -> Command {
     let mut cmd = Command::new(make_cmd);
     cmd.current_dir(build_dir);
 
-    if let Ok(makeflags) = std::env::var("CARGO_MAKEFLAGS") {
-        let makeflags = if let Ok(orig_makeflags) = std::env::var("MAKEFLAGS") {
-            format!("{orig_makeflags} {makeflags}")
-        } else {
-            makeflags
-        };
-        cmd.env("MAKEFLAGS", makeflags);
-    } else {
+    let mf = env_var("MAKEFLAGS");
+    let cmf = env_var("CARGO_MAKEFLAGS");
+    if !cmf.is_empty() {
+        info!("MAKEFLAGS={mf}");
+        info!("CARGO_MAKEFLAGS={cmf}");
+        cmd.env("MAKEFLAGS", format!("{mf} {cmf}")); // Concatenate both
+    } else if mf.is_empty() {
+        info!("MAKEFLAGS are empty, using -j={num_jobs} jobs");
         cmd.arg("-j").arg(num_jobs);
+    } else {
+        info!("MAKEFLAGS={mf}"); // Use MAKEFLAGS unchanged
     }
     cmd
 }
