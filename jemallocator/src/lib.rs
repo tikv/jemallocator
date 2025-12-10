@@ -51,6 +51,7 @@ const ALIGNOF_MAX_ALIGN_T: usize = 8;
     target_arch = "powerpc64",
     target_arch = "loongarch64",
     target_arch = "mips64",
+    target_arch = "riscv32",
     target_arch = "riscv64",
     target_arch = "s390x",
     target_arch = "sparc64"
