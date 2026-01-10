@@ -111,10 +111,16 @@ fn main() {
             .iter()
             .any(|i| target.contains(i))
     {
-        warning!(
-            "Unprefixed `malloc` requested on unsupported platform `{}` => using prefixed `malloc`",
-            target
-        );
+        // Apple targets don't support unprefixed, but they do support
+        // overriding (if you do the `zone_register` trick), so no need to
+        // warn there.
+        let override_ = env::var("CARGO_FEATURE_OVERRIDE_ALLOCATOR_ON_SUPPORTED_PLATFORMS").is_ok();
+        if !target.contains("apple") || !override_ {
+            warning!(
+                "Unprefixed `malloc` requested on unsupported platform `{}` => using prefixed `malloc`",
+                target
+            );
+        }
         use_prefix = true;
     }
 
@@ -322,6 +328,9 @@ fn main() {
         .arg("install_lib_static")
         .arg("install_include"));
 
+    // Try to remove the build directory to avoid it wasting disk space in the target directory
+    let _ = fs::remove_dir_all(build_dir);
+
     println!("cargo:root={}", out_dir.display());
 
     // Linkage directives to pull in jemalloc and its dependencies.
@@ -336,7 +345,7 @@ fn main() {
     } else {
         println!("cargo:rustc-link-lib=static=jemalloc_pic");
     }
-    println!("cargo:rustc-link-search=native={}/lib", build_dir.display());
+    println!("cargo:rustc-link-search=native={}/lib", out_dir.display());
     if target.contains("android") {
         println!("cargo:rustc-link-lib=gcc");
     } else if !target.contains("windows") {
@@ -366,7 +375,10 @@ fn make_command(make_cmd: &str, build_dir: &Path, num_jobs: &str) -> Command {
 
     if let Ok(makeflags) = std::env::var("CARGO_MAKEFLAGS") {
         let makeflags = if let Ok(orig_makeflags) = std::env::var("MAKEFLAGS") {
-            format!("{orig_makeflags} {makeflags}")
+            // Prepend Cargo makeflags before externally configured makeflags
+            // Adding Cargo makeflags at the end was causing issues, see
+            // https://github.com/tikv/jemallocator/issues/92#issuecomment-3536269176.
+            format!("{makeflags} {orig_makeflags}")
         } else {
             makeflags
         };
@@ -379,7 +391,14 @@ fn make_command(make_cmd: &str, build_dir: &Path, num_jobs: &str) -> Command {
 
 fn run_and_log(cmd: &mut Command, log_file: &Path) {
     execute(cmd, || {
-        run(Command::new("tail").arg("-n").arg("100").arg(log_file));
+        // In CI systems print the whole log since it can be difficult to get to
+        // a log file after the build fails. Otherwise print the last 100 lines
+        // to keep the output concise.
+        if env::var_os("CI").is_some() {
+            run(Command::new("cat").arg(log_file));
+        } else {
+            run(Command::new("tail").arg("-n").arg("100").arg(log_file));
+        }
     })
 }
 

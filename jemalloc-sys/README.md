@@ -48,11 +48,11 @@ This crate provides following cargo feature flags:
 * `stats` (configure `jemalloc` with `--enable-stats`): Enable statistics
   gathering functionality. See the `jemalloc`'s "`opt.stats_print`" option
   documentation for usage details.
-  
+
 * `debug` (configure `jemalloc` with `--enable-debug`): Enable assertions and
   validation code. This incurs a substantial performance hit, but is very useful
   during application development.
-  
+
 * `background_threads_runtime_support` (enabled by default): enables
   background-threads run-time support when building `jemalloc-sys` on some POSIX
   targets supported by `jemalloc`. Background threads are disabled at run-time
@@ -72,16 +72,33 @@ This crate provides following cargo feature flags:
 * `unprefixed_malloc_on_supported_platforms`: when disabled, configure
   `jemalloc` with `--with-jemalloc-prefix=_rjem_`. Enabling this causes symbols
   like `malloc` to be emitted without a prefix, overriding the ones defined by
-  libc. This usually causes C and C++ code linked in the same program to use
-  `jemalloc` as well. On some platforms prefixes are always used because
-  unprefixing is known to cause segfaults due to allocator mismatches.
-  
+  libc. This usually causes C, Objective-C and C++ code linked in the same
+  program to use `jemalloc` as well. On some platforms prefixes are always used
+  because unprefixing is known to cause segfaults due to allocator mismatches.
+
+* `override_allocator_on_supported_platforms`: override the system allocator,
+  even outside Rust code.
+
+  This enables the `unprefixed_malloc_on_supported_platforms` feature, with the
+  addition that it forces overriding the allocator even if `malloc` and `free`
+  would not usually have been seen by the linker. It also overrides the
+  allocator on Apple platforms.
+
+  Note that to use this, the `jemalloc-sys` crate must actually be visible to
+  `rustc` (it is not enough to only declare it in `Cargo.toml`). This can be
+  done by adding:
+  ```rust
+  use jemalloc_sys as _;
+  ```
+
+  In your `main.rs`.
+
 * `disable_initial_exec_tls` (disabled by default): when enabled, jemalloc is
-  built with the `--disable-initial-exec-tls` option. It disables the 
-  initial-exec TLS model for jemalloc's internal thread-local storage (on those 
-  platforms that support explicit settings). This can allow jemalloc to be 
+  built with the `--disable-initial-exec-tls` option. It disables the
+  initial-exec TLS model for jemalloc's internal thread-local storage (on those
+  platforms that support explicit settings). This can allow jemalloc to be
   dynamically loaded after program startup (e.g. using dlopen). If you encounter
-  the error `yourlib.so: cannot allocate memory in static TLS block`, you'll 
+  the error `yourlib.so: cannot allocate memory in static TLS block`, you'll
   likely want to enable this.
 
 * `disable_cache_oblivious` (disabled by default): when enabled, jemalloc is
@@ -104,7 +121,7 @@ hyphens `-` are replaced with underscores `_`(see
   variable, the `/etc/malloc.conf` symlink, and the `MALLOC_CONF` environment
   variable (note: this variable might be prefixed as `_RJEM_MALLOC_CONF`). For
   example, to change the default decay time for dirty pages to 30 seconds:
-  
+
   ```
   JEMALLOC_SYS_WITH_MALLOC_CONF=dirty_decay_ms:30000
   ```
@@ -115,17 +132,17 @@ hyphens `-` are replaced with underscores `_`(see
   allocator page size equal to the system page size, so this option need not be
   specified unless the system page size may change between configuration and
   execution, e.g. when cross compiling.
-  
+
 * `JEMALLOC_SYS_WITH_LG_HUGEPAGE=<lg-hugepage>`: Specify the base 2 log of the
   system huge page size. This option is useful when cross compiling, or when
   overriding the default for systems that do not explicitly support huge pages.
-  
-  
+
+
 * `JEMALLOC_SYS_WITH_LG_QUANTUM=<lg-quantum>`: Specify the base 2 log of the
   minimum allocation alignment. jemalloc needs to know the minimum alignment
   that meets the following C standard requirement (quoted from the April 12,
   2011 draft of the C11 standard):
-  
+
   > The pointer returned if the allocation succeeds is suitably aligned so that
   > it may be assigned to a pointer to any type of object with a fundamental
   > alignment requirement and then used to access such an object or an array of

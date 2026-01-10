@@ -32,7 +32,7 @@ cargo test --target "${TARGET}" --features stats
 cargo test --target "${TARGET}" --features 'debug profiling'
 
 cargo test --target "${TARGET}" \
-    --features unprefixed_malloc_on_supported_platforms
+    --features override_allocator_on_supported_platforms
 cargo test --target "${TARGET}" --no-default-features
 cargo test --target "${TARGET}" --no-default-features \
     --features background_threads_runtime_support
@@ -48,7 +48,7 @@ cargo test --target "${TARGET}" --release
 cargo test --target "${TARGET}" --manifest-path jemalloc-sys/Cargo.toml
 cargo test --target "${TARGET}" \
              --manifest-path jemalloc-sys/Cargo.toml \
-             --features unprefixed_malloc_on_supported_platforms
+             --features override_allocator_on_supported_platforms
 
 # FIXME: jemalloc-ctl fails in the following targets
 case "${TARGET}" in
@@ -77,3 +77,14 @@ cargo test --target "${TARGET}" \
 #     # The Alloc trait is unstable:
 #     ${CARGO_CMD} test --target "${TARGET}" --features alloc_trait
 # fi
+
+# Test that overriding works in dylibs.
+case "$TARGET" in
+    "i686-unknown-linux-musl") ;;
+    "x86_64-unknown-linux-musl") ;;
+    *)
+        cargo run --target "${TARGET}" \
+            -p test-dylib \
+            --features override_allocator_on_supported_platforms
+        ;;
+esac

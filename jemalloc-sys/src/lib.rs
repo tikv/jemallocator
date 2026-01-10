@@ -890,3 +890,86 @@ pub type extent_merge_t = unsafe extern "C" fn(
 mod env;
 
 pub use env::*;
+
+// When using the `"override_allocator_on_supported_platforms"` feature flag,
+// the user wants us to globally override the system allocator.
+//
+// However, since we build `jemalloc` as a static library (an archive), the
+// linker may decide to not care about our overrides if it can't directly see
+// references to the symbols, see the following link for details:
+// <https://maskray.me/blog/2021-06-20-symbol-processing#archive-processing>
+//
+// This is problematic if `jemalloc_sys` is used from a library that by itself
+// doesn't allocate, while invoking other shared libraries that do.
+//
+// Another especially problematic case would be something like the following:
+//
+// ```
+// // Call `malloc` whose symbol is looked up statically.
+// let ptr = libc::malloc(42);
+//
+// // But use a dynamically looked up `free`.
+// let free = libc::dlsym(null_mut(), c"free".as_ptr());
+// let free = transmute::<*mut c_void, unsafe extern "C" fn(*mut c_void)>(free);
+// free(ptr);
+// ```
+//
+// Since if the `malloc` and `free` provided by `jemalloc` end up in different
+// object files in the archive (NOTE: In practice, this is unlikely to be an
+// issue, since `jemalloc.c` contains all the implementations and is compiled
+// as a single object file), the linker would think that only `malloc` was
+// used, and would never load the `free` that we also want (and hence we'd end
+// up executing jemalloc's `malloc` and the system's `free`, which is UB).
+//
+// To avoid this problem, we make sure that all the allocator functions are
+// visible to the linker, such that it will always override all of them.
+//
+// We do this by referencing these symbols in `#[used]` statics, which makes
+// them known to `rustc`, which will reference them in a `symbols.o` stub file
+// that is later passed to the linker. See the following link for details on
+// how this works:
+// <https://github.com/rust-lang/rust/pull/95604>
+
+#[cfg(all(
+    feature = "override_allocator_on_supported_platforms",
+    not(target_vendor = "apple")
+))]
+mod set_up_statics {
+    use super::*;
+
+    #[used]
+    static USED_MALLOC: unsafe extern "C" fn(usize) -> *mut c_void = malloc;
+    #[used]
+    static USED_CALLOC: unsafe extern "C" fn(usize, usize) -> *mut c_void = calloc;
+    #[used]
+    static USED_POSIX_MEMALIGN: unsafe extern "C" fn(*mut *mut c_void, usize, usize) -> c_int =
+        posix_memalign;
+    #[used]
+    static USED_ALIGNED_ALLOC: unsafe extern "C" fn(usize, usize) -> *mut c_void = aligned_alloc;
+    #[used]
+    static USED_REALLOC: unsafe extern "C" fn(*mut c_void, usize) -> *mut c_void = realloc;
+    #[used]
+    static USED_FREE: unsafe extern "C" fn(*mut c_void) = free;
+}
+
+// On macOS, jemalloc doesn't directly override malloc/free, but instead
+// registers itself with the allocator's zone APIs in a ctor (`zone_register`
+// is marked with `__attribute__((constructor))`).
+//
+// Similarly to above though, for the Mach-O linker to actually consider ctors
+// as "used" when defined in an archive member in a static library, so we need
+// to explicitly reference the function via. Rust's `#[used]`.
+
+#[cfg(all(
+    feature = "override_allocator_on_supported_platforms",
+    target_vendor = "apple"
+))]
+#[used]
+static USED_ZONE_REGISTER: unsafe extern "C" fn() = {
+    extern "C" {
+        #[cfg_attr(prefixed, link_name = "_rjem_je_zone_register")]
+        #[cfg_attr(not(prefixed), link_name = "je_zone_register")]
+        fn zone_register();
+    }
+    zone_register
+};
