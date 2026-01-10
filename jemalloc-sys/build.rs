@@ -328,6 +328,9 @@ fn main() {
         .arg("install_lib_static")
         .arg("install_include"));
 
+    // Try to remove the build directory to avoid it wasting disk space in the target directory
+    let _ = fs::remove_dir_all(build_dir);
+
     println!("cargo:root={}", out_dir.display());
 
     // Linkage directives to pull in jemalloc and its dependencies.
@@ -342,7 +345,7 @@ fn main() {
     } else {
         println!("cargo:rustc-link-lib=static=jemalloc_pic");
     }
-    println!("cargo:rustc-link-search=native={}/lib", build_dir.display());
+    println!("cargo:rustc-link-search=native={}/lib", out_dir.display());
     if target.contains("android") {
         println!("cargo:rustc-link-lib=gcc");
     } else if !target.contains("windows") {
@@ -372,7 +375,10 @@ fn make_command(make_cmd: &str, build_dir: &Path, num_jobs: &str) -> Command {
 
     if let Ok(makeflags) = std::env::var("CARGO_MAKEFLAGS") {
         let makeflags = if let Ok(orig_makeflags) = std::env::var("MAKEFLAGS") {
-            format!("{orig_makeflags} {makeflags}")
+            // Prepend Cargo makeflags before externally configured makeflags
+            // Adding Cargo makeflags at the end was causing issues, see
+            // https://github.com/tikv/jemallocator/issues/92#issuecomment-3536269176.
+            format!("{makeflags} {orig_makeflags}")
         } else {
             makeflags
         };
@@ -424,7 +430,9 @@ fn gnu_target(target: &str) -> String {
         "x86_64-pc-windows-gnu" | "x86_64-pc-windows-gnullvm" => "x86_64-w64-mingw32".to_string(),
         "aarch64-pc-windows-gnullvm" => "aarch64-w64-mingw32".to_string(),
         "armv7-linux-androideabi" => "arm-linux-androideabi".to_string(),
-        "riscv64gc-unknown-linux-gnu" => "riscv64-linux-gnu".to_string(),
+        "riscv64gc-unknown-linux-gnu" | "riscv64a23-unknown-linux-gnu" => {
+            "riscv64-linux-gnu".to_string()
+        }
         "riscv64gc-unknown-linux-musl" => "riscv64-linux-musl".to_string(),
         s => s.to_string(),
     }
