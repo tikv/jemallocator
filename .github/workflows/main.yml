@@ -25,7 +25,7 @@ jobs:
             target: x86_64-apple-darwin
             nobgt: 0
             no_tests: 1
-            tag: macos-13
+            tag: macos-15-intel
           - name: x86_64-unknown-linux-gnu (nightly)
             target: x86_64-unknown-linux-gnu
             nobgt: 0
@@ -60,7 +60,7 @@ jobs:
       NO_JEMALLOC_TESTS: ${{ matrix.no_tests }}
       NOBGT: ${{ matrix.nobgt }}
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       with:
         submodules: true
     - name: install
@@ -81,7 +81,7 @@ jobs:
     name: Benchmarks using x86_64-unknown-linux-gnu (nightly)
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       with:
         submodules: true
     - run: rustup default nightly
@@ -90,7 +90,7 @@ jobs:
     name: Rustfmt and Clippy
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       with:
         submodules: true
     - run: rustup component add rustfmt clippy
