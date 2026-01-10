@@ -1,0 +1,23 @@
+version: 2
+updates:
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown: # applies only to version-updates (not security-updates)
+      semver-patch: 7 # wait 7 days before applying patch updates
+      semver-minor: 14
+      semver-major: 28
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    # https://blog.yossarian.net/2025/11/21/We-should-all-be-using-dependency-cooldowns
+    cooldown:
+      default-days: 7
+  - package-ecosystem: gitsubmodule
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
