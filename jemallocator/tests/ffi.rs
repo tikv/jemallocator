@@ -22,6 +22,11 @@ fn test_basic_alloc() {
         let size = ffi::xallocx(ptr, 30, 20, 0);
         assert!(size >= 50);
         ffi::sdallocx(ptr, 50, 0);
+
+        ptr = ffi::malloc(100);
+        ffi::free_sized(ptr, 100);
+        ptr = ffi::aligned_alloc(16, 127);
+        ffi::free_aligned_sized(ptr, 16, 127);
     }
 }
 
