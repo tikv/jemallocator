@@ -253,6 +253,40 @@ extern "C" {
     #[cfg_attr(prefixed, link_name = "_rjem_free")]
     pub fn free(ptr: *mut c_void);
 
+    /// Deallocates previously-allocated memory region referenced by `ptr`.
+    ///
+    /// This makes the space available for future allocations.
+    ///
+    /// If `ptr` is null, no action occurs.
+    ///
+    /// # Safety
+    ///
+    /// The behavior is _undefined_ if:
+    ///
+    /// * `ptr` does not match a pointer earlier returned by the memory
+    ///   allocation functions of this crate, or
+    /// * the memory region referenced by `ptr` has been deallocated, or
+    /// * `ptr` is returned by `aligned_alloc`.
+    #[cfg_attr(prefixed, link_name = "_rjem_free_sized")]
+    pub fn free_sized(ptr: *mut c_void, size: size_t);
+
+    /// Deallocates previously-allocated memory region referenced by `ptr`.
+    ///
+    /// This makes the space available for future allocations.
+    ///
+    /// If `ptr` is null, no action occurs.
+    ///
+    /// # Safety
+    ///
+    /// The behavior is _undefined_ if:
+    ///
+    /// * `ptr` does not match a pointer earlier returned by `aligned_alloc`,
+    ///   or `alignment` and `size` do not match the values passed to
+    ///   `aligned_alloc`, or
+    /// * the memory region referenced by `ptr` has been deallocated.
+    #[cfg_attr(prefixed, link_name = "_rjem_free_aligned_sized")]
+    pub fn free_aligned_sized(ptr: *mut c_void, alignment: size_t, size: size_t);
+
     /// Allocates at least `size` bytes of memory according to `flags`.
     ///
     /// It returns a pointer to the start (lowest byte address) of the allocated
