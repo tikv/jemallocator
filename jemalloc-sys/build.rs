@@ -160,8 +160,10 @@ fn main() {
         .map(|s| s.to_str().unwrap())
         .collect::<Vec<_>>()
         .join(" ");
+    let ldflags = read_and_watch_env("LDFLAGS").unwrap_or_else(|_| cflags.clone());
     info!("CC={:?}", compiler.path());
     info!("CFLAGS={:?}", cflags);
+    info!("LDFLAGS={:?}", ldflags);
 
     assert!(out_dir.exists(), "OUT_DIR does not exist");
     let jemalloc_repo_dir = PathBuf::from("jemalloc");
@@ -197,7 +199,7 @@ fn main() {
     .current_dir(&build_dir)
     .env("CC", compiler.path())
     .env("CFLAGS", cflags.clone())
-    .env("LDFLAGS", cflags.clone())
+    .env("LDFLAGS", ldflags.clone())
     .env("CPPFLAGS", cflags)
     .arg(format!("--with-version={je_version}"))
     .arg("--disable-cxx")
