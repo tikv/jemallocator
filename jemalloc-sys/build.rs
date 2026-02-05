@@ -355,7 +355,7 @@ fn main() {
     }
     // GCC may generate a __atomic_exchange_1 library call which requires -latomic
     // during the final linking. https://github.com/riscv-collab/riscv-gcc/issues/12
-    if target.contains("riscv") {
+    if target.contains("riscv") || target.contains("musl") {
         println!("cargo:rustc-link-lib=atomic");
     }
     println!("cargo:rerun-if-changed=jemalloc");
