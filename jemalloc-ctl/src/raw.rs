@@ -1,7 +1,10 @@
 //! Raw `unsafe` access to the `malloctl` API.
 
 use crate::error::{cvt, Result};
-use crate::{mem, ptr, slice};
+use crate::{
+    mem::{self, MaybeUninit},
+    ptr, slice,
+};
 use libc::c_char;
 
 /// Translates `name` to a `mib` (Management Information Base)
@@ -64,18 +67,18 @@ pub fn name_to_mib(name: &[u8], mib: &mut [usize]) -> Result<()> {
 /// sizes of `bool` and `u8` match, but `bool` cannot represent all values that
 /// `u8` can.
 pub unsafe fn read_mib<T: Copy>(mib: &[usize]) -> Result<T> {
-    let mut value = MaybeUninit { init: () };
+    let mut value = MaybeUninit::<T>::uninit();
     let mut len = mem::size_of::<T>();
     cvt(tikv_jemalloc_sys::mallctlbymib(
         mib.as_ptr(),
         mib.len(),
-        &mut value.init as *mut _ as *mut _,
+        value.as_mut_ptr() as *mut _,
         &mut len,
         ptr::null_mut(),
         0,
     ))?;
     assert_eq!(len, mem::size_of::<T>());
-    Ok(value.maybe_uninit)
+    Ok(value.assume_init())
 }
 
 /// Uses the null-terminated string `name` as key to the _MALLCTL NAMESPACE_ and
@@ -90,17 +93,17 @@ pub unsafe fn read_mib<T: Copy>(mib: &[usize]) -> Result<T> {
 pub unsafe fn read<T: Copy>(name: &[u8]) -> Result<T> {
     validate_name(name);
 
-    let mut value = MaybeUninit { init: () };
+    let mut value = MaybeUninit::<T>::uninit();
     let mut len = mem::size_of::<T>();
     cvt(tikv_jemalloc_sys::mallctl(
         name as *const _ as *const c_char,
-        &mut value.init as *mut _ as *mut _,
+        value.as_mut_ptr() as *mut _,
         &mut len,
         ptr::null_mut(),
         0,
     ))?;
     assert_eq!(len, mem::size_of::<T>());
-    Ok(value.maybe_uninit)
+    Ok(value.assume_init())
 }
 
 /// Uses the MIB `mib` as key to the _MALLCTL NAMESPACE_ and writes its `value`.
@@ -158,18 +161,19 @@ pub unsafe fn write<T>(name: &[u8], mut value: T) -> Result<()> {
 /// invalid `T`, for example, by passing `T=u8` for a key expecting `bool`. The
 /// sizes of `bool` and `u8` match, but `bool` cannot represent all values that
 /// `u8` can.
-pub unsafe fn update_mib<T>(mib: &[usize], mut value: T) -> Result<T> {
-    let mut len = mem::size_of::<T>();
+pub unsafe fn update_mib<T: Copy>(mib: &[usize], mut value: T) -> Result<T> {
+    let mut old_len = mem::size_of::<T>();
+    let mut old_value = MaybeUninit::<T>::uninit();
     cvt(tikv_jemalloc_sys::mallctlbymib(
         mib.as_ptr(),
         mib.len(),
+        old_value.as_mut_ptr() as *mut _,
+        &mut old_len,
         &mut value as *mut _ as *mut _,
-        &mut len,
-        &mut value as *mut _ as *mut _,
-        len,
+        mem::size_of::<T>(),
     ))?;
-    assert_eq!(len, mem::size_of::<T>());
-    Ok(value)
+    assert_eq!(old_len, mem::size_of::<T>());
+    Ok(old_value.assume_init())
 }
 
 /// Uses the null-terminated string `name` as key to the _MALLCTL NAMESPACE_ and
@@ -184,16 +188,17 @@ pub unsafe fn update_mib<T>(mib: &[usize], mut value: T) -> Result<T> {
 pub unsafe fn update<T>(name: &[u8], mut value: T) -> Result<T> {
     validate_name(name);
 
-    let mut len = mem::size_of::<T>();
+    let mut old_len = mem::size_of::<T>();
+    let mut old_value = MaybeUninit::<T>::uninit();
     cvt(tikv_jemalloc_sys::mallctl(
         name as *const _ as *const c_char,
+        old_value.as_mut_ptr() as *mut _,
+        &mut old_len,
         &mut value as *mut _ as *mut _,
-        &mut len,
-        &mut value as *mut _ as *mut _,
-        len,
+        mem::size_of::<T>(),
     ))?;
-    assert_eq!(len, mem::size_of::<T>());
-    Ok(value)
+    assert_eq!(old_len, mem::size_of::<T>());
+    Ok(old_value.assume_init())
 }
 
 /// Uses the MIB `mib` as key to the _MALLCTL NAMESPACE_ and reads its value.
@@ -374,11 +379,6 @@ fn validate_name(name: &[u8]) {
         b'\0',
         "non-null terminated byte string"
     );
-}
-
-union MaybeUninit<T: Copy> {
-    init: (),
-    maybe_uninit: T,
 }
 
 #[cfg(test)]
