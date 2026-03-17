@@ -157,7 +157,7 @@ fn main() {
     let cflags = compiler.cflags_env();
     let ldflags = read_and_watch_env("LDFLAGS")
         .map(OsString::from)
-        .unwrap_or_else(|_| cflags.clone());
+        .unwrap_or_default();
 
     // Use cc_env() to get the full CC value including any wrapper (e.g. sccache).
     // cc_env() returns empty when no wrapper is configured, so fall back to path().
