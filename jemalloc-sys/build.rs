@@ -284,6 +284,17 @@ fn main() {
         cmd.arg("--enable-prof");
     }
 
+    if env::var("CARGO_FEATURE_PROFILING_LIBUNWIND").is_ok() {
+        info!("CARGO_FEATURE_PROFILING_LIBUNWIND set");
+        cmd.arg("--enable-prof-libunwind");
+        // On Apple platforms unwind symbols live in libSystem, and on
+        // Windows libunwind is not available. Everywhere else (Linux,
+        // FreeBSD, etc.) we need to link it explicitly.
+        if !target.contains("apple") && !target.contains("windows") {
+            println!("cargo:rustc-link-lib=unwind");
+        }
+    }
+
     if env::var("CARGO_FEATURE_STATS").is_ok() {
         info!("CARGO_FEATURE_STATS set");
         cmd.arg("--enable-stats");
