@@ -153,7 +153,9 @@ fn main() {
     }
     // Disable -Wextra warnings - jemalloc doesn't compile free of warnings with
     // it enabled: https://github.com/jemalloc/jemalloc/issues/1196
-    let compiler = cc::Build::new().extra_warnings(false).get_compiler();
+    let mut build = cc::Build::new();
+    let build = build.extra_warnings(false);
+    let (compiler, archiver) = (build.get_compiler(), build.get_archiver());
     let cflags = compiler
         .args()
         .iter()
@@ -162,6 +164,7 @@ fn main() {
         .join(" ");
     let ldflags = read_and_watch_env("LDFLAGS").unwrap_or_else(|_| cflags.clone());
     info!("CC={:?}", compiler.path());
+    info!("AR={:?}", archiver.get_program());
     info!("CFLAGS={:?}", cflags);
     info!("LDFLAGS={:?}", ldflags);
 
@@ -198,6 +201,7 @@ fn main() {
     )
     .current_dir(&build_dir)
     .env("CC", compiler.path())
+    .env("AR", archiver.get_program())
     .env("CFLAGS", cflags.clone())
     .env("LDFLAGS", ldflags.clone())
     .env("CPPFLAGS", cflags)
