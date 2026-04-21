@@ -16,6 +16,8 @@ use std::{
     process::Command,
 };
 
+mod build_support;
+
 include!("src/env.rs");
 
 macro_rules! info {
@@ -177,41 +179,6 @@ fn main() {
         .expect("failed to copy jemalloc source code to OUT_DIR");
     assert!(build_dir.exists());
 
-    // Configuration files
-    let config_files = ["configure"];
-
-    // Copy the configuration files to jemalloc's source directory
-    for f in &config_files {
-        fs::copy(Path::new("configure").join(f), build_dir.join(f))
-            .expect("failed to copy config file to OUT_DIR");
-    }
-
-    // Run configure:
-    let configure = build_dir.join("configure");
-    let mut cmd = Command::new("sh");
-    cmd.arg(
-        configure
-            .to_str()
-            .unwrap()
-            .replace("C:\\", "/c/")
-            .replace('\\', "/"),
-    )
-    .current_dir(&build_dir)
-    .env("CC", compiler.path())
-    .env("CFLAGS", cflags.clone())
-    .env("LDFLAGS", ldflags.clone())
-    .env("CPPFLAGS", cflags)
-    .arg(format!("--with-version={je_version}"))
-    .arg("--disable-cxx")
-    .arg("--enable-doc=no")
-    .arg("--enable-shared=no");
-
-    if target.contains("ios") {
-        // newer iOS deviced have 16kb page sizes:
-        // closed: https://github.com/gnzlbg/jemallocator/issues/68
-        cmd.arg("--with-lg-page=14");
-    }
-
     // collect `malloc_conf` string:
     let mut malloc_conf = String::new();
 
@@ -244,91 +211,203 @@ fn main() {
 
     if !malloc_conf.is_empty() {
         info!("--with-malloc-conf={}", malloc_conf);
-        cmd.arg(format!("--with-malloc-conf={malloc_conf}"));
     }
 
-    if let Ok(lg_page) = read_and_watch_env("JEMALLOC_SYS_WITH_LG_PAGE") {
+    let lg_page = read_and_watch_env("JEMALLOC_SYS_WITH_LG_PAGE").ok();
+    if let Some(ref lg_page) = lg_page {
         info!("--with-lg-page={}", lg_page);
-        cmd.arg(format!("--with-lg-page={lg_page}"));
     }
 
-    if let Ok(lg_hugepage) = read_and_watch_env("JEMALLOC_SYS_WITH_LG_HUGEPAGE") {
+    let lg_hugepage = read_and_watch_env("JEMALLOC_SYS_WITH_LG_HUGEPAGE").ok();
+    if let Some(ref lg_hugepage) = lg_hugepage {
         info!("--with-lg-hugepage={}", lg_hugepage);
-        cmd.arg(format!("--with-lg-hugepage={lg_hugepage}"));
     }
 
-    if let Ok(lg_quantum) = read_and_watch_env("JEMALLOC_SYS_WITH_LG_QUANTUM") {
+    let lg_quantum = read_and_watch_env("JEMALLOC_SYS_WITH_LG_QUANTUM").ok();
+    if let Some(ref lg_quantum) = lg_quantum {
         info!("--with-lg-quantum={}", lg_quantum);
-        cmd.arg(format!("--with-lg-quantum={lg_quantum}"));
     }
 
-    if let Ok(lg_vaddr) = read_and_watch_env("JEMALLOC_SYS_WITH_LG_VADDR") {
+    let lg_vaddr = read_and_watch_env("JEMALLOC_SYS_WITH_LG_VADDR").ok();
+    if let Some(ref lg_vaddr) = lg_vaddr {
         info!("--with-lg-vaddr={}", lg_vaddr);
-        cmd.arg(format!("--with-lg-vaddr={lg_vaddr}"));
     }
 
     if use_prefix {
-        cmd.arg("--with-jemalloc-prefix=_rjem_");
         info!("--with-jemalloc-prefix=_rjem_");
     }
 
-    cmd.arg("--with-private-namespace=_rjem_");
-
-    if env::var("CARGO_FEATURE_DEBUG").is_ok() {
+    let debug = env::var("CARGO_FEATURE_DEBUG").is_ok();
+    if debug {
         info!("CARGO_FEATURE_DEBUG set");
-        cmd.arg("--enable-debug");
     }
 
-    if env::var("CARGO_FEATURE_PROFILING").is_ok() {
+    let profiling = env::var("CARGO_FEATURE_PROFILING").is_ok();
+    if profiling {
         info!("CARGO_FEATURE_PROFILING set");
-        cmd.arg("--enable-prof");
     }
 
-    if env::var("CARGO_FEATURE_STATS").is_ok() {
+    let stats = env::var("CARGO_FEATURE_STATS").is_ok();
+    if stats {
         info!("CARGO_FEATURE_STATS set");
-        cmd.arg("--enable-stats");
     } else {
         info!("CARGO_FEATURE_STATS not set");
-        cmd.arg("--disable-stats");
     }
 
-    if env::var("CARGO_FEATURE_DISABLE_INITIAL_EXEC_TLS").is_ok() {
+    let disable_initial_exec_tls = env::var("CARGO_FEATURE_DISABLE_INITIAL_EXEC_TLS").is_ok();
+    if disable_initial_exec_tls {
         info!("CARGO_FEATURE_DISABLE_INITIAL_EXEC_TLS set");
-        cmd.arg("--disable-initial-exec-tls");
     }
 
-    if env::var("CARGO_FEATURE_DISABLE_CACHE_OBLIVIOUS").is_ok() {
+    let disable_cache_oblivious = env::var("CARGO_FEATURE_DISABLE_CACHE_OBLIVIOUS").is_ok();
+    if disable_cache_oblivious {
         info!("CARGO_FEATURE_DISABLE_CACHE_OBLIVIOUS set");
-        cmd.arg("--disable-cache-oblivious");
     }
 
-    cmd.arg(format!("--host={}", gnu_target(&target)));
-    cmd.arg(format!("--build={}", gnu_target(&host)));
-    cmd.arg(format!("--prefix={}", out_dir.display()));
+    let cc_build = env::var("CARGO_FEATURE_CC_BUILD").is_ok();
 
-    run_and_log(&mut cmd, &build_dir.join("config.log"));
+    if cc_build {
+        info!("CARGO_FEATURE_CC_BUILD set");
 
-    // Make:
-    let make = make_cmd(&host);
-    run(&mut make_command(make, &build_dir, &num_jobs));
+        if env::var("JEMALLOC_SYS_RUN_JEMALLOC_TESTS").is_ok() {
+            warning!(
+                "{}",
+                "`JEMALLOC_SYS_RUN_JEMALLOC_TESTS` is ignored when `cc_build` is enabled"
+            );
+        }
 
-    // Skip watching this environment variables to avoid rebuild in CI.
-    if env::var("JEMALLOC_SYS_RUN_JEMALLOC_TESTS").is_ok() {
-        info!("Building and running jemalloc tests...");
+        build_support::build(&CcBuildContext {
+            target: &target,
+            host: &host,
+            out_dir: &out_dir,
+            build_dir: &build_dir,
+            options: CcBuildOptions {
+                je_version: je_version.to_owned(),
+                use_prefix,
+                malloc_conf,
+                lg_page,
+                lg_hugepage,
+                lg_quantum,
+                lg_vaddr,
+                debug,
+                profiling,
+                stats,
+                disable_initial_exec_tls,
+                disable_cache_oblivious,
+            },
+        });
+    } else {
+        // Configuration files
+        let config_files = ["configure"];
 
-        let mut cmd = make_command(make, &build_dir, &num_jobs);
+        // Copy the configuration files to jemalloc's source directory
+        for f in &config_files {
+            fs::copy(Path::new("configure").join(f), build_dir.join(f))
+                .expect("failed to copy config file to OUT_DIR");
+        }
 
-        // Make tests:
-        run(cmd.arg("tests"));
+        // Run configure:
+        let configure = build_dir.join("configure");
+        let mut cmd = Command::new("sh");
+        cmd.arg(
+            configure
+                .to_str()
+                .unwrap()
+                .replace("C:\\", "/c/")
+                .replace('\\', "/"),
+        )
+        .current_dir(&build_dir)
+        .env("CC", compiler.path())
+        .env("CFLAGS", cflags.clone())
+        .env("LDFLAGS", ldflags.clone())
+        .env("CPPFLAGS", cflags)
+        .arg(format!("--with-version={je_version}"))
+        .arg("--disable-cxx")
+        .arg("--enable-doc=no")
+        .arg("--enable-shared=no");
 
-        // Run tests:
-        run(Command::new(make).current_dir(&build_dir).arg("check"));
+        if target.contains("ios") {
+            // newer iOS deviced have 16kb page sizes:
+            // closed: https://github.com/gnzlbg/jemallocator/issues/68
+            cmd.arg("--with-lg-page=14");
+        }
+
+        if !malloc_conf.is_empty() {
+            cmd.arg(format!("--with-malloc-conf={malloc_conf}"));
+        }
+
+        if let Some(ref lg_page) = lg_page {
+            cmd.arg(format!("--with-lg-page={lg_page}"));
+        }
+
+        if let Some(ref lg_hugepage) = lg_hugepage {
+            cmd.arg(format!("--with-lg-hugepage={lg_hugepage}"));
+        }
+
+        if let Some(ref lg_quantum) = lg_quantum {
+            cmd.arg(format!("--with-lg-quantum={lg_quantum}"));
+        }
+
+        if let Some(ref lg_vaddr) = lg_vaddr {
+            cmd.arg(format!("--with-lg-vaddr={lg_vaddr}"));
+        }
+
+        if use_prefix {
+            cmd.arg("--with-jemalloc-prefix=_rjem_");
+        }
+
+        cmd.arg("--with-private-namespace=_rjem_");
+
+        if debug {
+            cmd.arg("--enable-debug");
+        }
+
+        if profiling {
+            cmd.arg("--enable-prof");
+        }
+
+        if stats {
+            cmd.arg("--enable-stats");
+        } else {
+            cmd.arg("--disable-stats");
+        }
+
+        if disable_initial_exec_tls {
+            cmd.arg("--disable-initial-exec-tls");
+        }
+
+        if disable_cache_oblivious {
+            cmd.arg("--disable-cache-oblivious");
+        }
+
+        cmd.arg(format!("--host={}", gnu_target(&target)));
+        cmd.arg(format!("--build={}", gnu_target(&host)));
+        cmd.arg(format!("--prefix={}", out_dir.display()));
+
+        run_and_log(&mut cmd, &build_dir.join("config.log"));
+
+        // Make:
+        let make = make_cmd(&host);
+        run(&mut make_command(make, &build_dir, &num_jobs));
+
+        // Skip watching this environment variables to avoid rebuild in CI.
+        if env::var("JEMALLOC_SYS_RUN_JEMALLOC_TESTS").is_ok() {
+            info!("Building and running jemalloc tests...");
+
+            let mut cmd = make_command(make, &build_dir, &num_jobs);
+
+            // Make tests:
+            run(cmd.arg("tests"));
+
+            // Run tests:
+            run(Command::new(make).current_dir(&build_dir).arg("check"));
+        }
+
+        // Make install:
+        run(make_command(make, &build_dir, &num_jobs)
+            .arg("install_lib_static")
+            .arg("install_include"));
     }
-
-    // Make install:
-    run(make_command(make, &build_dir, &num_jobs)
-        .arg("install_lib_static")
-        .arg("install_include"));
 
     // Try to remove the build directory to avoid it wasting disk space in the target directory
     let _ = fs::remove_dir_all(build_dir);
@@ -484,4 +563,28 @@ impl BackgroundThreadSupport {
 
         Some(Self { always_enabled })
     }
+}
+
+struct CcBuildContext<'a> {
+    target: &'a str,
+    host: &'a str,
+    out_dir: &'a Path,
+    build_dir: &'a Path,
+    options: CcBuildOptions,
+}
+
+#[derive(Clone)]
+struct CcBuildOptions {
+    je_version: String,
+    use_prefix: bool,
+    malloc_conf: String,
+    lg_page: Option<String>,
+    lg_hugepage: Option<String>,
+    lg_quantum: Option<String>,
+    lg_vaddr: Option<String>,
+    debug: bool,
+    profiling: bool,
+    stats: bool,
+    disable_initial_exec_tls: bool,
+    disable_cache_oblivious: bool,
 }
