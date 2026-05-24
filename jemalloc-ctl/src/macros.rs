@@ -60,31 +60,6 @@ macro_rules! r {
                     self.0.read()
                 }
             }
-
-            #[cfg(test)]
-            #[test]
-            #[allow(unused)]
-            fn [<$id _read_test>]() {
-                match stringify!($id) {
-                    "background_thread" |
-                    "max_background_threads"
-                    if cfg!(target_os = "macos") => return,
-                    _ => (),
-                }
-
-                let a = $id::read().unwrap();
-
-                let mib = $id::mib().unwrap();
-                let b = mib.read().unwrap();
-
-                #[cfg(feature = "use_std")]
-                println!(
-                    concat!(
-                        stringify!($id),
-                        " (read): \"{}\" - \"{}\""),
-                    a, b
-                );
-            }
         }
     };
 }
@@ -107,31 +82,6 @@ macro_rules! w {
                     use crate::keys::Access;
                     self.0.write(value)
                 }
-            }
-
-            #[cfg(test)]
-            #[test]
-            fn [<$id _write_test>]() {
-                match stringify!($id) {
-                    "background_thread" |
-                    "max_background_threads"
-                        if cfg!(target_os = "macos") => return,
-                    _ => (),
-                }
-
-                let _ = $id::write($ret_ty::default()).unwrap();
-
-                let mib = $id::mib().unwrap();
-                let _ = mib.write($ret_ty::default()).unwrap();
-
-                #[cfg(feature = "use_std")]
-                println!(
-                    concat!(
-                        stringify!($id),
-                        " (write): \"{}\""),
-                    $ret_ty::default()
-                );
-
             }
         }
     };
@@ -156,11 +106,26 @@ macro_rules! u {
                     self.0.update(value)
                 }
             }
+        }
+    };
+}
 
+macro_rules! make_test {
+    ($id:ident, $ret_ty:ty, ()) => {};
+    (max_background_threads, $ret_ty:ty, ($($ops:ident),+)) => {
+        make_test!(max_background_threads, $ret_ty, |_| 1, $($ops),+);
+    };
+    (epoch, $ret_ty:ty, ($($ops:ident),+)) => {
+        make_test!(epoch, $ret_ty, |k| k + 1, $($ops),+);
+    };
+    ($id:ident, $ret_ty:ty, ($($ops:ident),+)) => {
+        make_test!($id, $ret_ty, |_| Default::default(), $($ops),+);
+    };
+    ($id:ident, $ret_ty:ty, $test_val:expr, r,w,u) => {
+        paste::paste! {
             #[cfg(test)]
             #[test]
-            #[allow(unused)]
-            fn [<$id _update_test>]() {
+            fn [<$id _read_write_update_test>]() {
                 match stringify!($id) {
                     "background_thread" |
                     "max_background_threads"
@@ -168,17 +133,56 @@ macro_rules! u {
                     _ => (),
                 }
 
-                let a = $id::update($ret_ty::default()).unwrap();
+                let a = $id::read().unwrap();
+                let b = $test_val(a);
+                let _ = $id::write(b).unwrap();
+                let c = $id::read().unwrap();
+                assert_eq!(b, c);
+                let d = $id::update(a).unwrap();
+                let e = $id::read().unwrap();
+                if stringify!($id) == "epoch" {
+                    assert_eq!(d, e);
+                    assert_ne!(a, e);
+                } else {
+                    assert_eq!(d, c);
+                    assert_eq!(a, e);
+                }
 
                 let mib = $id::mib().unwrap();
-                let b = mib.update($ret_ty::default()).unwrap();
+                let f = mib.read().unwrap();
+                assert_eq!(e, f);
+                let g = $test_val(f);
+                let _ = mib.write(g).unwrap();
+                let h = mib.read().unwrap();
+                assert_eq!(g, h);
+                let i = mib.update(f).unwrap();
+                let j = mib.read().unwrap();
+                if stringify!($id) == "epoch" {
+                    assert_eq!(i, j);
+                    assert_ne!(f, j);
+                } else {
+                    assert_eq!(i, h);
+                    assert_eq!(f, j);
+                }
+            }
+        }
+    };
+    ($id:ident, $ret_ty:ty, $test_val:expr, r) => {
+        paste::paste! {
+            #[cfg(test)]
+            #[test]
+            fn [<$id _read_test>]() {
+                let a = $id::read().unwrap();
+                let mib = $id::mib().unwrap();
+                let b = mib.read().unwrap();
+                assert_eq!(a, b);
 
                 #[cfg(feature = "use_std")]
                 println!(
                     concat!(
                         stringify!($id),
-                        " (update): (\"{}\", \"{}\") - \"{}\""),
-                    a, b, $ret_ty::default()
+                        " (read): \"{}\" - \"{}\""),
+                    a, b
                 );
             }
         }
@@ -202,6 +206,8 @@ macro_rules! option {
         $(
             $ops!($id => $ret_ty);
         )*
+
+        make_test!($id, $ret_ty, ($($ops),*));
     };
     // Non-string option:
     ($id:ident[ str: $byte_string:expr, non_str: $mib_len:expr ] => $ret_ty:ty |

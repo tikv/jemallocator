@@ -192,7 +192,8 @@ option! {
     /// `jemalloc` epoch.
     ///
     /// Many of the statistics tracked by `jemalloc` are cached. The epoch
-    /// controls when they are refreshed.
+    /// controls when they are refreshed. Both `write` and `update` are the
+    /// same as calling `advance()` and ignore any provided value.
     ///
     /// # Example
     ///
@@ -217,14 +218,14 @@ option! {
 }
 
 impl epoch {
-    /// Advances the epoch returning its old value - see [`epoch`].
+    /// Advances the epoch returning its latest value - see [`epoch`].
     pub fn advance() -> crate::error::Result<u64> {
         Self::update(1)
     }
 }
 
 impl epoch_mib {
-    /// Advances the epoch returning its old value - see [`epoch`].
+    /// Advances the epoch returning its latest value - see [`epoch`].
     pub fn advance(self) -> crate::error::Result<u64> {
         self.0.update(1)
     }
