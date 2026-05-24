@@ -158,6 +158,9 @@ fn main() {
     let ldflags = read_and_watch_env("LDFLAGS")
         .map(OsString::from)
         .unwrap_or_default();
+    let cppflags = read_and_watch_env("CPPFLAGS")
+        .map(OsString::from)
+        .unwrap_or_default();
 
     // Use cc_env() to get the full CC value including any wrapper (e.g. sccache).
     // cc_env() returns empty when no wrapper is configured, so fall back to path().
@@ -171,6 +174,7 @@ fn main() {
     info!("CC={:?}", cc);
     info!("CFLAGS={:?}", cflags);
     info!("LDFLAGS={:?}", ldflags);
+    info!("CPPFLAGS={:?}", cppflags);
 
     assert!(out_dir.exists(), "OUT_DIR does not exist");
     let jemalloc_repo_dir = PathBuf::from("jemalloc");
@@ -207,7 +211,7 @@ fn main() {
     .env("CC", &cc)
     .env("CFLAGS", &cflags)
     .env("LDFLAGS", &ldflags)
-    .env("CPPFLAGS", &cflags)
+    .env("CPPFLAGS", &cppflags)
     .arg(format!("--with-version={je_version}"))
     .arg("--disable-cxx")
     .arg("--enable-doc=no")
