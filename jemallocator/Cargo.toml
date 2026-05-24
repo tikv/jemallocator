@@ -48,6 +48,7 @@ tikv-jemalloc-ctl = { path = "../jemalloc-ctl", version = "0.6.1" }
 default = ["background_threads_runtime_support"]
 alloc_trait = []
 profiling = ["tikv-jemalloc-sys/profiling"]
+profiling_libunwind = ["tikv-jemalloc-sys/profiling_libunwind", "profiling"]
 debug = ["tikv-jemalloc-sys/debug"]
 stats = ["tikv-jemalloc-sys/stats"]
 background_threads_runtime_support = ["tikv-jemalloc-sys/background_threads_runtime_support"]

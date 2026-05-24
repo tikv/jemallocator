@@ -45,6 +45,15 @@ This crate provides following cargo feature flags:
   * `libgcc` (unless --disable-prof-libgcc)
   * `gcc intrinsics` (unless --disable-prof-gcc)
 
+* `profiling_libunwind` (configure `jemalloc` with `--enable-prof-libunwind`):
+  Force jemalloc to use `libunwind` for backtracing during heap profiling
+  instead of the default gcc-based unwinding, which has a
+  [known livelock bug](https://github.com/jemalloc/jemalloc/issues/2282) in
+  multi-threaded programs using `_Unwind_Backtrace`. Enables `profiling`
+  automatically. On Linux, this requires `libunwind-dev` (or `libunwind-devel`)
+  to be installed. On macOS/iOS, unwind symbols are provided by the system and
+  no extra library is needed.
+
 * `stats` (configure `jemalloc` with `--enable-stats`): Enable statistics
   gathering functionality. See the `jemalloc`'s "`opt.stats_print`" option
   documentation for usage details.
