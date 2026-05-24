@@ -1,11 +1,11 @@
 //! Sets `jemalloc` as the `#[global_allocator]` on targets that support it.
 //!
-//! Just add `jemallocator-global` as a dependency:
+//! Just add `tikv-jemallocator-global` as a dependency:
 //!
 //! ```toml
 //! # Cargo.toml
 //! [dependencies]
-//! jemallocator-global = "0.6.0"
+//! tikv-jemallocator-global = "0.7"
 //! ```
 //!
 //! and `jemalloc` will be used as the `#[global_allocator]` on targets that

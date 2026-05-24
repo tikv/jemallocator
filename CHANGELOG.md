@@ -1,3 +1,17 @@
+# 0.7.0 - 2026-05-25
+
+- Reverse order of MAKEFLAGS priority (#152)
+- Define ALIGNOF_MAX_ALIGN_T for riscv32 (#153)
+- Remove build directory once build of `jemalloc-sys` finishes (#119)
+- Fix cross-compile for tier-3 riscv64a23 target (#141)
+- sys: support *-windows-gnullvm targets (#150)
+- Propagate LDFLAGS, if present (#155)
+- jemalloc-ctl: fix invalid update implementation
+- add new free ffi
+- Update jemalloc to 5.3.1 (#161)
+- Add profiling_libunwind feature (#159)
+- passthrough cc env/args using native cc features (#158)
+
 # 0.6.1 - 2025-10-15
 
 - Fix compiler and clippy warnings (#105)

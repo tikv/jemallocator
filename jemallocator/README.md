@@ -30,7 +30,7 @@ To use `tikv-jemallocator` add it as a dependency:
 [dependencies]
 
 [target.'cfg(not(target_env = "msvc"))'.dependencies]
-tikv-jemallocator = "0.6"
+tikv-jemallocator = "0.7"
 ```
 
 To set `tikv_jemallocator::Jemalloc` as the global allocator add this to your project:
