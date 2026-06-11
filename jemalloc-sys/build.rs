@@ -393,21 +393,64 @@ fn main() {
     }
 }
 
+/// Parses a MAKEFLAGS string into a vec of option arguments, and vec of
+/// post-option arguments (those after --).
+fn parse_makeflags(flags: &str) -> (Vec<String>, Vec<String>) {
+    let mut options = Vec::new();
+    let mut post_options = Vec::new();
+    let mut first = true;
+    let mut options_ended = false;
+    for grp in flags.trim().split_ascii_whitespace() {
+        if first && !grp.starts_with('-') {
+            // The first group of MAKEFLAGS is interpreted as prepended with -,
+            // if it wasn't already.
+            options.push(format!("-{grp}"));
+        } else if options_ended {
+            post_options.push(grp.to_string())
+        } else if grp == "--" {
+            options_ended = true;
+        } else {
+            options.push(grp.to_string())
+        }
+
+        first = false;
+    }
+    (options, post_options)
+}
+
+fn merge_makeflags(a: &str, b: &str) -> String {
+    let (mut opts, mut post_opts) = parse_makeflags(a);
+    let (b_opts, b_post_opts) = parse_makeflags(b);
+    opts.extend(b_opts);
+    post_opts.extend(b_post_opts);
+    if !post_opts.is_empty() {
+        opts.push("--".to_string());
+        opts.extend(post_opts);
+    }
+    opts.join(" ")
+}
+
 fn make_command(make_cmd: &str, build_dir: &Path, num_jobs: &str) -> Command {
     let mut cmd = Command::new(make_cmd);
     cmd.current_dir(build_dir);
 
-    if let Ok(makeflags) = std::env::var("CARGO_MAKEFLAGS") {
-        let makeflags = if let Ok(orig_makeflags) = std::env::var("MAKEFLAGS") {
-            // Prepend Cargo makeflags before externally configured makeflags
-            // Adding Cargo makeflags at the end was causing issues, see
-            // https://github.com/tikv/jemallocator/issues/92#issuecomment-3536269176.
-            format!("{makeflags} {orig_makeflags}")
-        } else {
-            makeflags
-        };
-        cmd.env("MAKEFLAGS", makeflags);
+    // Pass through MAKEFLAGS.
+    let makeflags = match (std::env::var("CARGO_MAKEFLAGS"), std::env::var("MAKEFLAGS")) {
+        // Merging makeflags is non-trivial, see:
+        //  - https://github.com/tikv/jemallocator/issues/92#issuecomment-3536269176
+        //  - https://github.com/tikv/jemallocator/issues/167#issuecomment-4678875839
+        (Ok(a), Ok(b)) => Some(merge_makeflags(&a, &b)),
+        (Ok(f), Err(_)) | (Err(_), Ok(f)) => Some(f),
+        _ => None
+    };
+    let already_parallel = if let Some(f) = makeflags {
+        cmd.env("MAKEFLAGS", &f);
+        f.contains("-j") // Matches both -j and --jobserver-*.
     } else {
+        false
+    };
+    
+    if !already_parallel {
         cmd.arg("-j").arg(num_jobs);
     }
     cmd
