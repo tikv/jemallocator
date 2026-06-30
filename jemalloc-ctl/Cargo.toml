@@ -37,7 +37,9 @@ tikv-jemallocator = { path = "../jemallocator", version = "0.7.0" }
 default = []
 stats = ["tikv-jemalloc-sys/stats"]
 profiling = ["tikv-jemalloc-sys/profiling"]
+# `profiling_libunwind` and `profiling_frameptr` are mutually exclusive
 profiling_libunwind = ["tikv-jemalloc-sys/profiling_libunwind", "profiling"]
+profiling_frameptr = ["tikv-jemalloc-sys/profiling_frameptr", "profiling"]
 use_std = [ "libc/use_std" ]
 disable_initial_exec_tls = ["tikv-jemalloc-sys/disable_initial_exec_tls"]
 
