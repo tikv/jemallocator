@@ -48,7 +48,9 @@ tikv-jemalloc-ctl = { path = "../jemalloc-ctl", version = "0.7.0" }
 default = ["background_threads_runtime_support"]
 alloc_trait = []
 profiling = ["tikv-jemalloc-sys/profiling"]
+# `profiling_libunwind` and `profiling_frameptr` are mutually exclusive
 profiling_libunwind = ["tikv-jemalloc-sys/profiling_libunwind", "profiling"]
+profiling_frameptr = ["tikv-jemalloc-sys/profiling_frameptr", "profiling"]
 debug = ["tikv-jemalloc-sys/debug"]
 stats = ["tikv-jemalloc-sys/stats"]
 background_threads_runtime_support = ["tikv-jemalloc-sys/background_threads_runtime_support"]

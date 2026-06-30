@@ -42,6 +42,7 @@ This crate provides following cargo feature flags:
   list that appears to function correctly:
 
   * `libunwind` (requires --enable-prof-libunwind)
+  * frame-pointer walk (requires --enable-prof-frameptr; Linux only)
   * `libgcc` (unless --disable-prof-libgcc)
   * `gcc intrinsics` (unless --disable-prof-gcc)
 
@@ -52,7 +53,15 @@ This crate provides following cargo feature flags:
   multi-threaded programs using `_Unwind_Backtrace`. Enables `profiling`
   automatically. On Linux, this requires `libunwind-dev` (or `libunwind-devel`)
   to be installed. On macOS/iOS, unwind symbols are provided by the system and
-  no extra library is needed.
+  no extra library is needed. Mutually exclusive with `profiling_frameptr`.
+
+* `profiling_frameptr` (configure `jemalloc` with `--enable-prof-frameptr`):
+  Force jemalloc to use its Linux frame-pointer unwinder for backtracing during
+  heap profiling instead of libgcc/gcc-intrinsics DWARF unwind. Enables
+  `profiling` automatically. Only supported on Linux targets. Profiled code
+  should be built with frame pointers (for example Rust
+  `-C force-frame-pointers=yes`, C/C++ `-fno-omit-frame-pointer`) for useful
+  stacks. Mutually exclusive with `profiling_libunwind`.
 
 * `stats` (configure `jemalloc` with `--enable-stats`): Enable statistics
   gathering functionality. See the `jemalloc`'s "`opt.stats_print`" option
