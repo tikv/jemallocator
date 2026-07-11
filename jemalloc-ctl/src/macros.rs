@@ -130,6 +130,8 @@ macro_rules! make_test {
                     "background_thread" |
                     "max_background_threads"
                         if cfg!(target_os = "macos") => return,
+                    // Skipped: races with the hook test's own `prof_active` writes.
+                    "prof_active" if cfg!(feature = "profiling_hooks") => return,
                     _ => (),
                 }
 

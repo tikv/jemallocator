@@ -246,6 +246,23 @@ fn main() {
         malloc_conf += "background_thread:false";
     }
 
+    if env::var("CARGO_FEATURE_PROFILING_HOOKS").is_ok() {
+        info!("CARGO_FEATURE_PROFILING_HOOKS set");
+        // Baking bare `prof:true` would also default `prof_active` and
+        // `prof_thread_active_init` to true. Since `links = "jemalloc"`
+        // unifies this build across every dependent in the graph, that would
+        // make the one shared jemalloc actively sample every allocation
+        // process-wide as soon as any dependent enables this feature, even
+        // if no hook is ever installed. Keep sampling installable
+        // (`opt_prof`) but inert until a consumer flips `prof.active` (or
+        // calls `tikv_jemalloc_ctl::profiling::prof_active::write(true)`) at
+        // runtime.
+        if !malloc_conf.is_empty() {
+            malloc_conf.push(',');
+        }
+        malloc_conf.push_str("prof:true,prof_active:false");
+    }
+
     if let Ok(malloc_conf_opts) = read_and_watch_env("JEMALLOC_SYS_WITH_MALLOC_CONF") {
         if !malloc_conf.is_empty() {
             malloc_conf.push(',');

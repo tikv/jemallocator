@@ -54,6 +54,20 @@ This crate provides following cargo feature flags:
   to be installed. On macOS/iOS, unwind symbols are provided by the system and
   no extra library is needed.
 
+* `profiling_hooks`: Enables `profiling` automatically and bakes
+  `prof:true,prof_active:false` into the default `malloc_conf`, so sampling
+  is installable but inert until a consumer flips `prof.active` at runtime.
+  Exposes `jemalloc`'s experimental
+  `experimental.hooks.prof_sample`/`prof_sample_free`/`prof_backtrace` hooks
+  through `tikv-jemalloc-ctl`'s `profiling` module, letting an external
+  sampler (e.g. an eBPF profiler) piggyback `jemalloc`'s sampling decision
+  without its stack walking. Not re-exported by `tikv-jemallocator`.
+
+  Since this crate has `links = "jemalloc"`, there's only one `jemalloc`
+  build per dependency graph, so enabling this on any dependent applies
+  `prof:true,prof_active:false` to that shared build for everyone in the
+  graph too.
+
 * `stats` (configure `jemalloc` with `--enable-stats`): Enable statistics
   gathering functionality. See the `jemalloc`'s "`opt.stats_print`" option
   documentation for usage details.
