@@ -175,10 +175,13 @@ option! {
     /// only effective once `opt.prof` is `true`; when it is `false`, reading
     /// [`prof_active`] always returns `false` and writing to it fails with
     /// `ENOENT`. `jemalloc` initializes [`prof_active`] to
-    /// `opt.prof_thread_active_init` (which itself defaults to `true`) as
-    /// soon as `opt.prof` is `true`, so a build with `opt.prof` enabled
-    /// samples by default unless [`prof_active`] is set to `false`, e.g. via
+    /// `opt.prof_active` (which itself defaults to `true`) as soon as
+    /// `opt.prof` is `true`, so a build with `opt.prof` enabled samples by
+    /// default unless [`prof_active`] is set to `false`, e.g. via
     /// `prof_active:false` in `MALLOC_CONF`.
+    ///
+    /// Note: `opt.prof_thread_active_init` is unrelated — it controls the
+    /// per-thread `thread.prof.active` flag, not this global toggle.
     ///
     /// While inactive, sampling hooks installed via the `profiling_hooks`
     /// feature's hook setters remain installed but do not fire, since no
@@ -213,7 +216,9 @@ option! {
 ///
 /// Returns an error (`ENOENT`) if `opt.prof` is `false` at runtime, e.g.
 /// because `MALLOC_CONF`/`JEMALLOC_SYS_WITH_MALLOC_CONF` overrode the
-/// `prof:true` this crate's `profiling`/`profiling_hooks` features bake in.
+/// `prof:true` that the `profiling_hooks` feature bakes in (the `profiling`
+/// feature alone enables `--enable-prof` at build time but does not set
+/// `prof:true` in `malloc_conf`).
 pub fn prof_reset(lg_sample: libc::size_t) -> crate::error::Result<()> {
     unsafe { crate::raw::write(b"prof.reset\0", lg_sample) }
 }
