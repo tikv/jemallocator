@@ -352,8 +352,11 @@ fn main() {
         .arg("install_lib_static")
         .arg("install_include"));
 
-    // Try to remove the build directory to avoid it wasting disk space in the target directory
-    let _ = fs::remove_dir_all(build_dir);
+    // The MSVC build installs a differently named library, so keep its build
+    // directory and link the archive directly from there.
+    if !target.contains("windows") {
+        let _ = fs::remove_dir_all(&build_dir);
+    }
 
     println!("cargo:root={}", out_dir.display());
 
@@ -365,11 +368,12 @@ fn main() {
     // intrinsics that are libgcc specific (e.g. those intrinsics aren't present in
     // libcompiler-rt), so link that in to get that support.
     if target.contains("windows") {
-        println!("cargo:rustc-link-lib=static=jemalloc");
+        println!("cargo:rustc-link-lib=static=jemalloc_s");
+        println!("cargo:rustc-link-search=native={}/lib", build_dir.display());
     } else {
         println!("cargo:rustc-link-lib=static=jemalloc_pic");
+        println!("cargo:rustc-link-search=native={}/lib", out_dir.display());
     }
-    println!("cargo:rustc-link-search=native={}/lib", out_dir.display());
     if target.contains("android") {
         println!("cargo:rustc-link-lib=gcc");
     } else if !target.contains("windows") {
