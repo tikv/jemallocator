@@ -379,6 +379,13 @@ fn main() {
     // during the final linking. https://github.com/riscv-collab/riscv-gcc/issues/12
     if target.contains("riscv") {
         println!("cargo:rustc-link-lib=atomic");
+        // Base rv64gc has no count-trailing-zeros instruction (that is Zbb), so gcc
+        // lowers the ffs in bit_util.h to a __ffsdi2 call. compiler_builtins carries
+        // the rest of the *di2 family but not that one, so a -nodefaultlibs link
+        // needs libgcc named, as on android above.
+        if compiler.is_like_gnu() {
+            println!("cargo:rustc-link-lib=gcc");
+        }
     }
     println!("cargo:rerun-if-changed=jemalloc");
 
