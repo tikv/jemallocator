@@ -327,6 +327,12 @@ fn main() {
     cmd.arg(format!("--host={}", gnu_target(&target)));
     cmd.arg(format!("--build={}", gnu_target(&host)));
     cmd.arg(format!("--prefix={}", out_dir.display()));
+    // Pin libdir explicitly so distro site-scripts (e.g. the OpenSUSE
+    // /usr/share/site/aarch64-unknown-linux-gnu script that rewrites libdir
+    // from `lib` to `lib64` on 64-bit hosts) cannot redirect the installed
+    // static libraries to a different subdirectory than the one we later pass
+    // to `cargo:rustc-link-search`.
+    cmd.arg(format!("--libdir={}/lib", out_dir.display()));
 
     run_and_log(&mut cmd, &build_dir.join("config.log"));
 
