@@ -3,15 +3,10 @@
 //! These settings are controlled by the `MALLOC_CONF` environment variable.
 //!
 //! This module also exposes on-the-fly control via [`prof_active`] and
-//! [`prof_reset`].
-#![cfg_attr(
-    feature = "profiling_hooks",
-    doc = "
-With the `profiling_hooks` feature, it additionally exposes `jemalloc`'s
-experimental `experimental.hooks.prof_sample`/`prof_sample_free`/
-`prof_backtrace` hooks via [`set_prof_sample_hook`],
-[`set_prof_sample_free_hook`], and [`set_prof_backtrace_hook`]."
-)]
+//! [`prof_reset`], along with `jemalloc`'s experimental
+//! `experimental.hooks.prof_sample`/`prof_sample_free`/`prof_backtrace` hooks
+//! via [`set_prof_sample_hook`], [`set_prof_sample_free_hook`], and
+//! [`set_prof_backtrace_hook`].
 
 option! {
     lg_prof_interval[ str: b"opt.lg_prof_interval\0", non_str: 2 ] => libc::ssize_t |
@@ -172,18 +167,19 @@ option! {
     /// On-the-fly activation/deactivation of memory profiling.
     ///
     /// This is a secondary control mechanism on top of `opt.prof`, and is
-    /// only effective once `opt.prof` is `true`; when it is `false`, reading
-    /// [`prof_active`] always returns `false` and writing to it fails with
-    /// `ENOENT`. `jemalloc` initializes [`prof_active`] to
+    /// only effective once `opt.prof` is `true`. When it is `false`, reading
+    /// [`prof_active`] returns `false`; writing `false` is accepted as a no-op,
+    /// while writing `true` fails with `ENOENT`. `jemalloc` initialises
+    /// [`prof_active`] to
     /// `opt.prof_active` (which itself defaults to `true`) as soon as
-    /// `opt.prof` is `true`, so a build with `opt.prof` enabled samples by
-    /// default unless [`prof_active`] is set to `false`, e.g. via
+    /// `opt.prof` is `true`, so a configuration with `opt.prof` enabled samples
+    /// by default unless [`prof_active`] is set to `false`, e.g. via
     /// `prof_active:false` in `MALLOC_CONF`.
     ///
-    /// Note: `opt.prof_thread_active_init` is unrelated — it controls the
+    /// Note: `opt.prof_thread_active_init` is unrelated. It controls the
     /// per-thread `thread.prof.active` flag, not this global toggle.
     ///
-    /// While inactive, sampling hooks installed via the `profiling_hooks`
+    /// While inactive, sampling hooks installed via the `profiling`
     /// feature's hook setters remain installed but do not fire, since no
     /// allocation is ever selected for sampling.
     ///
@@ -214,16 +210,14 @@ option! {
 ///
 /// # Errors
 ///
-/// Returns an error (`ENOENT`) if `opt.prof` is `false` at runtime, e.g.
-/// because `MALLOC_CONF`/`JEMALLOC_SYS_WITH_MALLOC_CONF` overrode the
-/// `prof:true` that the `profiling_hooks` feature bakes in (the `profiling`
-/// feature alone enables `--enable-prof` at build time but does not set
-/// `prof:true` in `malloc_conf`).
+/// Returns an error (`ENOENT`) if `opt.prof` is `false` at runtime. The
+/// `profiling` feature enables profiling support but does not set `opt.prof`;
+/// configure `prof:true`, for example via `JEMALLOC_SYS_WITH_MALLOC_CONF` at
+/// build time.
 pub fn prof_reset(lg_sample: libc::size_t) -> crate::error::Result<()> {
     unsafe { crate::raw::write(b"prof.reset\0", lg_sample) }
 }
 
-#[cfg(feature = "profiling_hooks")]
 use libc::{c_uint, c_void};
 
 /// Signature of a hook installable via [`set_prof_sample_hook`].
@@ -232,19 +226,16 @@ use libc::{c_uint, c_void};
 /// thread, immediately after it decides to sample an allocation of
 /// `usable_size` bytes at `ptr` (the request was for `size` bytes;
 /// `usable_size` is jemalloc's usable/rounded-up size). `backtrace` points
-/// to `backtrace_length`
-/// `void*` frames captured by the installed [`ProfBacktraceHook`]
-/// (`backtrace_length` is `0` if [`noop_prof_backtrace_hook`] is installed).
+/// to an array of `backtrace_length` `void *` frames captured by the installed
+/// [`ProfBacktraceHook`] (`backtrace_length` is `0` if
+/// [`noop_prof_backtrace_hook`] is installed).
 ///
 /// # Safety
 ///
 /// No `jemalloc` mutex is held while this hook runs, but it does run inside
-/// `jemalloc`'s `pre_reentrancy`/`post_reentrancy` bracket and may itself
-/// allocate/free (including recursively sampling). It must not unwind
-/// across the `extern "C"` boundary — a panic here is undefined behavior
-/// below Rust 1.81, and this crate is `no_std` by default so `catch_unwind`
-/// is unavailable regardless.
-#[cfg(feature = "profiling_hooks")]
+/// `jemalloc`'s `pre_reentrancy`/`post_reentrancy` bracket. It may itself
+/// allocate or free; nested allocator activity is excluded from profiling.
+/// It must not unwind across the `extern "C"` boundary.
 pub type ProfSampleHook = unsafe extern "C" fn(
     ptr: *const c_void,
     size: libc::size_t,
@@ -259,7 +250,6 @@ pub type ProfSampleHook = unsafe extern "C" fn(
 /// thread, just before it frees a previously-sampled allocation of
 /// `usable_size` bytes at `ptr`. See [`ProfSampleHook`] for the applicable safety
 /// contract.
-#[cfg(feature = "profiling_hooks")]
 pub type ProfSampleFreeHook =
     unsafe extern "C" fn(ptr: *const c_void, usable_size: libc::size_t);
 
@@ -269,7 +259,6 @@ pub type ProfSampleFreeHook =
 /// must write at most `max_length` frames into `backtrace` and store the
 /// number of frames written through `backtrace_length`. See
 /// [`ProfSampleHook`] for the applicable safety contract.
-#[cfg(feature = "profiling_hooks")]
 pub type ProfBacktraceHook = unsafe extern "C" fn(
     backtrace: *mut *mut c_void,
     backtrace_length: *mut c_uint,
@@ -284,11 +273,10 @@ pub type ProfBacktraceHook = unsafe extern "C" fn(
 ///
 /// # Errors
 ///
-/// Returns an error (`ENOENT`) if `opt.prof` is `false` at runtime — see
+/// Returns an error (`ENOENT`) if `opt.prof` is `false` at runtime; see
 /// [`prof_reset`]. Note that `opt.prof` being `true` is sufficient to
 /// install a hook; [`prof_active`] need not be `true` (installing while
 /// inactive is a no-op until activated).
-#[cfg(feature = "profiling_hooks")]
 pub fn set_prof_sample_hook(
     hook: Option<ProfSampleHook>,
 ) -> crate::error::Result<Option<ProfSampleHook>> {
@@ -301,7 +289,6 @@ pub fn set_prof_sample_hook(
 ///
 /// Corresponds to `experimental.hooks.prof_sample_free`. See
 /// [`set_prof_sample_hook`] for the applicable error semantics.
-#[cfg(feature = "profiling_hooks")]
 pub fn set_prof_sample_free_hook(
     hook: Option<ProfSampleFreeHook>,
 ) -> crate::error::Result<Option<ProfSampleFreeHook>> {
@@ -315,18 +302,15 @@ pub fn set_prof_sample_free_hook(
 ///
 /// Corresponds to `experimental.hooks.prof_backtrace`. Unlike
 /// [`set_prof_sample_hook`]/[`set_prof_sample_free_hook`], this hook cannot
-/// be uninstalled (`jemalloc` rejects a `NULL` new hook with `EINVAL`) —
-/// install [`noop_prof_backtrace_hook`] instead of `jemalloc`'s default
-/// unwinder if backtraces aren't wanted, and keep the returned previous
-/// hook only to log/inspect, not to call directly, since it may itself be a
-/// previously-installed [`noop_prof_backtrace_hook`] or `jemalloc`'s
-/// internal default depending on prior state.
+/// be uninstalled (`jemalloc` rejects a `NULL` new hook with `EINVAL`). Install
+/// [`noop_prof_backtrace_hook`] instead of `jemalloc`'s default unwinder if
+/// backtraces aren't wanted. The returned previous hook may be restored later
+/// or invoked by the replacement during a valid backtrace-hook call.
 ///
 /// # Errors
 ///
-/// Returns an error (`ENOENT`) if `opt.prof` is `false` at runtime — see
+/// Returns an error (`ENOENT`) if `opt.prof` is `false` at runtime; see
 /// [`prof_reset`].
-#[cfg(feature = "profiling_hooks")]
 pub fn set_prof_backtrace_hook(
     hook: ProfBacktraceHook,
 ) -> crate::error::Result<ProfBacktraceHook> {
@@ -352,7 +336,6 @@ pub fn set_prof_backtrace_hook(
 /// Must only be invoked by `jemalloc` itself as an
 /// `experimental.hooks.prof_backtrace` hook, which always passes a non-null
 /// `backtrace_length`.
-#[cfg(feature = "profiling_hooks")]
 pub unsafe extern "C" fn noop_prof_backtrace_hook(
     _backtrace: *mut *mut c_void,
     backtrace_length: *mut c_uint,
@@ -362,10 +345,26 @@ pub unsafe extern "C" fn noop_prof_backtrace_hook(
 }
 
 // Heap-allocates to force samples, so this needs a real allocator (`use_std`).
-#[cfg(all(test, feature = "profiling_hooks", feature = "use_std"))]
+#[cfg(all(test, feature = "use_std"))]
 mod hook_tests {
     use super::*;
     use std::sync::atomic::{AtomicUsize, Ordering};
+
+    union Conf {
+        bytes: &'static u8,
+        c_char: &'static libc::c_char,
+    }
+
+    // Enable profiling only for this test binary. Normal library builds leave
+    // the process-wide profiling policy to the final consumer.
+    #[export_name = "_rjem_malloc_conf"]
+    pub static TEST_MALLOC_CONF: Option<&'static libc::c_char> =
+        Some(unsafe {
+            Conf {
+                bytes: &b"prof:true,prof_active:false\0"[0],
+            }
+            .c_char
+        });
 
     static SAMPLE_HOOK_CALLS: AtomicUsize = AtomicUsize::new(0);
     static SAMPLE_FREE_HOOK_CALLS: AtomicUsize = AtomicUsize::new(0);
@@ -400,8 +399,8 @@ mod hook_tests {
         // (from the new `lg_sample`) once the current, already-primed
         // distance (drawn under whatever `lg_sample` was in effect before
         // this call, e.g. the crate's default of 512 KiB) has been
-        // exhausted — so the very next allocation isn't guaranteed to
-        // sample yet, only allocations after that first one are.
+        // exhausted, so the very next allocation isn't guaranteed to sample
+        // yet. Only allocations after that first one are.
         prof_reset(0).unwrap();
         prof_active::write(true).unwrap();
 

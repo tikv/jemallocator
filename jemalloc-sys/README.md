@@ -45,6 +45,21 @@ This crate provides following cargo feature flags:
   * `libgcc` (unless --disable-prof-libgcc)
   * `gcc intrinsics` (unless --disable-prof-gcc)
 
+  The matching `profiling` feature in `tikv-jemalloc-ctl` also exposes
+  `jemalloc`'s experimental `experimental.hooks.prof_sample`/
+  `prof_sample_free`/`prof_backtrace` hooks, letting an external sampler (e.g.
+  an eBPF profiler) piggyback `jemalloc`'s sampling decision without its stack
+  walking. These hooks are not re-exported by `tikv-jemallocator`.
+
+  The feature compiles profiling support but does not enable profiling. To
+  enable it, configure `prof:true` before `jemalloc` initialises. This can be
+  done at process launch with the appropriate `MALLOC_CONF` environment
+  variable, typically `_RJEM_MALLOC_CONF` for prefixed builds. Use
+  `prof:true,prof_active:false` to install hooks before enabling sampling
+  through `prof.active`, or use `prof:true` to begin sampling immediately.
+  Alternatively, `JEMALLOC_SYS_WITH_MALLOC_CONF` can embed the same
+  configuration at build time.
+
 * `profiling_libunwind` (configure `jemalloc` with `--enable-prof-libunwind`):
   Force jemalloc to use `libunwind` for backtracing during heap profiling
   instead of the default gcc-based unwinding, which has a
@@ -53,20 +68,6 @@ This crate provides following cargo feature flags:
   automatically. On Linux, this requires `libunwind-dev` (or `libunwind-devel`)
   to be installed. On macOS/iOS, unwind symbols are provided by the system and
   no extra library is needed.
-
-* `profiling_hooks`: Enables `profiling` automatically and bakes
-  `prof:true,prof_active:false` into the default `malloc_conf`, so sampling
-  is installable but inert until a consumer flips `prof.active` at runtime.
-  Exposes `jemalloc`'s experimental
-  `experimental.hooks.prof_sample`/`prof_sample_free`/`prof_backtrace` hooks
-  through `tikv-jemalloc-ctl`'s `profiling` module, letting an external
-  sampler (e.g. an eBPF profiler) piggyback `jemalloc`'s sampling decision
-  without its stack walking. Not re-exported by `tikv-jemallocator`.
-
-  Since this crate has `links = "jemalloc"`, there's only one `jemalloc`
-  build per dependency graph, so enabling this on any dependent applies
-  `prof:true,prof_active:false` to that shared build for everyone in the
-  graph too.
 
 * `stats` (configure `jemalloc` with `--enable-stats`): Enable statistics
   gathering functionality. See the `jemalloc`'s "`opt.stats_print`" option
