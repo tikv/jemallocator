@@ -298,14 +298,15 @@ pub fn set_prof_sample_free_hook(
 }
 
 /// Installs or replaces the hook `jemalloc` calls to capture a sample's
-/// backtrace, returning the previously-installed hook.
+/// backtrace, returning the previously-installed hook, if any.
 ///
 /// Corresponds to `experimental.hooks.prof_backtrace`. Unlike
 /// [`set_prof_sample_hook`]/[`set_prof_sample_free_hook`], this hook cannot
 /// be uninstalled (`jemalloc` rejects a `NULL` new hook with `EINVAL`). Install
 /// [`noop_prof_backtrace_hook`] instead of `jemalloc`'s default unwinder if
-/// backtraces aren't wanted. The returned previous hook may be restored later
-/// or invoked by the replacement during a valid backtrace-hook call.
+/// backtraces aren't wanted. If present, the returned previous hook may be
+/// restored later or invoked by the replacement during a valid backtrace-hook
+/// call.
 ///
 /// # Errors
 ///
@@ -313,8 +314,10 @@ pub fn set_prof_sample_free_hook(
 /// [`prof_reset`].
 pub fn set_prof_backtrace_hook(
     hook: ProfBacktraceHook,
-) -> crate::error::Result<ProfBacktraceHook> {
-    unsafe { crate::raw::update(b"experimental.hooks.prof_backtrace\0", hook) }
+) -> crate::error::Result<Option<ProfBacktraceHook>> {
+    unsafe {
+        crate::raw::update(b"experimental.hooks.prof_backtrace\0", Some(hook))
+    }
 }
 
 /// A [`ProfBacktraceHook`] that reports an empty backtrace for every
@@ -349,22 +352,6 @@ pub unsafe extern "C" fn noop_prof_backtrace_hook(
 mod hook_tests {
     use super::*;
     use std::sync::atomic::{AtomicUsize, Ordering};
-
-    union Conf {
-        bytes: &'static u8,
-        c_char: &'static libc::c_char,
-    }
-
-    // Enable profiling only for this test binary. Normal library builds leave
-    // the process-wide profiling policy to the final consumer.
-    #[export_name = "_rjem_malloc_conf"]
-    pub static TEST_MALLOC_CONF: Option<&'static libc::c_char> =
-        Some(unsafe {
-            Conf {
-                bytes: &b"prof:true,prof_active:false\0"[0],
-            }
-            .c_char
-        });
 
     static SAMPLE_HOOK_CALLS: AtomicUsize = AtomicUsize::new(0);
     static SAMPLE_FREE_HOOK_CALLS: AtomicUsize = AtomicUsize::new(0);
@@ -444,7 +431,9 @@ mod hook_tests {
 
     #[test]
     fn backtrace_hook_can_be_replaced_and_restored() {
-        let prev = set_prof_backtrace_hook(noop_prof_backtrace_hook).unwrap();
+        let prev = set_prof_backtrace_hook(noop_prof_backtrace_hook)
+            .unwrap()
+            .expect("jemalloc had no previous backtrace hook");
         set_prof_backtrace_hook(prev).unwrap();
     }
 }

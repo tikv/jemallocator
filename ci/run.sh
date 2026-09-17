@@ -59,10 +59,15 @@ case "${TARGET}" in
         cargo test --target "${TARGET}" \
                    --manifest-path jemalloc-ctl/Cargo.toml \
                    --no-default-features
-        # FIXME: cross fails to pass features to jemalloc-ctl
-        # ${CARGO_CMD} test --target "${TARGET}" \
-        #             --manifest-path jemalloc-ctl \
-        #             --no-default-features --features use_std
+        (
+            # This malloc_conf is for the Rust hook tests and breaks jemalloc's C tests.
+            unset JEMALLOC_SYS_RUN_JEMALLOC_TESTS
+            JEMALLOC_SYS_WITH_MALLOC_CONF=prof:true,prof_active:false \
+                cargo test --target "${TARGET}" \
+                           --manifest-path jemalloc-ctl/Cargo.toml \
+                           --no-default-features \
+                           --features 'profiling use_std'
+        )
         ;;
 esac
 
