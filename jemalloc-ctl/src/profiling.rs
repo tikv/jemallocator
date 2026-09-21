@@ -7,6 +7,11 @@
 //! `experimental.hooks.prof_sample`/`prof_sample_free`/`prof_backtrace` hooks
 //! via [`set_prof_sample_hook`], [`set_prof_sample_free_hook`], and
 //! [`set_prof_backtrace_hook`].
+//!
+//! # Experimental hook API
+//!
+//! `jemalloc` considers these hook mallctls experimental. Their names and
+//! callback ABIs may change between `jemalloc` versions without notice.
 
 option! {
     lg_prof_interval[ str: b"opt.lg_prof_interval\0", non_str: 2 ] => libc::ssize_t |
@@ -194,8 +199,8 @@ option! {
     /// // `false` is always accepted, even if `opt.prof` is disabled at
     /// // runtime; writing `true` additionally requires `opt.prof` to be
     /// // `true`, else it fails with `ENOENT`.
-    /// let was_active = profiling::prof_active::write(false).unwrap();
-    /// # let _ = was_active;
+    /// let was_active = profiling::prof_active::update(false).unwrap();
+    /// profiling::prof_active::write(was_active).unwrap();
     /// # }
     /// ```
     mib_docs: /// See [`prof_active`].
@@ -277,7 +282,13 @@ pub type ProfBacktraceHook = unsafe extern "C" fn(
 /// [`prof_reset`]. Note that `opt.prof` being `true` is sufficient to
 /// install a hook; [`prof_active`] need not be `true` (installing while
 /// inactive is a no-op until activated).
-pub fn set_prof_sample_hook(
+///
+/// # Safety
+///
+/// The caller must ensure the linked `jemalloc` uses the [`ProfSampleHook`] ABI
+/// documented here and that `hook`, if present, upholds that type's safety
+/// contract for every invocation while installed.
+pub unsafe fn set_prof_sample_hook(
     hook: Option<ProfSampleHook>,
 ) -> crate::error::Result<Option<ProfSampleHook>> {
     unsafe { crate::raw::update(b"experimental.hooks.prof_sample\0", hook) }
@@ -289,7 +300,13 @@ pub fn set_prof_sample_hook(
 ///
 /// Corresponds to `experimental.hooks.prof_sample_free`. See
 /// [`set_prof_sample_hook`] for the applicable error semantics.
-pub fn set_prof_sample_free_hook(
+///
+/// # Safety
+///
+/// The caller must ensure the linked `jemalloc` uses the
+/// [`ProfSampleFreeHook`] ABI documented here and that `hook`, if present,
+/// upholds that type's safety contract for every invocation while installed.
+pub unsafe fn set_prof_sample_free_hook(
     hook: Option<ProfSampleFreeHook>,
 ) -> crate::error::Result<Option<ProfSampleFreeHook>> {
     unsafe {
@@ -312,7 +329,13 @@ pub fn set_prof_sample_free_hook(
 ///
 /// Returns an error (`ENOENT`) if `opt.prof` is `false` at runtime; see
 /// [`prof_reset`].
-pub fn set_prof_backtrace_hook(
+///
+/// # Safety
+///
+/// The caller must ensure the linked `jemalloc` uses the [`ProfBacktraceHook`]
+/// ABI documented here and that `hook` upholds that type's safety contract for
+/// every invocation while installed.
+pub unsafe fn set_prof_backtrace_hook(
     hook: ProfBacktraceHook,
 ) -> crate::error::Result<Option<ProfBacktraceHook>> {
     unsafe {
@@ -380,7 +403,8 @@ mod hook_tests {
     #[test]
     fn sample_and_sample_free_hooks_fire() {
         let was_active = prof_active::read().unwrap();
-        let prev_lg_sample = lg_prof_sample::read().unwrap();
+        let prev_lg_sample: libc::size_t =
+            unsafe { crate::raw::read(b"prof.lg_sample\0") }.unwrap();
         // lg_sample: 0 => average one sample per byte, i.e. every allocation.
         // `jemalloc` only recomputes each thread's next sample distance
         // (from the new `lg_sample`) once the current, already-primed
@@ -392,10 +416,12 @@ mod hook_tests {
         prof_active::write(true).unwrap();
 
         let prev_sample =
-            set_prof_sample_hook(Some(counting_sample_hook)).unwrap();
-        let prev_sample_free =
-            set_prof_sample_free_hook(Some(counting_sample_free_hook))
+            unsafe { set_prof_sample_hook(Some(counting_sample_hook)) }
                 .unwrap();
+        let prev_sample_free = unsafe {
+            set_prof_sample_free_hook(Some(counting_sample_free_hook))
+        }
+        .unwrap();
 
         // Warm up past any stale pre-reset sample distance: 16 MiB is many
         // times the largest plausible leftover distance from a 512 KiB mean.
@@ -414,8 +440,8 @@ mod hook_tests {
             }
         }
 
-        set_prof_sample_hook(prev_sample).unwrap();
-        set_prof_sample_free_hook(prev_sample_free).unwrap();
+        unsafe { set_prof_sample_hook(prev_sample) }.unwrap();
+        unsafe { set_prof_sample_free_hook(prev_sample_free) }.unwrap();
         prof_active::write(was_active).unwrap();
         prof_reset(prev_lg_sample).unwrap();
 
@@ -431,9 +457,10 @@ mod hook_tests {
 
     #[test]
     fn backtrace_hook_can_be_replaced_and_restored() {
-        let prev = set_prof_backtrace_hook(noop_prof_backtrace_hook)
-            .unwrap()
-            .expect("jemalloc had no previous backtrace hook");
-        set_prof_backtrace_hook(prev).unwrap();
+        let prev =
+            unsafe { set_prof_backtrace_hook(noop_prof_backtrace_hook) }
+                .unwrap()
+                .expect("jemalloc had no previous backtrace hook");
+        unsafe { set_prof_backtrace_hook(prev) }.unwrap();
     }
 }
