@@ -11,7 +11,11 @@
 //! # Experimental hook API
 //!
 //! `jemalloc` considers these hook mallctls experimental. Their names and
-//! callback ABIs may change between `jemalloc` versions without notice.
+//! callback ABIs may change between versions without notice. Hooks are
+//! process-wide, may run concurrently, and replacement does not wait for
+//! in-flight calls.
+
+use libc::{c_uint, c_void};
 
 option! {
     lg_prof_interval[ str: b"opt.lg_prof_interval\0", non_str: 2 ] => libc::ssize_t |
@@ -181,12 +185,13 @@ option! {
     /// by default unless [`prof_active`] is set to `false`, e.g. via
     /// `prof_active:false` in `MALLOC_CONF`.
     ///
-    /// Note: `opt.prof_thread_active_init` is unrelated. It controls the
-    /// per-thread `thread.prof.active` flag, not this global toggle.
+    /// `thread.prof.active` is a separate per-thread gate, initialised from
+    /// `opt.prof_thread_active_init`; both it and this global control must be
+    /// active for a thread to sample.
     ///
-    /// While inactive, sampling hooks installed via the `profiling`
-    /// feature's hook setters remain installed but do not fire, since no
-    /// allocation is ever selected for sampling.
+    /// While this control is inactive, no new allocation samples are selected,
+    /// so [`ProfSampleHook`] does not fire. [`ProfSampleFreeHook`] can still
+    /// fire for allocations sampled before deactivation.
     ///
     /// # Examples
     ///
@@ -206,9 +211,20 @@ option! {
     mib_docs: /// See [`prof_active`].
 }
 
+option! {
+    lg_sample[ str: b"prof.lg_sample\0", non_str: 2 ] => libc::size_t |
+    ops: r |
+    docs:
+    /// Current log base 2 of the mean number of bytes between samples.
+    ///
+    /// Initialised from [`lg_prof_sample`] and updated by [`prof_reset`].
+    mib_docs: /// See [`lg_sample`].
+}
+
 /// Resets `jemalloc`'s heap profile sample accumulators and, going forward,
-/// samples allocations at a rate of one per `2^lg_sample` bytes of
-/// allocation activity.
+/// draws sample intervals from a geometric distribution with a mean of
+/// `2^new_lg_sample` bytes of allocation activity (values `>= 64` are clamped
+/// to `63`). Sampling still requires `prof.active` and `thread.prof.active`.
 ///
 /// Corresponds to `prof.reset`, which is write-only: unlike most keys in
 /// this module, there is no matching `read()`/`update()`.
@@ -219,11 +235,9 @@ option! {
 /// `profiling` feature enables profiling support but does not set `opt.prof`;
 /// configure `prof:true`, for example via `JEMALLOC_SYS_WITH_MALLOC_CONF` at
 /// build time.
-pub fn prof_reset(lg_sample: libc::size_t) -> crate::error::Result<()> {
-    unsafe { crate::raw::write(b"prof.reset\0", lg_sample) }
+pub fn prof_reset(new_lg_sample: libc::size_t) -> crate::error::Result<()> {
+    unsafe { crate::raw::write(b"prof.reset\0", new_lg_sample) }
 }
-
-use libc::{c_uint, c_void};
 
 /// Signature of a hook installable via [`set_prof_sample_hook`].
 ///
@@ -237,10 +251,11 @@ use libc::{c_uint, c_void};
 ///
 /// # Safety
 ///
-/// No `jemalloc` mutex is held while this hook runs, but it does run inside
-/// `jemalloc`'s `pre_reentrancy`/`post_reentrancy` bracket. It may itself
-/// allocate or free; nested allocator activity is excluded from profiling.
-/// It must not unwind across the `extern "C"` boundary.
+/// Arguments are valid only during the call. The hook must not deallocate
+/// `ptr`, retain any argument, or mutate `backtrace`. No `jemalloc` mutex is
+/// held, and the hook may allocate or free other allocations; nested allocator
+/// activity is excluded from profiling. Hooks may run concurrently and must
+/// not unwind across the `extern "C"` boundary.
 pub type ProfSampleHook = unsafe extern "C" fn(
     ptr: *const c_void,
     size: libc::size_t,
@@ -253,17 +268,27 @@ pub type ProfSampleHook = unsafe extern "C" fn(
 ///
 /// `jemalloc` invokes this hook synchronously, inline on the freeing
 /// thread, just before it frees a previously-sampled allocation of
-/// `usable_size` bytes at `ptr`. See [`ProfSampleHook`] for the applicable safety
-/// contract.
+/// `usable_size` bytes at `ptr`.
+///
+/// # Safety
+///
+/// `ptr` is valid only during the call and must not be retained or deallocated.
+/// The hook may allocate or free other allocations; nested allocator activity
+/// is excluded from profiling. Hooks may run concurrently and must not unwind
+/// across the `extern "C"` boundary.
 pub type ProfSampleFreeHook =
     unsafe extern "C" fn(ptr: *const c_void, usable_size: libc::size_t);
 
 /// Signature of a hook installable via [`set_prof_backtrace_hook`].
 ///
-/// `jemalloc` invokes this hook to capture the stack trace for a sample; it
-/// must write at most `max_length` frames into `backtrace` and store the
-/// number of frames written through `backtrace_length`. See
-/// [`ProfSampleHook`] for the applicable safety contract.
+/// `jemalloc` invokes this hook to capture the stack trace for a sample.
+///
+/// # Safety
+///
+/// The pointers are valid only during the call and must not be retained. The
+/// hook must write at most `max_length` frames into `backtrace`, store that
+/// count through `backtrace_length`, support concurrent calls, and not unwind
+/// across the `extern "C"` boundary.
 pub type ProfBacktraceHook = unsafe extern "C" fn(
     backtrace: *mut *mut c_void,
     backtrace_length: *mut c_uint,
@@ -285,9 +310,9 @@ pub type ProfBacktraceHook = unsafe extern "C" fn(
 ///
 /// # Safety
 ///
-/// The caller must ensure the linked `jemalloc` uses the [`ProfSampleHook`] ABI
-/// documented here and that `hook`, if present, upholds that type's safety
-/// contract for every invocation while installed.
+/// The caller must ensure the linked `jemalloc` uses the documented
+/// [`ProfSampleHook`] ABI and that `hook`, if present, upholds its contract.
+/// Replaced hooks may still be in flight, so their state must remain valid.
 pub unsafe fn set_prof_sample_hook(
     hook: Option<ProfSampleHook>,
 ) -> crate::error::Result<Option<ProfSampleHook>> {
@@ -303,9 +328,9 @@ pub unsafe fn set_prof_sample_hook(
 ///
 /// # Safety
 ///
-/// The caller must ensure the linked `jemalloc` uses the
-/// [`ProfSampleFreeHook`] ABI documented here and that `hook`, if present,
-/// upholds that type's safety contract for every invocation while installed.
+/// The caller must ensure the linked `jemalloc` uses the documented
+/// [`ProfSampleFreeHook`] ABI and that `hook`, if present, upholds its contract.
+/// Replaced hooks may still be in flight, so their state must remain valid.
 pub unsafe fn set_prof_sample_free_hook(
     hook: Option<ProfSampleFreeHook>,
 ) -> crate::error::Result<Option<ProfSampleFreeHook>> {
@@ -332,9 +357,9 @@ pub unsafe fn set_prof_sample_free_hook(
 ///
 /// # Safety
 ///
-/// The caller must ensure the linked `jemalloc` uses the [`ProfBacktraceHook`]
-/// ABI documented here and that `hook` upholds that type's safety contract for
-/// every invocation while installed.
+/// The caller must ensure the linked `jemalloc` uses the documented
+/// [`ProfBacktraceHook`] ABI and that `hook` upholds its contract. Replaced
+/// hooks may still be in flight, so their state must remain valid.
 pub unsafe fn set_prof_backtrace_hook(
     hook: ProfBacktraceHook,
 ) -> crate::error::Result<Option<ProfBacktraceHook>> {
@@ -348,7 +373,7 @@ pub unsafe fn set_prof_backtrace_hook(
 ///
 /// Installing this via [`set_prof_backtrace_hook`] disables `jemalloc`'s
 /// own stack unwinding going forward: the per-allocation sampling
-/// decision still happens at the configured rate (see [`lg_prof_sample`])
+/// decision still happens at the configured rate (see [`lg_sample`])
 /// and [`set_prof_sample_hook`]/[`set_prof_sample_free_hook`] hooks still
 /// fire, but with `backtrace_length` reported as `0`. Intended for
 /// out-of-process samplers (e.g. an eBPF profiler) that capture their own
@@ -378,14 +403,17 @@ mod hook_tests {
 
     static SAMPLE_HOOK_CALLS: AtomicUsize = AtomicUsize::new(0);
     static SAMPLE_FREE_HOOK_CALLS: AtomicUsize = AtomicUsize::new(0);
+    static SAMPLE_BACKTRACE_LENGTH: AtomicUsize = AtomicUsize::new(usize::MAX);
 
     unsafe extern "C" fn counting_sample_hook(
         _ptr: *const c_void,
         _size: libc::size_t,
         _backtrace: *mut *mut c_void,
-        _backtrace_length: c_uint,
+        backtrace_length: c_uint,
         _usable_size: libc::size_t,
     ) {
+        SAMPLE_BACKTRACE_LENGTH
+            .store(backtrace_length as usize, Ordering::SeqCst);
         SAMPLE_HOOK_CALLS.fetch_add(1, Ordering::SeqCst);
     }
 
@@ -402,9 +430,14 @@ mod hook_tests {
     // hooks actually fired before restoring prior state.
     #[test]
     fn sample_and_sample_free_hooks_fire() {
-        let was_active = prof_active::read().unwrap();
-        let prev_lg_sample: libc::size_t =
-            unsafe { crate::raw::read(b"prof.lg_sample\0") }.unwrap();
+        // Requires `opt.prof`; see the `profiling` feature docs. The CI job
+        // for this test bakes `prof:true` via `JEMALLOC_SYS_WITH_MALLOC_CONF`.
+        if !prof::read().unwrap() {
+            return;
+        }
+        let was_active = prof_active::update(false).unwrap();
+        let prev_lg_sample = lg_sample::read().unwrap();
+        SAMPLE_BACKTRACE_LENGTH.store(usize::MAX, Ordering::SeqCst);
         // lg_sample: 0 => average one sample per byte, i.e. every allocation.
         // `jemalloc` only recomputes each thread's next sample distance
         // (from the new `lg_sample`) once the current, already-primed
@@ -413,8 +446,10 @@ mod hook_tests {
         // exhausted, so the very next allocation isn't guaranteed to sample
         // yet. Only allocations after that first one are.
         prof_reset(0).unwrap();
-        prof_active::write(true).unwrap();
-
+        let prev_backtrace =
+            unsafe { set_prof_backtrace_hook(noop_prof_backtrace_hook) }
+                .unwrap()
+                .expect("jemalloc had no previous backtrace hook");
         let prev_sample =
             unsafe { set_prof_sample_hook(Some(counting_sample_hook)) }
                 .unwrap();
@@ -422,10 +457,12 @@ mod hook_tests {
             set_prof_sample_free_hook(Some(counting_sample_free_hook))
         }
         .unwrap();
+        prof_active::write(true).unwrap();
 
-        // Warm up past any stale pre-reset sample distance: 16 MiB is many
-        // times the largest plausible leftover distance from a 512 KiB mean.
-        for _ in 0..16 {
+        // Warm up past any sample distance primed under the previous
+        // `lg_sample`. The default's geometric interval can reach ~18 MiB, so
+        // burn well past that before checking for samples.
+        for _ in 0..32 {
             drop(Box::new([0u8; 1024 * 1024]));
         }
 
@@ -440,10 +477,12 @@ mod hook_tests {
             }
         }
 
+        prof_active::write(false).unwrap();
         unsafe { set_prof_sample_hook(prev_sample) }.unwrap();
         unsafe { set_prof_sample_free_hook(prev_sample_free) }.unwrap();
-        prof_active::write(was_active).unwrap();
+        unsafe { set_prof_backtrace_hook(prev_backtrace) }.unwrap();
         prof_reset(prev_lg_sample).unwrap();
+        prof_active::write(was_active).unwrap();
 
         assert!(
             SAMPLE_HOOK_CALLS.load(Ordering::SeqCst) > before_sample,
@@ -453,14 +492,6 @@ mod hook_tests {
             SAMPLE_FREE_HOOK_CALLS.load(Ordering::SeqCst) > before_free,
             "prof_sample_free hook did not fire after freeing sampled allocations"
         );
-    }
-
-    #[test]
-    fn backtrace_hook_can_be_replaced_and_restored() {
-        let prev =
-            unsafe { set_prof_backtrace_hook(noop_prof_backtrace_hook) }
-                .unwrap()
-                .expect("jemalloc had no previous backtrace hook");
-        unsafe { set_prof_backtrace_hook(prev) }.unwrap();
+        assert_eq!(SAMPLE_BACKTRACE_LENGTH.load(Ordering::SeqCst), 0);
     }
 }

@@ -48,16 +48,19 @@ This crate provides following cargo feature flags:
   The matching `profiling` feature in `tikv-jemalloc-ctl` also exposes
   `jemalloc`'s experimental `experimental.hooks.prof_sample`/
   `prof_sample_free`/`prof_backtrace` hooks, letting an external sampler (e.g.
-  an eBPF profiler) piggyback `jemalloc`'s sampling decision without its stack
-  walking. These hooks are not re-exported by `tikv-jemallocator`.
+  an eBPF profiler) piggyback `jemalloc`'s sampling decision. To avoid
+  `jemalloc`'s own stack walk, install `noop_prof_backtrace_hook` through
+  `set_prof_backtrace_hook`. These hooks are not re-exported by
+  `tikv-jemallocator`.
 
   The feature compiles profiling support but does not enable profiling. To
   enable it, configure `prof:true` before `jemalloc` initialises. This can be
   done at process launch with the appropriate `MALLOC_CONF` environment
   variable, typically `_RJEM_MALLOC_CONF` for prefixed builds. Use
   `prof:true,prof_active:false` to install hooks before enabling sampling
-  through `prof.active`, or use `prof:true` to begin sampling immediately.
-  Alternatively, `JEMALLOC_SYS_WITH_MALLOC_CONF` can embed the same
+  through `prof.active`, or use `prof:true` to begin sampling immediately with
+  the default per-thread settings. Alternatively,
+  `JEMALLOC_SYS_WITH_MALLOC_CONF` can embed the same
   configuration at build time.
 
 * `profiling_libunwind` (configure `jemalloc` with `--enable-prof-libunwind`):
