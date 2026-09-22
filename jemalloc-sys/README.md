@@ -19,7 +19,7 @@
 [jemalloc_docs]: http://jemalloc.net/jemalloc.3.html
 [jemalloc_wiki]: https://github.com/jemalloc/jemalloc/wiki
 
-**Current jemalloc version**: 5.3.1.
+**Current jemalloc version**: 5.4.0.
 
 ## Platform support
 
