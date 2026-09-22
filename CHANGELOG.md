@@ -1,3 +1,12 @@
+# Unreleased
+
+- jemalloc-ctl: expose `prof.active`, `prof.lg_sample`, and `prof.reset` via
+  `profiling::{prof_active, lg_sample, prof_reset}`
+- jemalloc-ctl: expose jemalloc's experimental sample hooks under the
+  `profiling` feature (`set_prof_sample_hook`, `set_prof_sample_free_hook`,
+  `set_prof_backtrace_hook`, `noop_prof_backtrace_hook`, and the `Prof*Hook`
+  types)
+
 # 0.7.0 - 2026-05-25
 
 - Reverse order of MAKEFLAGS priority (#152)
