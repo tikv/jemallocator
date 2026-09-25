@@ -140,6 +140,43 @@ option! {
 }
 
 option! {
+    pinned[ str: b"stats.pinned\0", non_str: 2 ] => libc::size_t |
+    ops: r |
+    docs:
+    /// Total number of bytes dedicated to memory extents marked as *pinned*,
+    /// i.e. flagged by a custom extent-allocation hook with
+    /// [`tikv_jemalloc_sys::EXTENT_ALLOC_FLAG_PINNED`].
+    ///
+    /// Pinned extents are excluded from decay and purging so this statistic
+    /// stays non-zero only when an application installs custom extent hooks
+    /// marking non-reclaimable mappings (such as HugeTLB pages) as pinned.
+    /// Added by the `stats.pinned` mallctl in jemalloc 5.4.0.
+    ///
+    /// This statistic is cached, and is only refreshed when the epoch is
+    /// advanced. See the [`crate::epoch`] type for more information.
+    ///
+    /// This corresponds to `stats.pinned` in jemalloc's API.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # #[global_allocator]
+    /// # static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
+    /// #
+    /// # fn main() {
+    /// use tikv_jemalloc_ctl::{epoch, stats};
+    /// let e = epoch::mib().unwrap();
+    /// let pinned = stats::pinned::mib().unwrap();
+    ///
+    /// e.advance().unwrap();
+    /// let bytes = pinned.read().unwrap();
+    /// println!("{} bytes of pinned extents", bytes);
+    /// # }
+    /// ```
+    mib_docs: /// See [`pinned`].
+}
+
+option! {
     mapped[ str: b"stats.mapped\0", non_str: 2 ] => libc::size_t |
     ops: r |
     docs:

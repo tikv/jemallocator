@@ -1,5 +1,11 @@
 # Unreleased
 
+- tikv-jemalloc-sys: expose the jemalloc 5.4.0 extent-allocation hook flags
+  `EXTENT_ALLOC_FLAG_PINNED` and `EXTENT_ALLOC_FLAG_MASK`, documenting the
+  low-bit protocol of the pointer returned from `extent_alloc_t` hooks.
+- tikv-jemalloc-ctl: expose the `stats.pinned` mallctl added in jemalloc 5.4.0
+  via `stats::pinned`.
+
 - jemalloc-ctl: expose `prof.active`, `prof.lg_sample`, and `prof.reset` via
   `profiling::{prof_active, lg_sample, prof_reset}`
 - jemalloc-ctl: expose jemalloc's experimental sample hooks under the
