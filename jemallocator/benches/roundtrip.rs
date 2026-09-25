@@ -1,5 +1,8 @@
 //! Benchmarks the cost of the different allocation functions by doing a
 //! roundtrip (allocate, deallocate).
+//! Identifier joining below uses the unstable `macro_metavar_expr_concat`
+//! language feature (the official successor to the removed `concat_idents`).
+#![feature(macro_metavar_expr_concat)]
 #![feature(test, allocator_api)]
 #![cfg(feature = "alloc_trait")]
 
@@ -42,10 +45,9 @@ fn layout_to_flags(layout: &Layout) -> c_int {
 }
 
 macro_rules! rt {
-    ($size:expr, $align:expr) => {
-        paste::paste! {
+    ($size:literal, $align:literal) => {
             #[bench]
-            fn [<rt_mallocx_size_ $size _align_ $align>](b: &mut Bencher) {
+            fn ${concat(rt_mallocx_size_, $size, _align_, $align)}(b: &mut Bencher) {
                 b.iter(|| unsafe {
                     use jemalloc_sys as jemalloc;
                     let flags = layout_to_flags(&Layout::from_size_align($size, $align).unwrap());
@@ -56,7 +58,7 @@ macro_rules! rt {
             }
 
             #[bench]
-            fn [<rt_mallocx_nallocx_size_ $size _align_ $align>](b: &mut Bencher) {
+            fn ${concat(rt_mallocx_nallocx_size_, $size, _align_, $align)}(b: &mut Bencher) {
                 b.iter(|| unsafe {
                     use jemalloc_sys as jemalloc;
                     let flags = layout_to_flags(&Layout::from_size_align($size, $align).unwrap());
@@ -69,7 +71,7 @@ macro_rules! rt {
             }
 
             #[bench]
-            fn [<rt_alloc_layout_checked_size_ $size _align_ $align>](b: &mut Bencher) {
+            fn ${concat(rt_alloc_layout_checked_size_, $size, _align_, $align)}(b: &mut Bencher) {
                 b.iter(|| unsafe {
                     let layout = Layout::from_size_align($size, $align).unwrap();
                     let ptr = Jemalloc.alloc(layout.clone()).unwrap();
@@ -79,7 +81,7 @@ macro_rules! rt {
             }
 
             #[bench]
-            fn [<rt_alloc_layout_unchecked_size_ $size _align_ $align>](b: &mut Bencher) {
+            fn ${concat(rt_alloc_layout_unchecked_size_, $size, _align_, $align)}(b: &mut Bencher) {
                 b.iter(|| unsafe {
                     let layout = Layout::from_size_align_unchecked($size, $align);
                     let ptr = Jemalloc.alloc(layout.clone()).unwrap();
@@ -89,7 +91,7 @@ macro_rules! rt {
             }
 
             #[bench]
-            fn [<rt_alloc_excess_unused_size_ $size _align_ $align>](b: &mut Bencher) {
+            fn ${concat(rt_alloc_excess_unused_size_, $size, _align_, $align)}(b: &mut Bencher) {
                 b.iter(|| unsafe {
                     let layout = Layout::from_size_align($size, $align).unwrap();
                     let Excess(ptr, _) = Jemalloc.alloc_excess(layout.clone()).unwrap();
@@ -99,7 +101,7 @@ macro_rules! rt {
             }
 
             #[bench]
-            fn [<rt_alloc_excess_used_size_ $size _align_ $align>](b: &mut Bencher) {
+            fn ${concat(rt_alloc_excess_used_size_, $size, _align_, $align)}(b: &mut Bencher) {
                 b.iter(|| unsafe {
                     let layout = Layout::from_size_align($size, $align).unwrap();
                     let Excess(ptr, excess) = Jemalloc.alloc_excess(layout.clone()).unwrap();
@@ -110,7 +112,7 @@ macro_rules! rt {
             }
 
             #[bench]
-            fn [<rt_mallocx_zeroed_size_ $size _align_ $align>](b: &mut Bencher) {
+            fn ${concat(rt_mallocx_zeroed_size_, $size, _align_, $align)}(b: &mut Bencher) {
                 b.iter(|| unsafe {
                     use jemalloc_sys as jemalloc;
                     let flags = layout_to_flags(&Layout::from_size_align($size, $align).unwrap());
@@ -121,7 +123,7 @@ macro_rules! rt {
             }
 
             #[bench]
-            fn [<rt_calloc_size_ $size _align_ $align>](b: &mut Bencher) {
+            fn ${concat(rt_calloc_size_, $size, _align_, $align)}(b: &mut Bencher) {
                 b.iter(|| unsafe {
                     use jemalloc_sys as jemalloc;
                     let flags = layout_to_flags(&Layout::from_size_align($size, $align).unwrap());
@@ -133,7 +135,7 @@ macro_rules! rt {
             }
 
             #[bench]
-            fn [<rt_realloc_naive_size_ $size _align_ $align>](b: &mut Bencher) {
+            fn ${concat(rt_realloc_naive_size_, $size, _align_, $align)}(b: &mut Bencher) {
                 b.iter(|| unsafe {
                     let layout = Layout::from_size_align($size, $align).unwrap();
                     let ptr = Jemalloc.alloc(layout.clone()).unwrap();
@@ -154,7 +156,7 @@ macro_rules! rt {
             }
 
             #[bench]
-            fn [<rt_realloc_size_ $size _align_ $align>](b: &mut Bencher) {
+            fn ${concat(rt_realloc_size_, $size, _align_, $align)}(b: &mut Bencher) {
                 b.iter(|| unsafe {
                     let layout = Layout::from_size_align($size, $align).unwrap();
                     let ptr = Jemalloc.alloc(layout.clone()).unwrap();
@@ -169,7 +171,7 @@ macro_rules! rt {
             }
 
             #[bench]
-            fn [<rt_realloc_excess_unused_size_ $size _align_ $align>](b: &mut Bencher) {
+            fn ${concat(rt_realloc_excess_unused_size_, $size, _align_, $align)}(b: &mut Bencher) {
                 b.iter(|| unsafe {
                     let layout = Layout::from_size_align($size, $align).unwrap();
                     let ptr = Jemalloc.alloc(layout.clone()).unwrap();
@@ -186,7 +188,7 @@ macro_rules! rt {
             }
 
             #[bench]
-            fn [<rt_realloc_excess_used_size_ $size _align_ $align>](b: &mut Bencher) {
+            fn ${concat(rt_realloc_excess_used_size_, $size, _align_, $align)}(b: &mut Bencher) {
                 b.iter(|| unsafe {
                     let layout = Layout::from_size_align($size, $align).unwrap();
                     let ptr = Jemalloc.alloc(layout.clone()).unwrap();
@@ -203,9 +205,8 @@ macro_rules! rt {
                 });
             }
 
-        }
     };
-    ([$($size:expr),*]) => {
+    ([$($size:literal),*]) => {
         $(
             rt!($size, 1);
             rt!($size, 2);

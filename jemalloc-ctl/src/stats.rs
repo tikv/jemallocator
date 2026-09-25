@@ -5,8 +5,9 @@
 //! for more information.
 
 option! {
-    allocated[ str: b"stats.allocated\0", non_str: 2 ] => libc::size_t |
+    allocated allocated_mib[ str: b"stats.allocated\0", non_str: 2 ] => libc::size_t |
     ops: r |
+    test: allocated_read_test |
     docs:
     /// Total number of bytes allocated by the application.
     ///
@@ -37,8 +38,9 @@ option! {
 }
 
 option! {
-    active[ str: b"stats.active\0", non_str: 2 ] => libc::size_t |
+    active active_mib[ str: b"stats.active\0", non_str: 2 ] => libc::size_t |
     ops: r |
+    test: active_read_test |
     docs:
     /// Total number of bytes in active pages allocated by the application.
     ///
@@ -72,8 +74,9 @@ option! {
 }
 
 option! {
-    metadata[ str: b"stats.metadata\0", non_str: 2 ] => libc::size_t |
+    metadata metadata_mib[ str: b"stats.metadata\0", non_str: 2 ] => libc::size_t |
     ops: r |
+    test: metadata_read_test |
     docs:
     /// Total number of bytes dedicated to `jemalloc` metadata.
     ///
@@ -102,8 +105,9 @@ option! {
 }
 
 option! {
-    resident[ str: b"stats.resident\0", non_str: 2 ] => libc::size_t |
+    resident resident_mib[ str: b"stats.resident\0", non_str: 2 ] => libc::size_t |
     ops: r |
+    test: resident_read_test |
     docs:
     /// Total number of bytes in physically resident data pages mapped by the
     /// allocator.
@@ -140,8 +144,9 @@ option! {
 }
 
 option! {
-    mapped[ str: b"stats.mapped\0", non_str: 2 ] => libc::size_t |
+    mapped mapped_mib[ str: b"stats.mapped\0", non_str: 2 ] => libc::size_t |
     ops: r |
+    test: mapped_read_test |
     docs:
     /// Total number of bytes in active extents mapped by the allocator.
     ///
@@ -175,8 +180,9 @@ option! {
 }
 
 option! {
-    retained[ str: b"stats.retained\0", non_str: 2 ] => libc::size_t |
+    retained retained_mib[ str: b"stats.retained\0", non_str: 2 ] => libc::size_t |
     ops: r |
+    test: retained_read_test |
     docs:
     /// Total number of bytes in virtual memory mappings that were retained
     /// rather than being returned to the operating system via e.g. `munmap(2)`.

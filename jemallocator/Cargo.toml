@@ -41,7 +41,6 @@ tikv-jemalloc-sys = { path = "../jemalloc-sys", version = "0.7.0", default-featu
 libc = { version = "^0.2.8", default-features = false }
 
 [dev-dependencies]
-paste = "1"
 tikv-jemalloc-ctl = { path = "../jemalloc-ctl", version = "0.7.0" }
 
 [features]
