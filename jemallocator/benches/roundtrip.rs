@@ -6,6 +6,10 @@
 //! (currently the latest nightly). Block pointers are recovered through
 //! stable element casts, keeping the benchmarks free of the not-yet-stable
 //! block accessors.
+
+//! Identifier joining below uses the unstable `macro_metavar_expr_concat`
+//! language feature (the official successor to the removed `concat_idents`).
+#![feature(macro_metavar_expr_concat)]
 #![feature(test)]
 #![cfg(feature = "alloc_trait")]
 
@@ -57,10 +61,9 @@ fn base(block: &ptr::NonNull<[u8]>) -> *const u8 {
 }
 
 macro_rules! rt {
-    ($size:expr, $align:expr) => {
-        paste::paste! {
+    ($size:literal, $align:literal) => {
             #[bench]
-            fn [<rt_mallocx_size_ $size _align_ $align>](b: &mut Bencher) {
+            fn ${concat(rt_mallocx_size_, $size, _align_, $align)}(b: &mut Bencher) {
                 b.iter(|| unsafe {
                     use tikv_jemalloc_sys as jemalloc;
                     let flags = layout_to_flags(&Layout::from_size_align($size, $align).unwrap());
@@ -71,7 +74,7 @@ macro_rules! rt {
             }
 
             #[bench]
-            fn [<rt_mallocx_nallocx_size_ $size _align_ $align>](b: &mut Bencher) {
+            fn ${concat(rt_mallocx_nallocx_size_, $size, _align_, $align)}(b: &mut Bencher) {
                 b.iter(|| unsafe {
                     use tikv_jemalloc_sys as jemalloc;
                     let flags = layout_to_flags(&Layout::from_size_align($size, $align).unwrap());
@@ -84,7 +87,7 @@ macro_rules! rt {
             }
 
             #[bench]
-            fn [<rt_allocate_size_ $size _align_ $align>](b: &mut Bencher) {
+            fn ${concat(rt_allocate_size_, $size, _align_, $align)}(b: &mut Bencher) {
                 b.iter(|| unsafe {
                     let layout = Layout::from_size_align($size, $align).unwrap();
                     let block = Jemalloc.allocate(layout.clone()).unwrap();
@@ -94,7 +97,7 @@ macro_rules! rt {
             }
 
             #[bench]
-            fn [<rt_mallocx_zeroed_size_ $size _align_ $align>](b: &mut Bencher) {
+            fn ${concat(rt_mallocx_zeroed_size_, $size, _align_, $align)}(b: &mut Bencher) {
                 b.iter(|| unsafe {
                     use tikv_jemalloc_sys as jemalloc;
                     let flags = layout_to_flags(&Layout::from_size_align($size, $align).unwrap());
@@ -105,7 +108,7 @@ macro_rules! rt {
             }
 
             #[bench]
-            fn [<rt_calloc_size_ $size _align_ $align>](b: &mut Bencher) {
+            fn ${concat(rt_calloc_size_, $size, _align_, $align)}(b: &mut Bencher) {
                 b.iter(|| unsafe {
                     use tikv_jemalloc_sys as jemalloc;
                     let flags = layout_to_flags(&Layout::from_size_align($size, $align).unwrap());
@@ -117,7 +120,7 @@ macro_rules! rt {
             }
 
             #[bench]
-            fn [<rt_grow_naive_size_ $size _align_ $align>](b: &mut Bencher) {
+            fn ${concat(rt_grow_naive_size_, $size, _align_, $align)}(b: &mut Bencher) {
                 b.iter(|| unsafe {
                     let layout = Layout::from_size_align($size, $align).unwrap();
                     let block = Jemalloc.allocate(layout.clone()).unwrap();
@@ -143,7 +146,7 @@ macro_rules! rt {
             }
 
             #[bench]
-            fn [<rt_grow_size_ $size _align_ $align>](b: &mut Bencher) {
+            fn ${concat(rt_grow_size_, $size, _align_, $align)}(b: &mut Bencher) {
                 b.iter(|| unsafe {
                     let layout = Layout::from_size_align($size, $align).unwrap();
                     let block = Jemalloc.allocate(layout.clone()).unwrap();
@@ -160,7 +163,7 @@ macro_rules! rt {
             }
 
             #[bench]
-            fn [<rt_grow_zeroed_size_ $size _align_ $align>](b: &mut Bencher) {
+            fn ${concat(rt_grow_zeroed_size_, $size, _align_, $align)}(b: &mut Bencher) {
                 b.iter(|| unsafe {
                     let layout = Layout::from_size_align($size, $align).unwrap();
                     let block = Jemalloc.allocate_zeroed(layout.clone()).unwrap();
@@ -177,7 +180,7 @@ macro_rules! rt {
             }
 
             #[bench]
-            fn [<rt_shrink_size_ $size _align_ $align>](b: &mut Bencher) {
+            fn ${concat(rt_shrink_size_, $size, _align_, $align)}(b: &mut Bencher) {
                 b.iter(|| unsafe {
                     let wide_layout = Layout::from_size_align(2 * $size, $align).unwrap();
                     let block = Jemalloc.allocate(wide_layout.clone()).unwrap();
@@ -193,9 +196,8 @@ macro_rules! rt {
                 });
             }
 
-        }
     };
-    ([$($size:expr),*]) => {
+    ([$($size:literal),*]) => {
         $(
             rt!($size, 1);
             rt!($size, 2);

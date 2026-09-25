@@ -105,8 +105,9 @@ pub use error::{Error, Result};
 pub use keys::{Access, AsName, Mib, MibStr, Name};
 
 option! {
-    version[ str: b"version\0", str: 1 ] => &'static str |
+    version version_mib[ str: b"version\0", str: 1 ] => &'static str |
     ops: r |
+    test: version_read_test |
     docs:
     /// `jemalloc` version string.
     ///
@@ -127,8 +128,9 @@ option! {
 }
 
 option! {
-    background_thread[ str: b"background_thread\0", non_str: 1 ] => bool |
+    background_thread background_thread_mib[ str: b"background_thread\0", non_str: 1 ] => bool |
     ops: r,w,u |
+    test: background_thread_read_write_update_test |
     docs:
     /// State of internal background worker threads.
     ///
@@ -161,8 +163,9 @@ option! {
 }
 
 option! {
-    max_background_threads[ str: b"max_background_threads\0", non_str: 1 ] => libc::size_t |
+    max_background_threads max_background_threads_mib[ str: b"max_background_threads\0", non_str: 1 ] => libc::size_t |
     ops: r, w, u |
+    test: max_background_threads_read_write_update_test |
     docs:
     /// Maximum number of background threads that will be created.
     ///
@@ -186,8 +189,9 @@ option! {
 }
 
 option! {
-    epoch[ str: b"epoch\0", non_str: 1 ] => u64 |
+    epoch epoch_mib[ str: b"epoch\0", non_str: 1 ] => u64 |
     ops: r, w, u |
+    test: epoch_read_write_update_test |
     docs:
     /// `jemalloc` epoch.
     ///
