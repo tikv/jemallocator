@@ -4,8 +4,9 @@ use crate::error::Result;
 use crate::raw::{read, read_mib};
 
 option! {
-    allocatedp[ str: b"thread.allocatedp\0", non_str: 2 ] => *mut u64 |
+    allocatedp allocatedp_mib[ str: b"thread.allocatedp\0", non_str: 2 ] => *mut u64 |
     ops:  |
+    test: allocatedp_read_test |
     docs:
     /// Access to the total number of bytes allocated by the current thread.
     ///
@@ -58,8 +59,9 @@ impl allocatedp_mib {
 }
 
 option! {
-    deallocatedp[ str: b"thread.deallocatedp\0", non_str: 2 ] => *mut u64 |
+    deallocatedp deallocatedp_mib[ str: b"thread.deallocatedp\0", non_str: 2 ] => *mut u64 |
     ops:  |
+    test: deallocatedp_read_test |
     docs:
     /// Access to the total number of bytes deallocated by the current thread.
     ///
