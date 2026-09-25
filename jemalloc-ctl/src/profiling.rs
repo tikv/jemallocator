@@ -18,8 +18,9 @@
 use libc::{c_uint, c_void};
 
 option! {
-    lg_prof_interval[ str: b"opt.lg_prof_interval\0", non_str: 2 ] => libc::ssize_t |
+    lg_prof_interval lg_prof_interval_mib[ str: b"opt.lg_prof_interval\0", non_str: 2 ] => libc::ssize_t |
     ops: r |
+    test: lg_prof_interval_read_test |
     docs:
     /// Average interval (log base 2) between memory profile dumps, as measured in bytes of
     /// allocation activity.
@@ -48,8 +49,9 @@ option! {
 }
 
 option! {
-    lg_prof_sample[ str: b"opt.lg_prof_sample\0", non_str: 2 ] => libc::size_t |
+    lg_prof_sample lg_prof_sample_mib[ str: b"opt.lg_prof_sample\0", non_str: 2 ] => libc::size_t |
     ops: r |
+    test: lg_prof_sample_read_test |
     docs:
     /// Average interval (log base 2) between allocation samples, as measured in bytes of
     /// allocation activity. Increasing the sampling interval decreases profile fidelity, but also
@@ -73,8 +75,9 @@ option! {
 }
 
 option! {
-    prof_final[ str: b"opt.prof_final\0", non_str: 2 ] => bool |
+    prof_final prof_final_mib[ str: b"opt.prof_final\0", non_str: 2 ] => bool |
     ops: r |
+    test: prof_final_read_test |
     docs:
     /// Use an atexit(3) function to dump final memory usage to a file named according to the
     /// pattern \<prefix\>.\<pid\>.\<seq\>.f.heap, where \<prefix\> is controlled by the opt.prof_prefix
@@ -103,8 +106,9 @@ option! {
 }
 
 option! {
-    prof[ str: b"opt.prof\0", non_str: 2 ] => bool |
+    prof prof_mib[ str: b"opt.prof\0", non_str: 2 ] => bool |
     ops: r |
+    test: prof_read_test |
     docs:
     /// Memory profiling enabled/disabled.
     ///
@@ -140,8 +144,9 @@ option! {
 }
 
 option! {
-    prof_leak[ str: b"opt.prof_leak\0", non_str: 2 ] => bool |
+    prof_leak prof_leak_mib[ str: b"opt.prof_leak\0", non_str: 2 ] => bool |
     ops: r |
+    test: prof_leak_read_test |
     docs:
     /// Leak reporting enabled/disabled.
     ///
@@ -170,8 +175,9 @@ option! {
 }
 
 option! {
-    prof_active[ str: b"prof.active\0", non_str: 2 ] => bool |
+    prof_active prof_active_mib[ str: b"prof.active\0", non_str: 2 ] => bool |
     ops: r,w,u |
+    test: prof_active_read_write_update_test |
     docs:
     /// On-the-fly activation/deactivation of memory profiling.
     ///
@@ -212,8 +218,9 @@ option! {
 }
 
 option! {
-    lg_sample[ str: b"prof.lg_sample\0", non_str: 2 ] => libc::size_t |
+    lg_sample lg_sample_mib[ str: b"prof.lg_sample\0", non_str: 2 ] => libc::size_t |
     ops: r |
+    test: lg_sample_read_test |
     docs:
     /// Current log base 2 of the mean number of bytes between samples.
     ///
