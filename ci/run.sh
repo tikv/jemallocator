@@ -76,12 +76,15 @@ cargo test --target "${TARGET}" \
              --manifest-path jemallocator-global/Cargo.toml \
              --features force_global_jemalloc
 
-# FIXME: Re-enable following test when allocator API is stable again.
-# if [ "${TRAVIS_RUST_VERSION}" = "nightly"  ]
-# then
-#     # The Alloc trait is unstable:
-#     ${CARGO_CMD} test --target "${TARGET}" --features alloc_trait
-# fi
+# Exercise the `core::alloc::Allocator` implementation. Requires a toolchain
+# with the recently stabilized Allocator API -- currently the latest nightly
+# only; CI enables it by exporting ALLOC_TRAIT_TESTS=1. The suite avoids the
+# not-yet-stable block accessors, so extending this to stable channels later
+# needs no code changes.
+if [ "${ALLOC_TRAIT_TESTS:-}" = "1" ]
+then
+    cargo test --target "${TARGET}" -p tikv-jemallocator --features alloc_trait
+fi
 
 # Test that overriding works in dylibs.
 case "$TARGET" in
