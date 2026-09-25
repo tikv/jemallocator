@@ -14,6 +14,19 @@
 //! This crate mainly exports, one type, `Jemalloc`, which implements the
 //! `GlobalAlloc` trait, and optionally the `core::alloc::Allocator` trait,
 //! and is suitable both as a memory allocator and as a global allocator.
+//!
+//! Note on sized deallocations: jemalloc accounts for every allocation under
+//! its *quantized* usable size, and its sized-deallocation entry points
+//! (`sdallocx`, `free_sized`) route frees by the caller-supplied size alone
+//! on their fast paths, doing no pointer lookup at all. Deallocating a block
+//! with a size from a different quantized size class than the one it was
+//! allocated under desynchronizes jemalloc's bookkeeping and corrupts its
+//! internal metadata. Blocks handed out by this crate stay self-consistent
+//! automatically, including across resize operations, so using it purely
+//! through the allocation traits is safe; programs that mix it with direct
+//! `tikv-jemalloc-sys` calls must keep the alloc-side and dealloc-side sizes
+//! mutually consistent (`nallocx`, `sallocx`, and [`usable_size`] expose
+//! jemalloc's view of either).
 
 // TODO: rename the following lint on next minor bump
 #![allow(renamed_and_removed_lints)]
@@ -388,6 +401,10 @@ unsafe impl Allocator for Jemalloc {
             .ok_or(AllocError)
     }
 
+    /// The `layout` is forwarded verbatim into jemalloc as the sized
+    /// deallocation hint documented in the crate-level "Note on sized
+    /// deallocations", so pass exactly the layout under which this block was
+    /// most recently returned by one of this impl's other methods.
     #[inline]
     unsafe fn deallocate(&self, ptr: NonNull<u8>, layout: Layout) {
         if layout.size() == 0 {
