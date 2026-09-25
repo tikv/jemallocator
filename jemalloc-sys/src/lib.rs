@@ -136,8 +136,9 @@ pub const fn MALLOCX_ARENA(a: usize) -> c_int {
 /// extents on different calls.
 ///
 /// Set the flag in the low bits of the address returned from the hook
-/// (e.g. `(addr as *mut _) | EXTENT_ALLOC_FLAG_PINNED`); jemalloc strips those bits
-/// before using the address, which is safe because extents are at least page-aligned.
+/// (e.g. `(addr as usize | EXTENT_ALLOC_FLAG_PINNED as usize) as *mut c_void`,
+/// where `addr` is the hook's plain pointer result); jemalloc strips those bits before
+/// using the address, which is safe because extents are at least page-aligned.
 /// See also [`EXTENT_ALLOC_FLAG_MASK`].
 ///
 /// Added in jemalloc 5.4.0.

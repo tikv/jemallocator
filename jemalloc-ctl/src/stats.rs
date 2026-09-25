@@ -143,13 +143,16 @@ option! {
     pinned[ str: b"stats.pinned\0", non_str: 2 ] => libc::size_t |
     ops: r |
     docs:
-    /// Total number of bytes dedicated to memory extents marked as *pinned*,
-    /// i.e. flagged by a custom extent-allocation hook with
-    /// [`tikv_jemalloc_sys::EXTENT_ALLOC_FLAG_PINNED`].
+    /// Total number of bytes in *unused* (free) memory extents backed by
+    /// non-reclaimable memory, i.e. extents whose allocator hook returned
+    /// [`tikv_jemalloc_sys::EXTENT_ALLOC_FLAG_PINNED`]. Extents currently
+    /// backing live allocations do not contribute to this value.
     ///
-    /// Pinned extents are excluded from decay and purging so this statistic
-    /// stays non-zero only when an application installs custom extent hooks
-    /// marking non-reclaimable mappings (such as HugeTLB pages) as pinned.
+    /// Pinned extents are tracked separately from the other free-extent
+    /// categories because they are excluded from decay and purging, so this
+    /// statistic stays non-zero only while unused pinned extents remain
+    /// cached -- in practice, only when an application installs custom extent
+    /// hooks marking non-reclaimable mappings (such as HugeTLB pages) pinned.
     /// Added by the `stats.pinned` mallctl in jemalloc 5.4.0.
     ///
     /// This statistic is cached, and is only refreshed when the epoch is
