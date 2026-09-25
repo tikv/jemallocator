@@ -1,5 +1,10 @@
 # Unreleased
 
+- tikv-jemalloc-sys: expose the jemalloc 5.4.0 extent-allocation hook flags
+  `EXTENT_ALLOC_FLAG_PINNED` and `EXTENT_ALLOC_FLAG_MASK`, documenting the
+  low-bit protocol of the pointer returned from `extent_alloc_t` hooks.
+- tikv-jemalloc-ctl: expose the `stats.pinned` mallctl added in jemalloc 5.4.0
+  via `stats::pinned`.
 - Remove the dependency on the unmaintained `paste` crate:
   - `tikv-jemalloc-ctl`: key-generation macros no longer derive
     identifiers at compile time; `option!` takes the companion MIB

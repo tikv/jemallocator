@@ -144,6 +144,47 @@ option! {
 }
 
 option! {
+    pinned pinned_mib[ str: b"stats.pinned\0", non_str: 2 ] => libc::size_t |
+    ops: r |
+    test: pinned_read_test |
+    docs:
+    /// Total number of bytes in *unused* (free) memory extents backed by
+    /// non-reclaimable memory, i.e. extents whose allocator hook returned
+    /// [`tikv_jemalloc_sys::EXTENT_ALLOC_FLAG_PINNED`]. Extents currently
+    /// backing live allocations do not contribute to this value.
+    ///
+    /// Pinned extents are tracked separately from the other free-extent
+    /// categories because they are excluded from decay and purging, so this
+    /// statistic stays non-zero only while unused pinned extents remain
+    /// cached -- in practice, only when an application installs custom extent
+    /// hooks marking non-reclaimable mappings (such as HugeTLB pages) pinned.
+    /// Added by the `stats.pinned` mallctl in jemalloc 5.4.0.
+    ///
+    /// This statistic is cached, and is only refreshed when the epoch is
+    /// advanced. See the [`crate::epoch`] type for more information.
+    ///
+    /// This corresponds to `stats.pinned` in jemalloc's API.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # #[global_allocator]
+    /// # static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
+    /// #
+    /// # fn main() {
+    /// use tikv_jemalloc_ctl::{epoch, stats};
+    /// let e = epoch::mib().unwrap();
+    /// let pinned = stats::pinned::mib().unwrap();
+    ///
+    /// e.advance().unwrap();
+    /// let bytes = pinned.read().unwrap();
+    /// println!("{} bytes of pinned extents", bytes);
+    /// # }
+    /// ```
+    mib_docs: /// See [`pinned`].
+}
+
+option! {
     mapped mapped_mib[ str: b"stats.mapped\0", non_str: 2 ] => libc::size_t |
     ops: r |
     test: mapped_read_test |
