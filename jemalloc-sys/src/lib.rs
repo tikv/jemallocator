@@ -263,6 +263,10 @@ extern "C" {
     ///
     /// The behavior is _undefined_ if:
     ///
+    /// * `size` is not in range `[req_size, alloc_size]`, where `req_size` is
+    ///   the size requested when performing the allocation, and `alloc_size` is
+    ///   the allocation size returned by [`nallocx`], [`sallocx`], or
+    ///   [`xallocx`],
     /// * `ptr` does not match a pointer earlier returned by the memory
     ///   allocation functions of this crate, or
     /// * the memory region referenced by `ptr` has been deallocated, or
