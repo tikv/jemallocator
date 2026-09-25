@@ -2,9 +2,10 @@
 //! roundtrip (allocate, deallocate).
 //!
 //! Empty unless the `alloc_trait` feature is enabled, which requires a
-//! toolchain carrying the recently stabilized `Allocator` API. Block pointers
-//! are recovered in `base()` from stable pointer helpers, keeping the
-//! benchmarks free of the not-yet-stable block accessors.
+//! toolchain that already carries the freshly stabilized `Allocator` API
+//! (currently the latest nightly). Block pointers are recovered through
+//! stable element casts, keeping the benchmarks free of the not-yet-stable
+//! block accessors.
 #![feature(test)]
 #![cfg(feature = "alloc_trait")]
 
@@ -44,15 +45,15 @@ fn layout_to_flags(layout: &Layout) -> c_int {
     }
 }
 
-fn base(block: &ptr::NonNull<[u8]>) -> *const u8 {
-    // SAFETY: `as_ptr` hands over the block's own valid data pointer (a fat
-    // `*mut [T]`); see the allocator_api tests for why the thinning is sound.
-    unsafe { (*block.as_ptr()).as_ptr() }
+fn base_nn(block: &ptr::NonNull<[u8]>) -> ptr::NonNull<u8> {
+    // SAFETY: casting the element type preserves the block's own address
+    // along with its full, write-capable provenance; see the allocator_api
+    // tests for notes on stable thin-pointer recovery.
+    unsafe { ptr::NonNull::new_unchecked(block.cast::<u8>().as_ptr()) }
 }
 
-fn base_nn(block: &ptr::NonNull<[u8]>) -> ptr::NonNull<u8> {
-    // SAFETY: allocated blocks always start at a non-null, aligned address.
-    unsafe { ptr::NonNull::new_unchecked(base(block) as *mut u8) }
+fn base(block: &ptr::NonNull<[u8]>) -> *const u8 {
+    base_nn(block).as_ptr()
 }
 
 macro_rules! rt {

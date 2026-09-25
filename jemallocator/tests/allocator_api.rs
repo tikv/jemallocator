@@ -1,10 +1,10 @@
-//! Tests for the stabilized `core::alloc::Allocator` implementation of
-//! `Jemalloc`. The target is empty unless the `alloc_trait` feature is
-//! enabled, in which case it requires a toolchain carrying that stable API.
-//! Block base pointers are recovered in `base()` from stable pointer helpers;
-//! the still-unstable `as_mut_ptr()` / `as_non_null_ptr()` accessors
-//! (rust-lang/rust#74265) are deliberately avoided so these tests compile
-//! wherever the trait itself does.
+//! Tests for the freshly stabilized `core::alloc::Allocator` implementation
+//! of `Jemalloc`. The target is empty unless the `alloc_trait` feature is
+//! enabled, in which case it requires a toolchain that already carries that
+//! API (currently the latest nightly). Block base pointers are recovered in
+//! `base()` from stable pointer pieces; the still-unstable `as_mut_ptr()` /
+//! `as_non_null_ptr()` accessors (rust-lang/rust#74265) are deliberately
+//! avoided so these tests compile wherever the trait itself does.
 
 #![cfg(feature = "alloc_trait")]
 
@@ -19,28 +19,27 @@ fn layout(size: usize, align: usize) -> Layout {
     Layout::from_size_align(size, align).expect("valid layout")
 }
 
-/// Base data pointer of a block.
+/// Reconstruct the `NonNull<T>` argument expected by the `Allocator` methods.
+fn base_nn(block: &NonNull<[u8]>) -> NonNull<u8> {
+    // SAFETY: casting the element type of a fat pointer preserves the
+    // underlying address along with its full, write-capable provenance;
+    // blocks always sit behind a non-null, suitably aligned address.
+    unsafe { NonNull::new_unchecked(block.cast::<u8>().as_ptr()) }
+}
+
+/// Base data pointer of a block, read through the cast-derived thin pointer.
 fn base(block: &NonNull<[u8]>) -> *const u8 {
-    // SAFETY: `as_ptr` hands over the block's own valid data pointer (a fat
-    // `*mut [T]`); thinning it only reads the address part of that value. The
-    // const-cast drops unique tagging on memory this process owns exclusively.
-    unsafe { (*block.as_ptr()).as_ptr() }
+    base_nn(block).as_ptr()
 }
 
 /// Rebuild a mutable slice over a block's covered range.
-#[allow(clippy::mut_from_ref)] // the block's memory belongs exclusively to us;
-                               // the returned view aliases nothing
+#[allow(clippy::mut_from_ref)] // the block belongs exclusively to us; the
+                               // returned view aliases nothing
 fn slice_of(block: &NonNull<[u8]>) -> &mut [u8] {
     // SAFETY: blocks cover exactly their reported length of initialized,
-    // writable memory owned by this process; no other handles to that memory
-    // exist, so re-tagging the shared base pointer as unique is sound.
-    unsafe { core::slice::from_raw_parts_mut(base(block) as *mut u8, block.len()) }
-}
-
-/// Reconstruct the `NonNull<T>` argument expected by the `Allocator` methods.
-fn base_nn(block: &NonNull<[u8]>) -> NonNull<u8> {
-    // SAFETY: allocated blocks always start at a non-null, aligned address.
-    unsafe { NonNull::new_unchecked(base(block) as *mut u8) }
+    // writable memory owned exclusively by this process, and the view derives
+    // from the block's own cast pointer, carrying unique provenance.
+    unsafe { core::slice::from_raw_parts_mut(base_nn(block).as_ptr(), block.len()) }
 }
 
 #[test]
@@ -188,5 +187,67 @@ fn grow_with_stronger_alignment_stays_consistent() {
             "prefix was lost"
         );
         A.deallocate(base_nn(&grown), new_l);
+    }
+}
+
+#[test]
+fn repeated_cross_class_shrink_stays_safe() {
+    // Regression guard: repeatedly shrinking across size classes while
+    // freeing under the shrunken layout must not desynchronize jemalloc's
+    // size bookkeeping. A stale record plus an off-bucket sized free used to
+    // route pointers into the wrong caches and corrupt heap metadata.
+    unsafe {
+        for _ in 0..2_000 {
+            let wide_l = layout(2000, 1);
+            let block = A.allocate(wide_l).expect("allocation succeeded");
+            slice_of(&block).fill(0x77);
+            let narrow_l = layout(1000, 1);
+            let shrunk = A
+                .shrink(base_nn(&block), wide_l, narrow_l)
+                .expect("shrinking succeeded");
+            assert_eq!(shrunk.len(), 1000);
+            assert_eq!(*base(&shrunk), 0x77);
+            A.deallocate(base_nn(&shrunk), narrow_l);
+        }
+    }
+}
+
+#[test]
+fn repeated_large_shrink_with_layout_free_stays_safe() {
+    unsafe {
+        for _ in 0..256 {
+            let big_l = layout(1 << 20, 1);
+            let block = A.allocate(big_l).expect("large allocation succeeded");
+            slice_of(&block)[0] = 0x3E;
+            let small_l = layout(65_537, 1);
+            let shrunk = A
+                .shrink(base_nn(&block), big_l, small_l)
+                .expect("large shrink succeeded");
+            assert_eq!(shrunk.len(), 65_537);
+            assert_eq!(*base(&shrunk), 0x3E);
+            A.deallocate(base_nn(&shrunk), small_l);
+        }
+    }
+}
+
+#[test]
+fn large_growth_preserves_prefix_and_stays_consistent() {
+    unsafe {
+        for _ in 0..256 {
+            let old_l = layout(65_537, 1);
+            let block = A.allocate(old_l).expect("large allocation succeeded");
+            slice_of(&block).fill(0x1F);
+            let new_l = layout(1 << 20, 1);
+            let grown = A
+                .grow(base_nn(&block), old_l, new_l)
+                .expect("growth succeeded");
+            assert_eq!(grown.len(), 1 << 20);
+            let prefix = core::slice::from_raw_parts(base(&grown), 65_537);
+            assert!(
+                prefix.iter().all(|&byte| byte == 0x1F),
+                "prefix was lost on growth"
+            );
+            A.deallocate(base_nn(&grown), new_l);
+        }
     }
 }

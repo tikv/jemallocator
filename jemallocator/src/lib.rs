@@ -87,10 +87,10 @@ macro_rules! assume {
 /// This type implements the `GlobalAlloc` trait, allowing usage as a global
 /// allocator.
 ///
-/// When the `alloc_trait` feature is enabled, it also implements the stable
-/// `core::alloc::Allocator` trait, allowing usage directly in collections
-/// such as `Vec`. Enabling that feature requires a toolchain that carries
-/// the stabilized allocator API.
+/// When the `alloc_trait` feature is enabled, it also implements the
+/// recently stabilized `core::alloc::Allocator` trait, allowing usage
+/// directly in collections such as `Vec`. Enabling that feature requires a
+/// toolchain that already carries the freshly landed allocator API.
 #[derive(Copy, Clone, Default, Debug)]
 pub struct Jemalloc;
 
@@ -152,9 +152,10 @@ impl Jemalloc {
     /// the pointed-to memory applies beyond alignment.
     #[inline]
     const fn own_block(base: NonNull<u8>, len: usize) -> NonNull<[u8]> {
-        // SAFETY: upheld by the caller as documented above; converting through
-        // a `&[u8]` reference never touches the underlying memory.
-        unsafe { NonNull::from_ref(core::slice::from_raw_parts(base.as_ptr(), len)) }
+        // Building the fat pointer straight from the thin base preserves the
+        // caller-upheld validity plus full, write-capable provenance, unlike
+        // routing through a shared `&[u8]`.
+        NonNull::slice_from_raw_parts(base, len)
     }
 
     /// A zero-sized block for `layout`: an aligned non-null pointer that does
@@ -193,52 +194,99 @@ impl Jemalloc {
         if !address.is_multiple_of(new_layout.align()) {
             return self.relocate_and_copy(ptr, old_layout, new_layout, grow_zeroed);
         }
-        if new_layout.size() < old_layout.size() {
-            if new_layout.size() == 0 {
-                let block = Self::zero_block(&new_layout);
-                // SAFETY: invalidates and releases the original block.
-                unsafe { self.deallocate(ptr, old_layout) };
-                return Ok(block);
-            }
-            // Shrinking never has to fail: the existing block already covers
-            // every byte the smaller layout reaches. Ask jemalloc best-effort
-            // to move the extent down a size class so that the surplus pages
-            // can decay/purge again.
-            let flags = layout_to_flags(new_layout.align(), new_layout.size());
-            // SAFETY: the block is currently allocated by this allocator with
-            // a fitting layout.
-            unsafe {
-                let _usable =
-                    ffi::xallocx(ptr.as_ptr() as *mut c_void, new_layout.size(), 0, flags);
-            }
-            return Ok(Self::own_block(ptr, new_layout.size()));
-        }
-        if new_layout.size() == old_layout.size() {
-            // Only the alignment constraint could have changed here, and it
-            // was checked above.
-            return Ok(Self::own_block(ptr, new_layout.size()));
-        }
-        // Growing: try to extend in place. `xallocx` guarantees to keep the
-        // base address, which satisfies the alignment requirement enforced
-        // above, or to report a size below the request.
-        let flags = layout_to_flags(new_layout.align(), new_layout.size());
-        // SAFETY: the block is currently allocated by this allocator with a
-        // fitting layout.
-        unsafe {
-            let usable = ffi::xallocx(ptr.as_ptr() as *mut c_void, new_layout.size(), 0, flags);
-            if usable >= new_layout.size() {
-                if grow_zeroed {
-                    // Bytes past the old range are left uninitialized by
-                    // `xallocx`; zero them per the `grow_zeroed` contract.
-                    // SAFETY: the range lies inside the block reported usable
-                    // above.
-                    (ptr.add(old_layout.size()).as_ptr())
-                        .write_bytes(0, new_layout.size() - old_layout.size());
+        // jemalloc accounts for every allocation under its *quantized*
+        // usable size (size bucket). Deallocating a pointer whose eventual
+        // layout maps onto a different bucket than the recorded one feeds
+        // the wrong size to jemalloc's accounting and corrupts its internal
+        // bookkeeping (sized frees get routed to the wrong caches). So a
+        // pointer that stays put may only keep serving layouts of the same
+        // bucket unless the resize updates the record itself. `nallocx`
+        // reports authoritative buckets without touching allocations.
+        // SAFETY: both sizes are nonzero here and alignments are powers of
+        // two per the `Layout` constructors; `nallocx` inspects its inputs
+        // only.
+        let old_flags = layout_to_flags(old_layout.align(), old_layout.size());
+        let new_flags = layout_to_flags(new_layout.align(), new_layout.size());
+        let old_bucket = unsafe { ffi::nallocx(old_layout.size(), old_flags) };
+        let new_bucket = unsafe { ffi::nallocx(new_layout.size(), new_flags) };
+        match new_layout.size().cmp(&old_layout.size()) {
+            core::cmp::Ordering::Greater => {
+                // Growing. When the request fits the recorded bucket nothing
+                // changes on jemalloc's side, and later sized frees stay
+                // consistent with the untouched record.
+                let extended = if new_bucket == old_bucket {
+                    true
+                } else {
+                    // Ask jemalloc to extend in place where it legally can
+                    // (large extents do), which refreshes the record; the
+                    // call reports exactly the new bucket's size on success.
+                    // SAFETY: the block is currently allocated by this
+                    // allocator with a fitting layout.
+                    unsafe {
+                        ffi::xallocx(ptr.as_ptr() as *mut c_void, new_layout.size(), 0, new_flags)
+                            == new_bucket
+                    }
+                };
+                if extended {
+                    if grow_zeroed {
+                        Self::zero_extension(ptr, old_layout.size(), new_layout.size());
+                    }
+                    return Ok(Self::own_block(ptr, new_layout.size()));
                 }
-                return Ok(Self::own_block(ptr, new_layout.size()));
+                self.relocate_and_copy(ptr, old_layout, new_layout, grow_zeroed)
+            }
+            core::cmp::Ordering::Less => {
+                // Shrinking cannot fail: every byte reached now was backed
+                // before.
+                if new_layout.size() == 0 {
+                    let block = Self::zero_block(&new_layout);
+                    // SAFETY: invalidates and releases the original block.
+                    unsafe { self.deallocate(ptr, old_layout) };
+                    return Ok(block);
+                }
+                if new_bucket == old_bucket {
+                    // Same bucket: keep the record and reuse the pointer.
+                    return Ok(Self::own_block(ptr, new_layout.size()));
+                }
+                // Ask jemalloc best-effort to move the block down a bucket
+                // in place so surplus pages can decay/purge again; success
+                // lands exactly on the new bucket. Slab-managed small
+                // allocations can never do that, so fall back to moving the
+                // data manually -- keeping the pointer would desync jemalloc
+                // from the smaller layout it is about to serve up.
+                // SAFETY: the block is currently allocated by this allocator
+                // with a fitting layout.
+                let moved_down = unsafe {
+                    ffi::xallocx(ptr.as_ptr() as *mut c_void, new_layout.size(), 0, new_flags)
+                        == new_bucket
+                };
+                if moved_down {
+                    return Ok(Self::own_block(ptr, new_layout.size()));
+                }
+                self.relocate_and_copy(ptr, old_layout, new_layout, grow_zeroed)
+            }
+            core::cmp::Ordering::Equal => {
+                // Sizes agree, so only alignment constraints may differ and
+                // the address was verified above. Staying put is consistent
+                // with the record only for layouts sharing its bucket.
+                if new_bucket == old_bucket {
+                    return Ok(Self::own_block(ptr, new_layout.size()));
+                }
+                self.relocate_and_copy(ptr, old_layout, new_layout, grow_zeroed)
             }
         }
-        self.relocate_and_copy(ptr, old_layout, new_layout, grow_zeroed)
+    }
+
+    /// Zero the extended span of an in-place grown block, upholding the
+    /// `grow_zeroed` contract for its uninitialized tail.
+    #[inline]
+    unsafe fn zero_extension(ptr: NonNull<u8>, old_size: usize, new_size: usize) {
+        // SAFETY: the tail lies within the backing range covered either by
+        // the matched bucket of the existing record or by the successful
+        // in-place growth that preceded this call.
+        unsafe {
+            (ptr.add(old_size).as_ptr()).write_bytes(0, new_size - old_size);
+        }
     }
 
     /// Move a block to a fresh allocation for `new_layout`, preserving the

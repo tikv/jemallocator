@@ -1,17 +1,20 @@
 # Unreleased
 
-- tikv-jemallocator: implement the newly stabilized `core::alloc::Allocator`
-  API behind the existing `alloc_trait` feature, replacing the nightly-only
-  `Alloc`/`Excess` implementation (which has now been removed from `std`).
-  Enabling the feature requires a toolchain that carries that stabilized API;
-  older toolchains should simply leave it off. The implementation supports
-  zero-sized layouts per the new contract, and grow/shrink attempt an in-place
-  fast path via `xallocx`, falling back to moving otherwise. The rewritten
-  tests and benchmarks also exercise the full block lifecycle; they recover block pointers in small stable-helper
-  functions, sidestepping
-  the not-yet-stable block accessors (`as_non_null_ptr`/`as_mut_ptr`), and CI
-  exercises the feature on the latest nightly (the `ALLOC_TRAIT_TESTS` hook
-  in `ci/run.sh` plus the `test_bench` job).
+- tikv-jemallocator: implement the freshly stabilized `core::alloc::Allocator`
+  API behind the existing `alloc_trait` feature, replacing the removed
+  nightly-only `Alloc`/`Excess` implementation. Enabling the feature requires
+  a toolchain that already carries the API (currently only available on
+  nightly); older toolchains should simply leave it off. The implementation
+  supports zero-sized layouts per the new contract, and grow/shrink stay
+  in-place whenever the target layout maps onto the same jemalloc size bucket
+  or jemalloc can refresh the allocation in place, falling back to moving
+  otherwise -- keeping the per-allocation size record consistent with the
+  layout under which blocks eventually get freed. The rewritten tests and
+  benchmarks also exercise the full block lifecycle; they recover block
+  pointers in small stable-helper functions, sidestepping the not-yet-stable
+  block accessors (`as_non_null_ptr`/`as_mut_ptr`), and CI exercises the
+  feature on the latest nightly (the `ALLOC_TRAIT_TESTS` hook in `ci/run.sh`
+  plus the `test_bench` job).
 - jemalloc-ctl: expose `prof.active`, `prof.lg_sample`, and `prof.reset` via
   `profiling::{prof_active, lg_sample, prof_reset}`
 - jemalloc-ctl: expose jemalloc's experimental sample hooks under the
