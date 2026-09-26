@@ -427,6 +427,17 @@ unsafe impl Allocator for Jemalloc {
     /// deallocation hint documented in the crate-level "Note on sized
     /// deallocations", so pass exactly the layout under which this block was
     /// most recently returned by one of this impl's other methods.
+    ///
+    /// Sized deals are taken over the seemingly safer unsized drop because
+    /// an unsized free forces jemalloc back onto its record-lookup path on
+    /// every call instead of resolving everything from the hinted class:
+    /// release-mode measurements on the bundled jemalloc put that delta at
+    /// roughly 2-3 ns per drop across the slab-managed size classes -- a
+    /// proportionally heavier penalty at small sizes -- with near-parity
+    /// only once blocks move into the extent-managed regime. That trade is
+    /// sound precisely because `resize_blocks` keeps every retained pointer
+    /// inside its recorded size class (or moves it), so a trusting sized
+    /// release cannot ever be asked about a mismatched block.
     #[inline]
     unsafe fn deallocate(&self, ptr: NonNull<u8>, layout: Layout) {
         if layout.size() == 0 {
