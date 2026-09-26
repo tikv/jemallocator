@@ -1,5 +1,28 @@
 # Unreleased
 
+- tikv-jemallocator: implement the freshly stabilized `core::alloc::Allocator`
+  API behind the existing `alloc_trait` feature, replacing the removed
+  nightly-only `Alloc`/`Excess` implementation. Enabling the feature requires
+  a toolchain that already carries the API (currently only available on
+  nightly); older toolchains should simply leave it off. The implementation
+  supports zero-sized layouts per the new contract, and grow/shrink stay
+  in-place whenever the target layout maps onto the same jemalloc size bucket
+  or jemalloc can refresh the allocation in place, falling back to moving
+  otherwise -- keeping the per-allocation size record consistent with the
+  layout under which blocks eventually get freed. The rewritten tests and
+  benchmarks also exercise the full block lifecycle; they recover block
+  pointers in small stable-helper functions, sidestepping the not-yet-stable
+  block accessors (`as_non_null_ptr`/`as_mut_ptr`), and CI exercises the
+  feature on the latest nightly (the `ALLOC_TRAIT_TESTS` hook in `ci/run.sh`
+  plus the `test_bench` job).
+- tikv-jemallocator: grow/shrink skip jemalloc's in-place settle attempts
+  wherever the size-class table makes them provably futile -- any resize in
+  which an endpoint resolves slab-managed can never settle across classes,
+  so those resizes go straight to relocation instead (measured end-to-end
+  delta roughly -6 ns/resize on sub-4KiB and 1 KiB-class churn). End-to-end
+  resize benchmarks (`benches/allocator_resize.rs`, nightly-gated with the
+  rest of the allocator API surface) track whole-operation costs across
+  regime combinations so future tuning lands on a fixed instrument.
 - tikv-jemalloc-sys: expose the jemalloc 5.4.0 extent-allocation hook flags
   `EXTENT_ALLOC_FLAG_PINNED` and `EXTENT_ALLOC_FLAG_MASK`, documenting the
   low-bit protocol of the pointer returned from `extent_alloc_t` hooks.
