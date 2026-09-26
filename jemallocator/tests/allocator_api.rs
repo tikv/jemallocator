@@ -331,3 +331,117 @@ fn large_growth_preserves_prefix_and_stays_consistent() {
         }
     }
 }
+
+/// The grow/shrink settle gate keys off the extent-managed regime's floor
+/// (`LARGE_REGIME_MIN_USIZE`, 32 KiB for the bundled build); this pins that
+/// floor against the live size-class table so a jemalloc bump that shifts
+/// the table fails loudly instead of silently re-enabling futile settle
+/// attempts -- or disabling viable ones.
+#[test]
+fn resize_regime_floor_stays_pinned() {
+    const MIN_LARGE: usize = 32_768; // mirrors the crate-private constant
+    unsafe {
+        assert_eq!(
+            tikv_jemalloc_sys::nallocx(MIN_LARGE, 0),
+            MIN_LARGE,
+            "regime floor no longer its own extent class"
+        );
+        assert!(
+            tikv_jemalloc_sys::nallocx(MIN_LARGE + 1, 0) > MIN_LARGE,
+            "requests past the floor must not stay in its class"
+        );
+        assert!(
+            tikv_jemalloc_sys::nallocx(MIN_LARGE - 16, 0) <= MIN_LARGE,
+            "requests below the floor may not overshoot into higher classes"
+        );
+        assert!(
+            tikv_jemalloc_sys::nallocx(24_000, 0) < MIN_LARGE,
+            "mixed-regime soak endpoint unexpectedly extent-managed"
+        );
+    }
+}
+
+/// Cross-class resizes under the settle gate must behave identically to
+/// plain relocate-and-copy wherever the gate skips an attempt: contents
+/// preserved through many alternating grow/shrink cycles, records kept
+/// consistent with the layout each block is later freed under. The pairs
+/// cover the three regime combinations the gate distinguishes: slab/slab,
+/// slab/extent, and extent/extent (where settling stays attempted).
+#[test]
+fn cross_class_resizes_stay_consistent_under_settle_gate() {
+    // Pin the intended class relationships up front so a drifting table
+    // fails loudly instead of mislabeling which gate branch is exercised.
+    unsafe {
+        assert_ne!(
+            tikv_jemalloc_sys::nallocx(96, 0),
+            tikv_jemalloc_sys::nallocx(192, 0)
+        );
+        assert!(
+            tikv_jemalloc_sys::nallocx(24_000, 0) < 32_768
+                && tikv_jemalloc_sys::nallocx(30_000, 0) >= 32_768,
+            "mixed-regime pair no longer straddles the regime boundary"
+        );
+        assert!(
+            tikv_jemalloc_sys::nallocx(40_000, 0) >= 32_768
+                && tikv_jemalloc_sys::nallocx(80_000, 0) >= 32_768
+                && tikv_jemalloc_sys::nallocx(40_000, 0) != tikv_jemalloc_sys::nallocx(80_000, 0),
+            "extent pair drifted out of the settled regime"
+        );
+    }
+    for &(lo, hi, cycles) in &[
+        (96usize, 192, 1_024),
+        (24_000, 30_000, 256),
+        (40_000, 80_000, 128),
+    ] {
+        let low_l = layout(lo, 8);
+        let high_l = layout(hi, 8);
+        unsafe {
+            let mut block = A.allocate(low_l.clone()).expect("allocation succeeded");
+            base_nn(&block).as_ptr().write_bytes(0x4C, lo);
+            for i in 0..cycles {
+                if i % 2 == 0 {
+                    let grown = A
+                        .grow(base_nn(&block), low_l.clone(), high_l.clone())
+                        .expect("growth succeeded");
+                    let rec = tikv_jemalloc_sys::sallocx(base(&grown) as *const _, 0);
+                    assert_eq!(
+                        rec,
+                        tikv_jemalloc_sys::nallocx(hi, 0),
+                        "record drifted after grow to {} bytes",
+                        hi
+                    );
+                    let prefix = core::slice::from_raw_parts(base(&grown), lo);
+                    assert!(
+                        prefix.iter().all(|&byte| byte == 0x4C),
+                        "prefix lost growing {} -> {} bytes",
+                        lo,
+                        hi
+                    );
+                    block = grown;
+                } else {
+                    let shrunk = A
+                        .shrink(base_nn(&block), high_l.clone(), low_l.clone())
+                        .expect("shrink succeeded");
+                    let rec = tikv_jemalloc_sys::sallocx(base(&shrunk) as *const _, 0);
+                    assert_eq!(
+                        rec,
+                        tikv_jemalloc_sys::nallocx(lo, 0),
+                        "record drifted after shrink to {} bytes",
+                        lo
+                    );
+                    let prefix = core::slice::from_raw_parts(base(&shrunk), lo);
+                    assert!(
+                        prefix.iter().all(|&byte| byte == 0x4C),
+                        "prefix lost shrinking {} -> {} bytes",
+                        hi,
+                        lo
+                    );
+                    block = shrunk;
+                }
+            }
+            // Final release routes through a sized free of the exact layout
+            // the block currently serves.
+            A.deallocate(base_nn(&block), low_l.clone());
+        }
+    }
+}

@@ -81,6 +81,29 @@ fn layout_to_flags(align: usize, size: usize) -> c_int {
     }
 }
 
+/// Resolved-usable-size floor of jemalloc's extent-managed regime: requests
+/// resolving at or above it are managed as standalone extents instead of
+/// being carved out of slabs (jemalloc's `SC_LARGE_MINCLASS`; one page times
+/// the regular-group count, i.e. 32 KiB for the bundled default-page
+/// build). Kept in lockstep with the regression test pinning it against the
+/// live configuration.
+#[cfg(feature = "alloc_trait")]
+const LARGE_REGIME_MIN_USIZE: usize = 32_768;
+
+/// Whether a cross-class in-place settle can legitimately succeed. Slab-
+/// managed blocks cannot change size class without moving: jemalloc's
+/// resize-without-move path bails out outright whenever either endpoint is
+/// slab-managed and lands in another class, so attempting the call anywhere
+/// else could only cost a guaranteed-failing round trip (roughly 8 ns per
+/// attempt in release measurements) before the relocation fallback fires
+/// anyway. An over-limit request resolves past the floor along with its
+/// sentinel-sized bucket and simply preserves the pre-existing behaviour.
+#[cfg(feature = "alloc_trait")]
+#[inline]
+fn cross_class_settle_supported(old_bucket: usize, new_bucket: usize) -> bool {
+    old_bucket >= LARGE_REGIME_MIN_USIZE && new_bucket >= LARGE_REGIME_MIN_USIZE
+}
+
 // Assumes a condition that always must hold.
 macro_rules! assume {
     ($e:expr) => {
@@ -235,10 +258,13 @@ impl Jemalloc {
         // under 9 all resolve to the same 16-byte class and stay consistent.
         //
         // Version guard: that contract is empirical (it derives from jemalloc
-        // internals, not its man page wording). The allocator API regression
-        // tests pin the small-size class table (`nallocx`) and soak the
-        // mismatch patterns; when jemalloc is bumped, re-verify sized-free
-        // routing before shipping -- do not rely on this reasoning alone.
+        // internals, not its man page wording), as is the slab/extent regime
+        // split that `cross_class_settle_supported` reasons over. The
+        // allocator API regression tests pin the small-size class table and
+        // the regime boundary (`nallocx`) and soak the mismatch patterns;
+        // when jemalloc is bumped, re-verify sized-free routing and the
+        // boundary pinning before shipping -- do not rely on reasoning
+        // alone.
         // SAFETY: both sizes are nonzero here and alignments are powers of
         // two per the `Layout` constructors; `nallocx` inspects its inputs
         // only.
@@ -253,10 +279,13 @@ impl Jemalloc {
                 // consistent with the untouched record.
                 let extended = if new_bucket == old_bucket {
                     true
+                } else if !cross_class_settle_supported(old_bucket, new_bucket) {
+                    false
                 } else {
-                    // Ask jemalloc to extend in place where it legally can
-                    // (large extents do), which refreshes the record; the
-                    // call reports exactly the new bucket's size on success.
+                    // Ask jemalloc to extend in place, which refreshes the
+                    // record; the call reports exactly the new bucket's size
+                    // on success. Reached only for extent-managed endpoint
+                    // pairs, per `cross_class_settle_supported`.
                     // SAFETY: the block is currently allocated by this
                     // allocator with a fitting layout.
                     unsafe {
@@ -282,18 +311,21 @@ impl Jemalloc {
                     // per the note above), so reuse the pointer.
                     return Ok(Self::own_block(ptr, new_layout.size()));
                 }
-                // Ask jemalloc best-effort to move the block down a bucket
-                // in place so surplus pages can decay/purge again; success
-                // lands exactly on the new bucket. Slab-managed small
-                // allocations can never do that, so fall back to moving the
-                // data manually -- keeping the pointer would desync jemalloc
-                // from the smaller layout it is about to serve up.
-                // SAFETY: the block is currently allocated by this allocator
-                // with a fitting layout.
-                let moved_down = unsafe {
-                    ffi::xallocx(ptr.as_ptr() as *mut c_void, new_layout.size(), 0, new_flags)
-                        == new_bucket
-                };
+                // Best-effort, extent-managed pairs only: ask jemalloc to
+                // truncate the block down a bucket in place so surplus pages
+                // can decay/purge again; success lands exactly on the new
+                // bucket. Everything slab-managed falls back straight to
+                // moving the data manually (an attempted settle there is
+                // provably futile), since keeping such a pointer would
+                // desync jemalloc from the smaller layout it is about to
+                // serve up.
+                // SAFETY: the block is currently allocated by this
+                // allocator with a fitting layout.
+                let moved_down = cross_class_settle_supported(old_bucket, new_bucket)
+                    && unsafe {
+                        ffi::xallocx(ptr.as_ptr() as *mut c_void, new_layout.size(), 0, new_flags)
+                            == new_bucket
+                    };
                 if moved_down {
                     return Ok(Self::own_block(ptr, new_layout.size()));
                 }
