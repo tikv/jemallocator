@@ -1,8 +1,9 @@
 //! `jemalloc`'s build-time configuration.
 
 option! {
-    malloc_conf[ str: b"config.malloc_conf\0", str: 2 ] => &'static str |
+    malloc_conf malloc_conf_mib[ str: b"config.malloc_conf\0", str: 2 ] => &'static str |
     ops: r |
+    test: malloc_conf_read_test |
     docs:
     /// Default run-time options specified during `jemalloc`'s build configuration.
     ///

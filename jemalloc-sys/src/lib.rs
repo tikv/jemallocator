@@ -123,6 +123,33 @@ pub const fn MALLOCX_ARENA(a: usize) -> c_int {
     (a as c_int).wrapping_add(1).wrapping_shl(20)
 }
 
+/// Flag to be OR-ed into the pointer returned by a custom [`extent_alloc_t`] hook to
+/// indicate that the backing memory is non-reclaimable, such as HugeTLB pages.
+///
+/// Pinned extents are excluded from decay and purging, and are instead cached
+/// separately for preferential reuse. A hook returning this flag must also set
+/// `*commit` to `true`: pinned memory bypasses jemalloc's commit/decommit machinery.
+///
+/// The pinned attribute is per-extent: pinned and non-pinned extents are never merged
+/// together, so pinned-ness is set at allocation time, inherited through splits, and
+/// never changes after that. A single hook may still return pinned and non-pinned
+/// extents on different calls.
+///
+/// Set the flag in the low bits of the address returned from the hook
+/// (e.g. `(addr as usize | EXTENT_ALLOC_FLAG_PINNED as usize) as *mut c_void`,
+/// where `addr` is the hook's plain pointer result); jemalloc strips those bits before
+/// using the address, which is safe because extents are at least page-aligned.
+/// See also [`EXTENT_ALLOC_FLAG_MASK`].
+///
+/// Added in jemalloc 5.4.0.
+pub const EXTENT_ALLOC_FLAG_PINNED: c_int = 0x1;
+
+/// Mask covering the extent-allocation flag bits that may be carried in the pointer
+/// returned by an [`extent_alloc_t`] hook, see [`EXTENT_ALLOC_FLAG_PINNED`].
+///
+/// Added in jemalloc 5.4.0.
+pub const EXTENT_ALLOC_FLAG_MASK: c_int = 0xFF;
+
 extern "C" {
     /// Allocates `size` bytes of uninitialized memory.
     ///
@@ -767,6 +794,10 @@ pub struct extent_hooks_s {
 /// satisfies physical memory needs on demand via soft page faults. Note that
 /// replacing the default extent allocation function makes the arena's
 /// `arena.<i>.dss` setting irrelevant.
+///
+/// Since jemalloc 5.4.0, the returned address may carry flag bits in its low bits,
+/// defined by [`EXTENT_ALLOC_FLAG_PINNED`] and masked with [`EXTENT_ALLOC_FLAG_MASK`];
+/// a hook marking memory as pinned must also set `*commit`.
 ///
 /// # Errors
 ///

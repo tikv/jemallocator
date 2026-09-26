@@ -3,8 +3,9 @@
 //! These settings are controlled by the `MALLOC_CONF` environment variable.
 
 option! {
-    abort[ str: b"opt.abort\0", non_str: 2 ] => bool |
+    abort abort_mib[ str: b"opt.abort\0", non_str: 2 ] => bool |
     ops: r |
+    test: abort_read_test |
     docs:
     /// Whether `jemalloc` calls `abort(3)` on most warnings.
     ///
@@ -27,8 +28,9 @@ option! {
 }
 
 option! {
-    dss[ str: b"opt.dss\0", str: 2 ] => &'static str |
+    dss dss_mib[ str: b"opt.dss\0", str: 2 ] => &'static str |
     ops: r |
+    test: dss_read_test |
     docs:
     /// The `dss` (`sbrk(2)`) allocation precedence as related to `mmap(2)`
     /// allocation.
@@ -54,8 +56,9 @@ option! {
 }
 
 option! {
-    narenas[ str: b"opt.narenas\0", non_str: 2 ] => libc::c_uint |
+    narenas narenas_mib[ str: b"opt.narenas\0", non_str: 2 ] => libc::c_uint |
     ops: r |
+    test: narenas_read_test |
     docs:
     /// Maximum number of arenas to use for automatic multiplexing of threads
     /// and arenas.
@@ -79,8 +82,9 @@ option! {
 }
 
 option! {
-    junk[ str: b"opt.junk\0", str: 2 ] => &'static str |
+    junk junk_mib[ str: b"opt.junk\0", str: 2 ] => &'static str |
     ops: r |
+    test: junk_read_test |
     docs:
     /// `jemalloc`'s junk filling mode.
     ///
@@ -113,8 +117,9 @@ option! {
 }
 
 option! {
-    zero[ str: b"opt.zero\0", non_str: 2 ] => bool |
+    zero zero_mib[ str: b"opt.zero\0", non_str: 2 ] => bool |
     ops: r |
+    test: zero_read_test |
     docs:
     /// `jemalloc`'s zeroing behavior.
     ///
@@ -141,8 +146,9 @@ option! {
 }
 
 option! {
-    tcache[ str: b"opt.tcache\0", non_str: 2 ] => bool |
+    tcache tcache_mib[ str: b"opt.tcache\0", non_str: 2 ] => bool |
     ops: r |
+    test: tcache_read_test |
     docs:
     /// Thread-local allocation caching behavior.
     ///
@@ -166,8 +172,9 @@ option! {
 }
 
 option! {
-    tcache_max[ str: b"opt.tcache_max\0", non_str: 2 ] => libc::size_t |
+    tcache_max tcache_max_mib[ str: b"opt.tcache_max\0", non_str: 2 ] => libc::size_t |
     ops: r |
+    test: tcache_max_read_test |
     docs:
     /// Maximum size class (log base 2) to cache in the thread-specific cache
     /// (`tcache`).
@@ -191,8 +198,9 @@ option! {
 }
 
 option! {
-    background_thread[ str: b"opt.background_thread\0", non_str: 2 ] => bool |
+    background_thread background_thread_mib[ str: b"opt.background_thread\0", non_str: 2 ] => bool |
     ops: r |
+    test: background_thread_read_test |
     docs:
     /// `jemalloc`'s default initialization behavior for background threads.
     ///

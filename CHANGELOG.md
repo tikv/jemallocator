@@ -1,3 +1,28 @@
+# Unreleased
+
+- tikv-jemalloc-sys: expose the jemalloc 5.4.0 extent-allocation hook flags
+  `EXTENT_ALLOC_FLAG_PINNED` and `EXTENT_ALLOC_FLAG_MASK`, documenting the
+  low-bit protocol of the pointer returned from `extent_alloc_t` hooks.
+- tikv-jemalloc-ctl: expose the `stats.pinned` mallctl added in jemalloc 5.4.0
+  via `stats::pinned`.
+- Remove the dependency on the unmaintained `paste` crate:
+  - `tikv-jemalloc-ctl`: key-generation macros no longer derive
+    identifiers at compile time; `option!` takes the companion MIB
+    type name explicitly (`epoch epoch_mib[ str: ..., non_str: 1 ]
+    => u64 |`) together with the generated test name (`test:
+    epoch_read_write_update_test |`). Generated names and public
+    API are unchanged.
+  - the nightly-gated allocator benchmarks now use std's own
+    successor mechanism, the unstable `macro_metavar_expr_concat`
+    feature (`${ concat(prefix, $size, suffix) }`), replacing both
+    `paste` and any in-repo replacement crate.
+- jemalloc-ctl: expose `prof.active`, `prof.lg_sample`, and `prof.reset` via
+  `profiling::{prof_active, lg_sample, prof_reset}`
+- jemalloc-ctl: expose jemalloc's experimental sample hooks under the
+  `profiling` feature (`set_prof_sample_hook`, `set_prof_sample_free_hook`,
+  `set_prof_backtrace_hook`, `noop_prof_backtrace_hook`, and the `Prof*Hook`
+  types)
+
 # 0.7.0 - 2026-05-25
 
 - Reverse order of MAKEFLAGS priority (#152)

@@ -28,7 +28,6 @@ maintenance = { status = "actively-developed" }
 [dependencies]
 tikv-jemalloc-sys = { path = "../jemalloc-sys", version = "0.7.0" }
 libc = { version = "0.2", default-features = false }
-paste = "1"
 
 [dev-dependencies]
 tikv-jemallocator = { path = "../jemallocator", version = "0.7.0" }
