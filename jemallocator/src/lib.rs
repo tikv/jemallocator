@@ -200,6 +200,18 @@ impl Jemalloc {
             }
             return self.allocate(new_layout);
         }
+        if new_layout.size() == 0 {
+            // Shrinking down to nothing: serve a fresh zero-sized block for
+            // the requested alignment (which no real allocation could meet)
+            // and release the original one under its own layout. Doing this
+            // before any address/alignment check is essential -- a relocation
+            // would end up allocating zero bytes "in place", which the raw
+            // allocation primitives refuse by contract.
+            let block = Self::zero_block(&new_layout);
+            // SAFETY: invalidates and releases the original block.
+            unsafe { self.deallocate(ptr, old_layout) };
+            return Ok(block);
+        }
         // Since growing/shrinking may keep the base address unchanged, it
         // cannot satisfy alignment requirements beyond those already met by
         // that address.
@@ -208,13 +220,25 @@ impl Jemalloc {
             return self.relocate_and_copy(ptr, old_layout, new_layout, grow_zeroed);
         }
         // jemalloc accounts for every allocation under its *quantized*
-        // usable size (size bucket). Deallocating a pointer whose eventual
-        // layout maps onto a different bucket than the recorded one feeds
-        // the wrong size to jemalloc's accounting and corrupts its internal
-        // bookkeeping (sized frees get routed to the wrong caches). So a
-        // pointer that stays put may only keep serving layouts of the same
-        // bucket unless the resize updates the record itself. `nallocx`
-        // reports authoritative buckets without touching allocations.
+        // usable size (size bucket), and its sized-free fastpath resolves
+        // the slab/cache straight from the hinted class rather than looking
+        // up the record. Handing back a layout whose hinted class differs
+        // from the recorded one therefore routes the pointer into the wrong
+        // bin and corrupts jemalloc's bookkeeping.
+        //
+        // Consequence: a pointer kept in place may serve another layout
+        // only when `nallocx(old) == nallocx(new)` (or the resize provably
+        // rewrote the record, below); anything else must relocate-and-copy.
+        // This is deliberately stronger than merely passing "the originally
+        // requested size" back: within one class the exact request is not
+        // consulted, so e.g. requesting 15 bytes, shrinking to 9, and freeing
+        // under 9 all resolve to the same 16-byte class and stay consistent.
+        //
+        // Version guard: that contract is empirical (it derives from jemalloc
+        // internals, not its man page wording). The allocator API regression
+        // tests pin the small-size class table (`nallocx`) and soak the
+        // mismatch patterns; when jemalloc is bumped, re-verify sized-free
+        // routing before shipping -- do not rely on this reasoning alone.
         // SAFETY: both sizes are nonzero here and alignments are powers of
         // two per the `Layout` constructors; `nallocx` inspects its inputs
         // only.
@@ -251,14 +275,11 @@ impl Jemalloc {
             core::cmp::Ordering::Less => {
                 // Shrinking cannot fail: every byte reached now was backed
                 // before.
-                if new_layout.size() == 0 {
-                    let block = Self::zero_block(&new_layout);
-                    // SAFETY: invalidates and releases the original block.
-                    unsafe { self.deallocate(ptr, old_layout) };
-                    return Ok(block);
-                }
                 if new_bucket == old_bucket {
-                    // Same bucket: keep the record and reuse the pointer.
+                    // Same bucket: the record already matches everything the
+                    // shrunken layout will later feed back via sized frees
+                    // (even though numerically smaller requests may differ,
+                    // per the note above), so reuse the pointer.
                     return Ok(Self::own_block(ptr, new_layout.size()));
                 }
                 // Ask jemalloc best-effort to move the block down a bucket
@@ -280,8 +301,9 @@ impl Jemalloc {
             }
             core::cmp::Ordering::Equal => {
                 // Sizes agree, so only alignment constraints may differ and
-                // the address was verified above. Staying put is consistent
-                // with the record only for layouts sharing its bucket.
+                // the address was verified above. Staying put stays
+                // consistent with the record only for layouts sharing its
+                // bucket; the alignment flag alone never changes routing.
                 if new_bucket == old_bucket {
                     return Ok(Self::own_block(ptr, new_layout.size()));
                 }

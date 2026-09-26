@@ -32,16 +32,6 @@ fn base(block: &NonNull<[u8]>) -> *const u8 {
     base_nn(block).as_ptr()
 }
 
-/// Rebuild a mutable slice over a block's covered range.
-#[allow(clippy::mut_from_ref)] // the block belongs exclusively to us; the
-                               // returned view aliases nothing
-fn slice_of(block: &NonNull<[u8]>) -> &mut [u8] {
-    // SAFETY: blocks cover exactly their reported length of initialized,
-    // writable memory owned exclusively by this process, and the view derives
-    // from the block's own cast pointer, carrying unique provenance.
-    unsafe { core::slice::from_raw_parts_mut(base_nn(block).as_ptr(), block.len()) }
-}
-
 #[test]
 fn roundtrip_many_layouts() {
     unsafe {
@@ -57,7 +47,7 @@ fn roundtrip_many_layouts() {
                     size,
                     align
                 );
-                slice_of(&block).fill(0xAB);
+                base_nn(&block).as_ptr().write_bytes(0xAB, block.len());
                 A.deallocate(base_nn(&block), l);
             }
         }
@@ -102,7 +92,7 @@ fn grow_preserves_content_across_size_class() {
         // 9 forces jemalloc past that class boundary.
         let old_l = layout(7, 1);
         let block = A.allocate(old_l).expect("allocation succeeded");
-        slice_of(&block).fill(PATTERN);
+        base_nn(&block).as_ptr().write_bytes(PATTERN, block.len());
         let new_l = layout(9, 1);
         let grown = A
             .grow(base_nn(&block), old_l, new_l)
@@ -119,7 +109,7 @@ fn grow_zeroed_zeros_only_the_extension() {
     unsafe {
         let old_l = layout(512, 1);
         let block = A.allocate(old_l).expect("allocation succeeded");
-        slice_of(&block).fill(0xCD);
+        base_nn(&block).as_ptr().write_bytes(0xCD, block.len());
         let new_l = layout(4096, 1);
         let grown = A
             .grow_zeroed(base_nn(&block), old_l, new_l)
@@ -147,7 +137,7 @@ fn shrink_moves_down_in_size_class() {
         let block = A.allocate(old_l).expect("large allocation succeeded");
         let original_usable = tikv_jemallocator::usable_size::<u8>(base(&block));
         assert!(original_usable >= (1 << 20));
-        slice_of(&block).fill(0x5A);
+        base_nn(&block).as_ptr().write_bytes(0x5A, block.len());
         let new_l = layout(65_537, 1);
         let shrunk = A
             .shrink(base_nn(&block), old_l, new_l)
@@ -170,7 +160,7 @@ fn grow_with_stronger_alignment_stays_consistent() {
     unsafe {
         let old_l = layout(32, 8);
         let block = A.allocate(old_l).expect("allocation succeeded");
-        slice_of(&block).fill(0x13);
+        base_nn(&block).as_ptr().write_bytes(0x13, block.len());
         let new_l = layout(64, 64);
         let grown = A
             .grow(base_nn(&block), old_l, new_l)
@@ -190,6 +180,96 @@ fn grow_with_stronger_alignment_stays_consistent() {
     }
 }
 
+/// Regression guard: shrinking into a zero-sized layout whose required
+/// alignment far exceeds what any backing allocation can provide must not
+/// route through the raw allocation primitives, which reject zero-size
+/// requests outright.
+#[test]
+fn shrink_to_zero_with_exotic_alignment_stays_consistent() {
+    unsafe {
+        let old_l = layout(8, 8);
+        let block = A.allocate(old_l).expect("allocation succeeded");
+        base_nn(&block).as_ptr().write_bytes(0x5A, block.len());
+        let new_l = layout(0, 1 << (core::mem::size_of::<usize>() * 8 - 2));
+        let shrunk = A
+            .shrink(base_nn(&block), old_l, new_l.clone())
+            .expect("shrinking to zero succeeded");
+        assert_eq!(shrunk.len(), 0);
+        let addr = base(&shrunk) as usize;
+        assert_ne!(addr, 0);
+        assert_eq!(
+            addr % new_l.align(),
+            0,
+            "zero block lacks its promised alignment"
+        );
+        A.deallocate(base_nn(&shrunk), new_l);
+    }
+}
+
+/// Version-sensitive regression guards, see the routing notes on
+/// `resize_blocks`: jemalloc accounts allocations by their *quantized* size
+/// class, and its sized-free fastpath trusts the hint-derived class instead
+/// of looking up the record. Two layouts that land in the same class are
+/// interchangeable across allocate/shrink/deallocate even though their
+/// numeric sizes differ -- but the premise must survive a jemalloc bump.
+///
+/// The class-table asserts below fail loudly at build time if the small
+/// size table ever shifts, forcing a human to re-validate that contract
+/// before anything silently desyncs again; the soak loops exercise exactly
+/// the shapes that corrupted heap metadata when hints crossed a boundary.
+#[test]
+fn same_class_resize_hints_stay_consistent_across_sized_frees() {
+    // Pin the class table assumptions first: 15 -> 9 must share a class
+    // (otherwise no real pointer would ever be reused in place), while
+    // 2000 -> 1000 must not (the relocation branch depends on seeing it).
+    let same_16 = unsafe {
+        (
+            tikv_jemalloc_sys::nallocx(15, 0),
+            tikv_jemalloc_sys::nallocx(9, 0),
+        )
+    };
+    assert_eq!(
+        same_16.0, same_16.1,
+        "15B and 9B drifted apart in size classes"
+    );
+    let cross = unsafe {
+        (
+            tikv_jemalloc_sys::nallocx(2000, 0),
+            tikv_jemalloc_sys::nallocx(1000, 0),
+        )
+    };
+    assert_ne!(
+        cross.0, cross.1,
+        "2000B and 1000B unexpectedly share a class"
+    );
+
+    unsafe {
+        for _ in 0..(1 << 18) {
+            // Request 15 bytes, legally shrink toward the 9-byte layout,
+            // then free under 9: jemalloc never received 9 as a request,
+            // yet the freed hint shares the recorded class.
+            let old_l = layout(15, 1);
+            let block = A.allocate(old_l).expect("allocation succeeded");
+            base_nn(&block).as_ptr().write_bytes(0x5A, block.len());
+            let shrunk = A
+                .shrink(base_nn(&block), old_l, layout(9, 1))
+                .expect("shrink stayed valid");
+            assert_eq!(shrunk.len(), 9);
+            A.deallocate(base_nn(&shrunk), layout(9, 1));
+
+            // Equal-size relaxations change nothing recorded: same bytes,
+            // weaker alignment.
+            let big_l = layout(64, 64);
+            let z = A.allocate_zeroed(big_l).expect("allocation succeeded");
+            let relaxed = A
+                .grow(base_nn(&z), big_l, layout(64, 8))
+                .expect("alignment relaxation succeeded");
+            assert_eq!(relaxed.len(), 64);
+            A.deallocate(base_nn(&relaxed), layout(64, 8));
+        }
+    }
+}
+
 #[test]
 fn repeated_cross_class_shrink_stays_safe() {
     // Regression guard: repeatedly shrinking across size classes while
@@ -200,7 +280,7 @@ fn repeated_cross_class_shrink_stays_safe() {
         for _ in 0..2_000 {
             let wide_l = layout(2000, 1);
             let block = A.allocate(wide_l).expect("allocation succeeded");
-            slice_of(&block).fill(0x77);
+            base_nn(&block).as_ptr().write_bytes(0x77, block.len());
             let narrow_l = layout(1000, 1);
             let shrunk = A
                 .shrink(base_nn(&block), wide_l, narrow_l)
@@ -218,7 +298,7 @@ fn repeated_large_shrink_with_layout_free_stays_safe() {
         for _ in 0..256 {
             let big_l = layout(1 << 20, 1);
             let block = A.allocate(big_l).expect("large allocation succeeded");
-            slice_of(&block)[0] = 0x3E;
+            *base_nn(&block).as_ptr() = 0x3E;
             let small_l = layout(65_537, 1);
             let shrunk = A
                 .shrink(base_nn(&block), big_l, small_l)
@@ -236,7 +316,7 @@ fn large_growth_preserves_prefix_and_stays_consistent() {
         for _ in 0..256 {
             let old_l = layout(65_537, 1);
             let block = A.allocate(old_l).expect("large allocation succeeded");
-            slice_of(&block).fill(0x1F);
+            base_nn(&block).as_ptr().write_bytes(0x1F, block.len());
             let new_l = layout(1 << 20, 1);
             let grown = A
                 .grow(base_nn(&block), old_l, new_l)
