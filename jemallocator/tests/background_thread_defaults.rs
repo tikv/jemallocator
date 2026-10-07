@@ -19,5 +19,10 @@ fn background_threads_runtime_defaults() {
         return;
     }
 
-    assert_eq!(background_threads(), cfg!(feature = "background_threads"));
+    // `background_threads` is ignored on targets in `NO_BG_THREAD_TARGETS`.
+    let supported = !cfg!(target_env = "musl") && !cfg!(target_vendor = "apple");
+    assert_eq!(
+        background_threads(),
+        cfg!(feature = "background_threads") && supported
+    );
 }

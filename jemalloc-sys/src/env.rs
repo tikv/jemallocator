@@ -11,8 +11,9 @@ pub static UNSUPPORTED_TARGETS: &[&str] = &[
 /// `jemalloc-sys` is not tested on these targets in CI:
 pub static UNTESTED_TARGETS: &[&str] = &["openbsd", "msvc"];
 
-/// `jemalloc`'s background_thread support is known not to work on these targets:
-pub static NO_BG_THREAD_TARGETS: &[&str] = &["musl"];
+/// `jemalloc`'s background_thread support is known not to work on these targets
+/// (on Apple targets jemalloc's `configure` never enables it):
+pub static NO_BG_THREAD_TARGETS: &[&str] = &["musl", "apple"];
 
 /// targets that don't support unprefixed `malloc`
 // “it was found that the `realpath` function in libc would allocate with libc malloc
