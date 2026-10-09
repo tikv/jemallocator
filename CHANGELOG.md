@@ -2,7 +2,7 @@
 
 - tikv-jemalloc-sys: the `background_threads` feature no longer puts
   `background_thread:true` into the default `malloc_conf` on targets that
-  don't support background threads (musl, and now Apple targets). jemalloc
+  don't support background threads, which now include Apple targets. jemalloc
   rejected the option there, its initialization never completed, and every
   allocation took a global lock.
 - tikv-jemalloc-sys: expose the jemalloc 5.4.0 extent-allocation hook flags
