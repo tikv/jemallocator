@@ -509,6 +509,18 @@ impl BackgroundThreadSupport {
                 "`background_threads_runtime_support` not supported for `{}`",
                 target
             );
+            if always_enabled {
+                // jemalloc rejects `background_thread:true` on these targets
+                // and its initialization never completes, so don't put it in
+                // the default `malloc_conf`.
+                warning!(
+                    "`background_threads` not supported for `{}`; not enabling background threads by default",
+                    target
+                );
+            }
+            return Some(Self {
+                always_enabled: false,
+            });
         }
 
         Some(Self { always_enabled })

@@ -94,7 +94,8 @@ This crate provides following cargo feature flags:
   process will be disabled regardless the state in parent process. See
   `stats.background_thread` for related stats. `opt.background_thread` can be
   used to set the default option. The background thread is only available on
-  selected pthread-based platforms.
+  selected pthread-based platforms; on targets where it is not supported (Apple
+  targets) this feature has no effect.
 
 * `unprefixed_malloc_on_supported_platforms`: when disabled, configure
   `jemalloc` with `--with-jemalloc-prefix=_rjem_`. Enabling this causes symbols
