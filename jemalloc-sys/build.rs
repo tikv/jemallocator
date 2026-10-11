@@ -154,7 +154,21 @@ fn main() {
     // Disable -Wextra warnings - jemalloc doesn't compile free of warnings with
     // it enabled: https://github.com/jemalloc/jemalloc/issues/1196
     let compiler = cc::Build::new().extra_warnings(false).get_compiler();
-    let cflags = compiler.cflags_env();
+    let mut cflags = compiler.cflags_env();
+    // Debug info records the build directory; remap it if the compiler can.
+    let dir = fs::canonicalize(&out_dir).map(|d| d.join("build"));
+    if let Some(dir) = dir.as_deref().ok().and_then(Path::to_str) {
+        let flag = format!("-fdebug-prefix-map={dir}=.");
+        if !compiler.is_like_msvc()
+            && dir
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || "/._+-".contains(c))
+            && cc::Build::new().is_flag_supported(&flag).unwrap_or(false)
+        {
+            cflags.push(" ");
+            cflags.push(flag);
+        }
+    }
     let ldflags = read_and_watch_env("LDFLAGS")
         .map(OsString::from)
         .unwrap_or_default();
