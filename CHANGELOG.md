@@ -1,5 +1,11 @@
 # Unreleased
 
+- tikv-jemalloc-sys: pass the archiver and ranlib that `cc` resolves (e.g. from
+  `AR_<target>`/`RANLIB_<target>`) to jemalloc's configure script. When cross
+  compiling, configure otherwise fell back to the host's `ar` and `ranlib` if
+  `<target>-ar` wasn't on the `PATH`, which on macOS hosts produced an empty
+  `libjemalloc.a` for Linux targets and failed at link time with undefined
+  references to symbols like `sdallocx`. The minimum `cc` version is now 1.0.79.
 - tikv-jemalloc-sys: the `background_threads` feature no longer puts
   `background_thread:true` into the default `malloc_conf` on targets that
   don't support background threads, which now include Apple targets. jemalloc

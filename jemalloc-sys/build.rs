@@ -10,8 +10,8 @@
 
 use std::{
     env,
-    ffi::OsString,
-    fs, io,
+    ffi::{OsStr, OsString},
+    fs, io, iter,
     path::{Path, PathBuf},
     process::Command,
 };
@@ -153,7 +153,10 @@ fn main() {
     }
     // Disable -Wextra warnings - jemalloc doesn't compile free of warnings with
     // it enabled: https://github.com/jemalloc/jemalloc/issues/1196
-    let compiler = cc::Build::new().extra_warnings(false).get_compiler();
+    let build = cc::Build::new();
+    let compiler = build.clone().extra_warnings(false).get_compiler();
+    let ar = command_env(&build.get_archiver());
+    let ranlib = command_env(&build.get_ranlib());
     let cflags = compiler.cflags_env();
     let ldflags = read_and_watch_env("LDFLAGS")
         .map(OsString::from)
@@ -171,6 +174,8 @@ fn main() {
         cc
     };
 
+    info!("AR={:?}", ar);
+    info!("RANLIB={:?}", ranlib);
     info!("CC={:?}", cc);
     info!("CFLAGS={:?}", cflags);
     info!("LDFLAGS={:?}", ldflags);
@@ -209,6 +214,8 @@ fn main() {
     )
     .current_dir(&build_dir)
     .env("CC", &cc)
+    .env("AR", &ar)
+    .env("RANLIB", &ranlib)
     .env("CFLAGS", &cflags)
     .env("LDFLAGS", &ldflags)
     .env("CPPFLAGS", &cppflags)
@@ -397,6 +404,36 @@ fn main() {
             .file("src/pthread_atfork.c")
             .compile("pthread_atfork");
         println!("cargo:rerun-if-changed=src/pthread_atfork.c");
+    }
+}
+
+/// Formats a tool command from `cc` (e.g. the archiver) for use as an environment variable like
+/// `AR`. This keeps any arguments, like those from `AR="zig ar"` or `ARFLAGS`.
+///
+/// jemalloc's build only uses these in make recipes, which are run by the shell, so each word is
+/// quoted to preserve paths containing spaces.
+fn command_env(cmd: &Command) -> OsString {
+    let mut env = OsString::new();
+    for (i, word) in iter::once(cmd.get_program())
+        .chain(cmd.get_args())
+        .enumerate()
+    {
+        if i > 0 {
+            env.push(" ");
+        }
+        env.push(shell_quote(word));
+    }
+    env
+}
+
+fn shell_quote(word: &OsStr) -> OsString {
+    let is_safe = |c: char| c.is_ascii_alphanumeric() || "+,-./:=@_%".contains(c);
+    match word.to_str() {
+        Some(s) if s.is_empty() || !s.chars().all(is_safe) => {
+            format!("'{}'", s.replace('\'', "'\\''")).into()
+        }
+        // Safe words and (rare) non-UTF-8 ones are passed through as-is.
+        _ => word.to_owned(),
     }
 }
 
