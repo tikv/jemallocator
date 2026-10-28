@@ -150,6 +150,10 @@ pub const EXTENT_ALLOC_FLAG_PINNED: c_int = 0x1;
 /// Added in jemalloc 5.4.0.
 pub const EXTENT_ALLOC_FLAG_MASK: c_int = 0xFF;
 
+/// Arena index that operates on all arenas when used in `arena.<i>.*` keys, or
+/// sums statistics over all arenas in `stats.arenas.<i>.*` keys.
+pub const MALLCTL_ARENAS_ALL: usize = 4096;
+
 extern "C" {
     /// Allocates `size` bytes of uninitialized memory.
     ///

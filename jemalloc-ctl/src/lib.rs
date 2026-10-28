@@ -87,6 +87,7 @@ use std;
 #[macro_use]
 mod macros;
 
+pub mod arena;
 pub mod arenas;
 pub mod config;
 mod error;
