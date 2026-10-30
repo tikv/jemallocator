@@ -1,5 +1,11 @@
 # Unreleased
 
+- tikv-jemalloc-sys: always use prefixed symbols on AIX, as on Android,
+  DragonFly and Apple targets. libc's internal allocations there don't go
+  through a `malloc` defined in the program, so
+  `unprefixed_malloc_on_supported_platforms` mixed two allocators, and
+  `std::fs::canonicalize` crashed by freeing memory from libc's `realpath`
+  with jemalloc's `free`.
 - tikv-jemalloc-sys: the `background_threads` feature no longer puts
   `background_thread:true` into the default `malloc_conf` on targets that
   don't support background threads, which now include Apple targets. jemalloc

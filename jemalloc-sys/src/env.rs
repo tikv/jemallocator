@@ -22,4 +22,5 @@ pub static NO_BG_THREAD_TARGETS: &[&str] = &["apple"];
 // https://github.com/rust-lang/rust/commit/e3b414d8612314e74e2b0ebde1ed5c6997d28e8d
 // https://github.com/rust-lang/rust/commit/9f3de647326fbe50e0e283b9018ab7c41abccde3
 // https://github.com/rust-lang/rust/commit/ed015456a114ae907a36af80c06f81ea93182a24
-pub static NO_UNPREFIXED_MALLOC_TARGETS: &[&str] = &["android", "dragonfly", "apple"];
+// https://www.ibm.com/support/knowledgecenter/en/ssw_aix_72/com.ibm.aix.genprogc/shared_object_runtime_linking.htm
+pub static NO_UNPREFIXED_MALLOC_TARGETS: &[&str] = &["android", "dragonfly", "apple", "aix"];
