@@ -109,6 +109,36 @@ impl deallocatedp_mib {
     }
 }
 
+option! {
+    tcache_enabled tcache_enabled_mib[ str: b"thread.tcache.enabled\0", non_str: 3 ] => bool |
+    ops: r, w, u |
+    test: tcache_enabled_test |
+    docs:
+    /// Enable/disable the calling thread's tlocal.
+    ///
+    /// The tcache is implicitly flushed as a side effect of becoming disabled
+    /// (see jemalloc's `thread.tcache.flush`).
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # #[global_allocator]
+    /// # static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
+    /// #
+    /// # fn main() {
+    /// use tikv_jemalloc_ctl::thread;
+    /// let tcache = thread::tcache_enabled::mib().unwrap();
+    /// let enabled = tcache.read().unwrap();
+    /// let prev = thread::tcache_enabled::update(!enabled).unwrap();
+    /// assert_eq!(prev, enabled);
+    /// assert_eq!(tcache.read().unwrap(), !enabled);
+    /// thread::tcache_enabled::write(enabled).unwrap();
+    /// assert_eq!(tcache.read().unwrap(), enabled);
+    /// # }
+    /// ```
+    mib_docs: /// See [`tcache_enabled`].
+}
+
 /// A thread-local pointer.
 ///
 /// It is neither `Sync` nor `Send`.
