@@ -5,8 +5,9 @@
 // update that changes one of them fails the build instead of silently
 // diverging.
 
-/// Arena index that selects *all* arenas in the `arena.<i>.{purge,decay,dss}`
-/// and `stats.arenas.<i>.*` `mallctl` interfaces.
+/// Arena index that selects *all* arenas in the
+/// `arena.<i>.{initialized,purge,decay,dss}` and `stats.arenas.<i>.*`
+/// `mallctl` interfaces.
 ///
 /// For example, `arena.4096.purge` purges unused dirty pages of every arena:
 ///

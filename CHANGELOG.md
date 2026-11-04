@@ -1,7 +1,8 @@
 # Unreleased
 
 - tikv-jemalloc-sys: expose `MALLCTL_ARENAS_ALL`, the arena index that
-  selects all arenas in `arena.<i>.*` and `stats.arenas.<i>.*` mallctls.
+  selects all arenas in `arena.<i>.{initialized,purge,decay,dss}` and
+  `stats.arenas.<i>.*` mallctls.
 - tikv-jemalloc-ctl: add `arenas::purge_all()`, which purges unused dirty
   pages of all arenas (`arena.<MALLCTL_ARENAS_ALL>.purge`), and re-export
   `arenas::MALLCTL_ARENAS_ALL`.

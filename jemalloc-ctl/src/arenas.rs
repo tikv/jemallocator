@@ -25,8 +25,9 @@ option! {
     mib_docs: /// See [`narenas`].
 }
 
-/// Arena index that selects all arenas in `arena.<i>.*` and
-/// `stats.arenas.<i>.*` keys. Re-exported from `tikv_jemalloc_sys`.
+/// Arena index that selects all arenas in
+/// `arena.<i>.{initialized,purge,decay,dss}` and `stats.arenas.<i>.*`
+/// keys. Re-exported from `tikv_jemalloc_sys`.
 pub use tikv_jemalloc_sys::MALLCTL_ARENAS_ALL;
 
 /// Purges unused dirty pages of all arenas.
