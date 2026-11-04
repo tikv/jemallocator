@@ -17,6 +17,7 @@ use std::{
 };
 
 include!("src/env.rs");
+include!("src/macro_consts.rs");
 
 macro_rules! info {
     ($($args:tt)*) => { println!($($args)*) }
@@ -179,6 +180,8 @@ fn main() {
     assert!(out_dir.exists(), "OUT_DIR does not exist");
     let jemalloc_repo_dir = PathBuf::from("jemalloc");
     info!("JEMALLOC_REPO_DIR={:?}", jemalloc_repo_dir);
+
+    check_macro_constants(&jemalloc_repo_dir.join("include/jemalloc/jemalloc_macros.h.in"));
 
     if build_dir.exists() {
         fs::remove_dir_all(build_dir.clone()).unwrap();
@@ -397,6 +400,36 @@ fn main() {
             .file("src/pthread_atfork.c")
             .compile("pthread_atfork");
         println!("cargo:rerun-if-changed=src/pthread_atfork.c");
+    }
+}
+
+/// Checks the hand-written constants in `src/macro_consts.rs` against the
+/// `#define`s in jemalloc's `header`, so that updating the vendored jemalloc
+/// fails the build if one of them changed.
+fn check_macro_constants(header: &Path) {
+    let contents = fs::read_to_string(header)
+        .unwrap_or_else(|e| panic!("failed to read {}: {}", header.display(), e));
+    let expected: &[(&str, usize)] = &[("MALLCTL_ARENAS_ALL", MALLCTL_ARENAS_ALL)];
+    for &(name, value) in expected {
+        let actual = contents
+            .lines()
+            .find_map(|line| {
+                let mut tokens = line.split_whitespace();
+                match (tokens.next(), tokens.next()) {
+                    (Some("#define"), Some(n)) if n == name => tokens.next(),
+                    _ => None,
+                }
+            })
+            .unwrap_or_else(|| panic!("`#define {}` not found in {}", name, header.display()));
+        assert_eq!(
+            actual.parse::<usize>().ok(),
+            Some(value),
+            "`{}` is `{}` in {} but `{}` in src/macro_consts.rs; update src/macro_consts.rs",
+            name,
+            actual,
+            header.display(),
+            value,
+        );
     }
 }
 
