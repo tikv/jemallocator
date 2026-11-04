@@ -123,6 +123,29 @@ pub const fn MALLOCX_ARENA(a: usize) -> c_int {
     (a as c_int).wrapping_add(1).wrapping_shl(20)
 }
 
+/// Arena index that selects *all* arenas in the `arena.<i>.{purge,decay,dss}`
+/// and `stats.arenas.<i>.*` `mallctl` interfaces.
+///
+/// For example, `arena.4096.purge` purges unused dirty pages of every arena:
+///
+/// ```no_run
+/// use std::ptr;
+/// use tikv_jemalloc_sys::{mallctl, MALLCTL_ARENAS_ALL};
+///
+/// let name = format!("arena.{}.purge\0", MALLCTL_ARENAS_ALL);
+/// let ret = unsafe {
+///     mallctl(
+///         name.as_ptr() as *const _,
+///         ptr::null_mut(),
+///         ptr::null_mut(),
+///         ptr::null_mut(),
+///         0,
+///     )
+/// };
+/// assert_eq!(ret, 0);
+/// ```
+pub const MALLCTL_ARENAS_ALL: usize = 4096;
+
 /// Flag to be OR-ed into the pointer returned by a custom [`extent_alloc_t`] hook to
 /// indicate that the backing memory is non-reclaimable, such as HugeTLB pages.
 ///

@@ -1,5 +1,10 @@
 # Unreleased
 
+- tikv-jemalloc-sys: expose `MALLCTL_ARENAS_ALL`, the arena index that
+  selects all arenas in `arena.<i>.*` and `stats.arenas.<i>.*` mallctls.
+- tikv-jemalloc-ctl: add `arenas::purge_all()`, which purges unused dirty
+  pages of all arenas (`arena.<MALLCTL_ARENAS_ALL>.purge`), and re-export
+  `arenas::MALLCTL_ARENAS_ALL`.
 - tikv-jemalloc-sys: the `background_threads` feature no longer puts
   `background_thread:true` into the default `malloc_conf` on targets that
   don't support background threads, which now include Apple targets. jemalloc
