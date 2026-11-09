@@ -201,6 +201,54 @@ pub unsafe fn update<T>(name: &[u8], mut value: T) -> Result<T> {
     Ok(old_value.assume_init())
 }
 
+/// Uses the MIB `mib` as key to the _MALLCTL NAMESPACE_ and calls it without
+/// reading or writing any value.
+///
+/// This is meant for keys of type `(void) --`, like `arena.<i>.decay`.
+///
+/// The [`name_to_mib`] API translates a string of the key (e.g. `arenas.nbins`)
+/// to a `mib` (Management Information Base).
+///
+/// # Safety
+///
+/// This function is unsafe because calling it with a MIB that expects either
+/// a read or a write to be non-null can cause jemalloc to dereference the null
+/// pointer, and thus crash. This function should only be used with keys
+/// documented as `(void) --` in the jemalloc documentation to be safe.
+pub unsafe fn call_mib(mib: &[usize]) -> Result<()> {
+    cvt(tikv_jemalloc_sys::mallctlbymib(
+        mib.as_ptr(),
+        mib.len(),
+        ptr::null_mut(),
+        ptr::null_mut(),
+        ptr::null_mut(),
+        0,
+    ))
+}
+
+/// Uses the null-terminated string `name` as key to the _MALLCTL NAMESPACE_ and
+/// calls it without reading or writing any value.
+///
+/// This is meant for keys of type `(void) --`, like `arena.<i>.decay`.
+///
+/// # Safety
+///
+/// This function is unsafe because calling it with a MIB that expects either
+/// a read or a write to be non-null can cause jemalloc to dereference the null
+/// pointer, and thus crash. This function should only be used with keys
+/// documented as `(void) --` in the jemalloc documentation to be safe.
+pub unsafe fn call(name: &[u8]) -> Result<()> {
+    validate_name(name);
+
+    cvt(tikv_jemalloc_sys::mallctl(
+        name as *const _ as *const c_char,
+        ptr::null_mut(),
+        ptr::null_mut(),
+        ptr::null_mut(),
+        0,
+    ))
+}
+
 /// Uses the MIB `mib` as key to the _MALLCTL NAMESPACE_ and reads its value.
 ///
 /// The [`name_to_mib`] API translates a string of the key (e.g. `arenas.nbins`)

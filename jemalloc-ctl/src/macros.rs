@@ -188,7 +188,46 @@ macro_rules! make_test {
             );
         }
     };
+    ($id:ident, $ret_ty:ty, $test_fn:ident, $test_val:expr, c) => {
+        #[cfg(test)]
+        #[test]
+        fn $test_fn() {
+            $id::call().unwrap();
+            let mib = $id::mib().unwrap();
+            mib.call().unwrap();
+        }
+    };
 }
+
+/// Call, for keys of type `(void) --`
+macro_rules! c {
+    ($id:ident, $mib_id:ident => $ret_ty:ty) => {
+        impl $id {
+            /// Calls the key using string API.
+            pub fn call() -> crate::error::Result<()> {
+                unsafe { crate::raw::call(Self::NAME.as_bytes()) }
+            }
+        }
+
+        impl $mib_id {
+            /// Calls the key using MIB API.
+            pub fn call(self) -> crate::error::Result<()> {
+                unsafe { crate::raw::call_mib(self.0.as_ref()) }
+            }
+        }
+    };
+}
+
+/// Expands to the `MALLCTL_ARENAS_ALL` literal, so that it can be used in
+/// `concat!` to build key names.
+macro_rules! mallctl_arenas_all {
+    () => {
+        4096
+    };
+}
+
+const _: () =
+    assert!(mallctl_arenas_all!() == tikv_jemalloc_sys::MALLCTL_ARENAS_ALL);
 
 /// Creates a new option
 macro_rules! option {
