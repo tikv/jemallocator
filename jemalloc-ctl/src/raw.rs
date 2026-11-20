@@ -1,6 +1,7 @@
 //! Raw access to the `mallctl` API.
 //!
-//! Operations that take a name return `EINVAL` for malformed C strings.
+//! Operations that take a name return `EINVAL` for malformed C strings
+//! or negative index components.
 //!
 //! String reads and updates borrow immutable, program-long C strings and
 //! return `EINVAL` for null output pointers. `arena.<i>.name` requires a
@@ -65,6 +66,7 @@ pub(crate) fn name_to_mib_cstr(
     name: &CStr,
     mib: &mut [usize],
 ) -> Result<usize> {
+    validate_indices(name)?;
     unsafe {
         let mut len = mib.len();
         cvt(tikv_jemalloc_sys::mallctlnametomib(
@@ -117,6 +119,8 @@ pub unsafe fn read<T: Copy>(name: &[u8]) -> Result<T> {
 }
 
 pub(crate) unsafe fn read_cstr<T: Copy>(name: &CStr) -> Result<T> {
+    validate_indices(name)?;
+
     let mut value = MaybeUninit::<T>::uninit();
     let mut len = mem::size_of::<T>();
     cvt(tikv_jemalloc_sys::mallctl(
@@ -163,6 +167,8 @@ pub unsafe fn write<T>(name: &[u8], value: T) -> Result<()> {
 }
 
 pub(crate) unsafe fn write_cstr<T>(name: &CStr, mut value: T) -> Result<()> {
+    validate_indices(name)?;
+
     cvt(tikv_jemalloc_sys::mallctl(
         name.as_ptr(),
         ptr::null_mut(),
@@ -207,6 +213,8 @@ pub unsafe fn update<T>(name: &[u8], value: T) -> Result<T> {
 }
 
 pub(crate) unsafe fn update_cstr<T>(name: &CStr, mut value: T) -> Result<T> {
+    validate_indices(name)?;
+
     let mut old_len = mem::size_of::<T>();
     let mut old_value = MaybeUninit::<T>::uninit();
     cvt(tikv_jemalloc_sys::mallctl(
@@ -386,6 +394,22 @@ fn parse_name(name: &[u8]) -> Result<&CStr> {
     CStr::from_bytes_with_nul(name).map_err(|_| Error::INVALID_ARGUMENT)
 }
 
+fn validate_indices(name: &CStr) -> Result<()> {
+    // ctl_lookup checks the index range after malloc_strtoumax returns.
+    // The parser accepts '-' after C whitespace and can negate INTMAX_MIN,
+    // causing signed overflow before the range check.
+    for component in name.to_bytes().split(|&byte| byte == b'.') {
+        let first = component
+            .iter()
+            .copied()
+            .find(|&byte| !matches!(byte, b' ' | b'\t'..=b'\r'));
+        if first == Some(b'-') {
+            return Err(Error::INVALID_ARGUMENT);
+        }
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -410,6 +434,17 @@ mod tests {
     fn name_to_mib_rejects_malformed_names() {
         let mut mib = [0; 1];
         for name in [&b""[..], b"version", b"version\0suffix\0"] {
+            assert_eq!(name_to_mib(name, &mut mib), cvt(libc::EINVAL));
+        }
+    }
+
+    #[test]
+    fn name_to_mib_rejects_negative_indices() {
+        let mut mib = [0; 4];
+        for name in [
+            &b"arenas.bin.-1.nregs\0"[..],
+            &b"arenas.bin.\x0b-1.nregs\0"[..],
+        ] {
             assert_eq!(name_to_mib(name, &mut mib), cvt(libc::EINVAL));
         }
     }
