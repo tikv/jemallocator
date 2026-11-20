@@ -47,13 +47,15 @@
 
 use libc::{c_char, c_int, c_uint, c_void, size_t};
 
-// jemalloc uses `stdbool.h` to define `bool` for which the Rust equivalent is `bool`.
-// However jemalloc also has its own `stdbool.h` that it uses when compiling with MSVC,
-// and this header defines `bool` as `BOOL` which in turn is `int`.
+/// Boolean type used by the jemalloc bindings on MSVC targets.
+///
+/// This alias matches the MSVC compatibility header's `BOOL` representation.
 #[cfg(target_env = "msvc")]
-type c_bool = c_int;
+pub type c_bool = c_int;
+
+/// Boolean type used by the jemalloc bindings on targets other than MSVC.
 #[cfg(not(target_env = "msvc"))]
-type c_bool = bool;
+pub type c_bool = bool;
 
 /// Align the memory allocation to start at an address that is a
 /// multiple of `1 << la`.

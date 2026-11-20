@@ -1,10 +1,10 @@
 //! Thread specific operations.
 
 use crate::error::Result;
-use crate::raw::{read, read_mib};
+use crate::raw::{read_cstr, read_mib};
 
 option! {
-    allocatedp allocatedp_mib[ str: b"thread.allocatedp\0", non_str: 2 ] => *mut u64 |
+    allocatedp allocatedp_mib[ name: b"thread.allocatedp\0" ] => *mut u64 |
     ops:  |
     test: allocatedp_read_test |
     docs:
@@ -47,19 +47,19 @@ option! {
 impl allocatedp {
     /// Reads value using string API.
     pub fn read() -> Result<ThreadLocal<u64>> {
-        unsafe { read(Self::name().as_bytes()).map(ThreadLocal) }
+        unsafe { read_cstr(Self::name().as_c_str()).map(ThreadLocal) }
     }
 }
 
 impl allocatedp_mib {
     /// Reads value using MIB API.
     pub fn read(&self) -> Result<ThreadLocal<u64>> {
-        unsafe { read_mib(self.0.as_ref()).map(ThreadLocal) }
+        unsafe { read_mib(&self.0).map(ThreadLocal) }
     }
 }
 
 option! {
-    deallocatedp deallocatedp_mib[ str: b"thread.deallocatedp\0", non_str: 2 ] => *mut u64 |
+    deallocatedp deallocatedp_mib[ name: b"thread.deallocatedp\0" ] => *mut u64 |
     ops:  |
     test: deallocatedp_read_test |
     docs:
@@ -98,14 +98,14 @@ option! {
 impl deallocatedp {
     /// Reads value using string API.
     pub fn read() -> Result<ThreadLocal<u64>> {
-        unsafe { read(Self::name().as_bytes()).map(ThreadLocal) }
+        unsafe { read_cstr(Self::name().as_c_str()).map(ThreadLocal) }
     }
 }
 
 impl deallocatedp_mib {
     /// Reads value using MIB API.
     pub fn read(&self) -> Result<ThreadLocal<u64>> {
-        unsafe { read_mib(self.0.as_ref()).map(ThreadLocal) }
+        unsafe { read_mib(&self.0).map(ThreadLocal) }
     }
 }
 

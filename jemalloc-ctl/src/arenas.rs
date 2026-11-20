@@ -1,7 +1,7 @@
 //! Arena operations.
 
 option! {
-    narenas narenas_mib[ str: b"arenas.narenas\0", non_str: 2 ] => libc::c_uint |
+    narenas narenas_mib[ name: b"arenas.narenas\0" ] => libc::c_uint |
     ops: r |
     test: narenas_read_test |
     docs:

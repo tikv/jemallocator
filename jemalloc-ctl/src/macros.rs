@@ -5,13 +5,13 @@
 //! concatenated at compile time):
 //!
 //! * the companion MIB type is named `<id>_mib`, written directly after the
-//!   key identifier: `epoch epoch_mib[ str: ..., non_str: 1 ]`;
+//!   key identifier: `epoch epoch_mib[ name: ... ]`;
 //! * the generated test is named after the operations:
 //!   `<id>_read_write_update_test` for keys supporting `r,w,u` and
 //!   `<id>_read_test` otherwise; it is passed via the `test:` field.
 
 macro_rules! types {
-    ($id:ident $mib_id:ident [ str: $byte_string:expr, $mib_ty:ty, $name_to_mib:ident ] |
+    ($id:ident $mib_id:ident [ name: $byte_string:expr ] => $ret_ty:ty |
      docs: $(#[$doc:meta])*
      mib_docs: $(#[$doc_mib:meta])*
     ) => {
@@ -20,32 +20,45 @@ macro_rules! types {
         pub struct $id;
 
         impl $id {
-            const NAME: &'static crate::keys::Name = {
-                union U<'a> {
-                    bytes: &'a [u8],
-                    name: &'a crate::keys::Name
-                }
+            // SAFETY: Each declaration must satisfy the full Name::new
+            // contract for its typed handle, including its value type,
+            // output buffer, lifetime, and concurrency requirements.
+            const NAME: crate::keys::Name<'static, $ret_ty> =
+                match unsafe { crate::keys::Name::new($byte_string) } {
+                    Ok(name) => name,
+                    Err(_) => panic!(concat!("invalid mallctl name for ", stringify!($id))),
+                };
+            const MIB_LEN: usize = Self::NAME.component_count();
 
-                unsafe { U { bytes: $byte_string }.name }
-            };
             /// Returns Management Information Base (MIB)
             ///
             /// This value can be used to access the key without doing string lookup.
             pub fn mib() -> crate::error::Result<$mib_id> {
-                Ok($mib_id(Self::NAME.$name_to_mib()?))
+                let mut indices = [0; Self::MIB_LEN];
+                let len = crate::raw::name_to_mib_cstr(Self::NAME.as_c_str(), &mut indices)?;
+                if len != Self::MIB_LEN {
+                    return Err(crate::error::Error::INVALID_ARGUMENT);
+                }
+                Ok($mib_id(indices))
             }
 
             /// Key [`crate::keys::Name`].
-            pub fn name() -> &'static crate::keys::Name {
+            pub fn name() -> crate::keys::Name<'static, $ret_ty> {
                 Self::NAME
             }
         }
 
         $(#[$doc_mib])*
-        #[repr(transparent)]
         #[derive(Copy, Clone)]
         #[allow(non_camel_case_types)]
-        pub struct $mib_id(pub $mib_ty);
+        pub struct $mib_id([usize; $id::MIB_LEN]);
+    };
+}
+
+macro_rules! builtin_mib_ref {
+    ($mib:ident, $ret_ty:ty) => {
+        // SAFETY: The wrapper holds the complete MIB of the declared key.
+        unsafe { crate::keys::MibRef::<$ret_ty>::from_raw(&$mib.0) }
     };
 }
 
@@ -64,7 +77,7 @@ macro_rules! r {
             /// Reads value using MIB API.
             pub fn read(self) -> crate::error::Result<$ret_ty> {
                 use crate::keys::Access;
-                self.0.read()
+                builtin_mib_ref!(self, $ret_ty).read()
             }
         }
     };
@@ -85,7 +98,7 @@ macro_rules! w {
             /// Writes `value` using MIB API.
             pub fn write(self, value: $ret_ty) -> crate::error::Result<()> {
                 use crate::keys::Access;
-                self.0.write(value)
+                builtin_mib_ref!(self, $ret_ty).write(value)
             }
         }
     };
@@ -95,7 +108,9 @@ macro_rules! w {
 macro_rules! u {
     ($id:ident, $mib_id:ident => $ret_ty:ty) => {
         impl $id {
-            /// Updates key to `value` returning its old value using string API.
+            /// Updates the key by name and returns the key-specific result.
+            ///
+            /// See [`crate::Access::update`] for the return value semantics.
             pub fn update(value: $ret_ty) -> crate::error::Result<$ret_ty> {
                 use crate::keys::Access;
                 Self::NAME.update(value)
@@ -103,13 +118,15 @@ macro_rules! u {
         }
 
         impl $mib_id {
-            /// Updates key to `value` returning its old value using MIB API.
+            /// Updates the key by MIB and returns the key-specific result.
+            ///
+            /// See [`crate::Access::update`] for the return value semantics.
             pub fn update(
                 self,
                 value: $ret_ty,
             ) -> crate::error::Result<$ret_ty> {
                 use crate::keys::Access;
-                self.0.update(value)
+                builtin_mib_ref!(self, $ret_ty).update(value)
             }
         }
     };
@@ -192,7 +209,7 @@ macro_rules! make_test {
 
 /// Creates a new option
 macro_rules! option {
-    ($id:ident $mib_id:ident [ str: $byte_string:expr, $mib_ty:ty, $name_to_mib:ident ] => $ret_ty:ty |
+    ($id:ident $mib_id:ident [ name: $byte_string:expr ] => $ret_ty:ty |
      ops: $($ops:ident),* |
      test: $test_fn:ident |
      docs:
@@ -201,7 +218,7 @@ macro_rules! option {
      $(#[$doc_mib:meta])*
     ) => {
         types! {
-            $id $mib_id[ str: $byte_string, $mib_ty, $name_to_mib ] |
+            $id $mib_id[ name: $byte_string ] => $ret_ty |
             docs: $(#[$doc])*
             mib_docs: $(#[$doc_mib])*
         }
@@ -210,39 +227,5 @@ macro_rules! option {
         )*
 
         make_test!($id, $ret_ty, $test_fn, ($($ops),*));
-    };
-    // Non-string option:
-    ($id:ident $mib_id:ident [ str: $byte_string:expr, non_str: $mib_len:expr ] => $ret_ty:ty |
-     ops: $($ops:ident),* |
-     test: $test_fn:ident |
-     docs:
-     $(#[$doc:meta])*
-     mib_docs:
-     $(#[$doc_mib:meta])*
-    ) => {
-        option! {
-            $id $mib_id[ str: $byte_string, crate::keys::Mib<[usize; $mib_len]>, mib ] => $ret_ty |
-            ops: $($ops),* |
-            test: $test_fn |
-            docs: $(#[$doc])*
-            mib_docs: $(#[$doc_mib])*
-        }
-    };
-    // String option:
-    ($id:ident $mib_id:ident [ str: $byte_string:expr, str: $mib_len:expr ] => $ret_ty:ty |
-     ops: $($ops:ident),* |
-     test: $test_fn:ident |
-     docs:
-     $(#[$doc:meta])*
-     mib_docs:
-     $(#[$doc_mib:meta])*
-    ) => {
-        option! {
-            $id $mib_id[ str: $byte_string, crate::keys::MibStr<[usize; $mib_len]>, mib_str ] => $ret_ty |
-            ops: $($ops),* |
-            test: $test_fn |
-            docs: $(#[$doc])*
-            mib_docs: $(#[$doc_mib])*
-        }
     };
 }
