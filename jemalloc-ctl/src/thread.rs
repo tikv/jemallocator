@@ -10,15 +10,10 @@ option! {
     docs:
     /// Access to the total number of bytes allocated by the current thread.
     ///
-    /// Unlike [`crate::stats::allocated`], the value returned by this type is not the
-    /// number of bytes *currently* allocated, but rather the number of bytes
-    /// that have *ever* been allocated by this thread.
+    /// This cumulative counter includes allocations that have since been freed.
     ///
-    /// The `read` method doesn't return the value directly, but actually a
-    /// pointer to the value. This allows for very fast repeated lookup, since
-    /// there is no function call overhead. The pointer type cannot be sent to
-    /// other threads, but `allocated::read` can be called on different threads
-    /// and will return the appropriate pointer for each of them.
+    /// Each call to [`Self::read`] returns a pointer to the calling thread's
+    /// counter. [`ThreadLocal::get`] reads it without another `mallctl` call.
     ///
     /// # Example
     ///
@@ -31,11 +26,12 @@ option! {
     /// let allocated = thread::allocatedp::mib().unwrap();
     /// let allocated = allocated.read().unwrap();
     ///
-    /// let a = allocated.get();
+    /// // SAFETY: These reads all occur before thread-local cleanup.
+    /// let a = unsafe { allocated.get() };
     /// let buf = vec![0; 1024 * 1024];
-    /// let b = allocated.get();
-    /// drop(    buf);
-    /// let c = allocated.get();
+    /// let b = unsafe { allocated.get() };
+    /// drop(buf);
+    /// let c = unsafe { allocated.get() };
     ///
     /// assert!(a < b);
     /// assert_eq!(b, c);
@@ -65,11 +61,8 @@ option! {
     docs:
     /// Access to the total number of bytes deallocated by the current thread.
     ///
-    /// The `read` method doesn't return the value directly, but actually a
-    /// pointer to the value. This allows for very fast repeated lookup, since
-    /// there is no function call overhead. The pointer type cannot be sent to
-    /// other threads, but [`deallocatedp::read`] can be called on different
-    /// threads and will return the appropriate pointer for each of them.
+    /// Each call to [`Self::read`] returns a pointer to the calling thread's
+    /// counter. [`ThreadLocal::get`] reads it without another `mallctl` call.
     ///
     /// # Example
     ///
@@ -82,11 +75,12 @@ option! {
     /// let deallocated = thread::deallocatedp::mib().unwrap();
     /// let deallocated = deallocated.read().unwrap();
     ///
-    /// let a = deallocated.get();
+    /// // SAFETY: These reads all occur before thread-local cleanup.
+    /// let a = unsafe { deallocated.get() };
     /// let buf = vec![0; 1024 * 1024];
-    /// let b = deallocated.get();
+    /// let b = unsafe { deallocated.get() };
     /// drop(buf);
-    /// let c = deallocated.get();
+    /// let c = unsafe { deallocated.get() };
     ///
     /// assert_eq!(a, b);
     /// assert!(b < c);
@@ -122,8 +116,16 @@ where
     T: Copy,
 {
     /// Returns the current value at the pointer.
+    ///
+    /// See [`allocatedp`] and [`deallocatedp`] for usage examples.
+    ///
+    /// # Safety
+    ///
+    /// The underlying jemalloc thread data must still be live. In a
+    /// thread-local destructor, the caller must ensure that jemalloc's
+    /// cleanup occurs after this read.
     #[inline]
-    pub fn get(self) -> T {
+    pub unsafe fn get(self) -> T {
         unsafe { *self.0 }
     }
 }

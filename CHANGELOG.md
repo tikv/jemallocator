@@ -6,7 +6,7 @@
   `Result`. Typed handles support `&'static CStr` as a value type. Raw
   string reads and updates return `&CStr`. `Name::mib()` infers the MIB
   length from the allocator's lookup.
-- Raw string writes now require `unsafe`.
+- Raw string writes and `ThreadLocal::get` now require `unsafe`.
 - tikv-jemalloc-sys: the `background_threads` feature no longer puts
   `background_thread:true` into the default `malloc_conf` on targets that
   don't support background threads, which now include Apple targets. jemalloc

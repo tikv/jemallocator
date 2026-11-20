@@ -32,3 +32,12 @@
 //!
 //! let _ = version_mib([0]);
 //! ```
+//!
+//! Reading a cached thread counter pointer requires `unsafe`.
+//!
+//! ```compile_fail
+//! use tikv_jemalloc_ctl::thread::allocatedp;
+//!
+//! let counter = allocatedp::read().unwrap();
+//! let _ = counter.get();
+//! ```
