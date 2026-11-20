@@ -10,7 +10,11 @@
   values without a trailing NUL.
 - `ThreadLocal::get` now requires `unsafe` because cached counter pointers
   are valid only while jemalloc's thread data is live.
-
+- Safe `stats_print` always omits the general configuration section. The
+  new unsafe `stats_print_with_environment` preserves full output when
+  jemalloc's cached configuration strings remain valid throughout the call.
+  With the vendored jemalloc, enable `stats` for a report with runtime
+  metrics. With `use_std` alone, the runtime report is empty.
 - tikv-jemalloc-sys: the `background_threads` feature no longer puts
   `background_thread:true` into the default `malloc_conf` on targets that
   don't support background threads, which now include Apple targets. jemalloc

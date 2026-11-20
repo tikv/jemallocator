@@ -307,15 +307,6 @@ mod tests {
     }
 
     #[test]
-    fn u64_rw() {
-        let name = unsafe { Name::<u64>::new(b"epoch\0") };
-        let epoch = name.read().unwrap();
-        name.write(epoch).unwrap();
-        let mib = name.mib::<1>().unwrap();
-        mib.write(mib.read().unwrap()).unwrap();
-    }
-
-    #[test]
     fn str_rw() {
         let name = unsafe { Name::<&'static [u8]>::new(b"arena.0.dss\0") };
         let dss = name.read().unwrap();

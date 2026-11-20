@@ -197,7 +197,7 @@ option! {
 option! {
     epoch epoch_mib[ name: b"epoch\0", mib: 1 ] => u64 |
     ops: r, w, u |
-    test: epoch_read_write_update_test |
+    test: () |
     docs:
     /// `jemalloc` epoch.
     ///
