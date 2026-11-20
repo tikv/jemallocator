@@ -1,5 +1,13 @@
 # Unreleased
 
+- `tikv-jemalloc-ctl` now ties mallctl names and MIBs to their value types.
+  `Name::new` replaces `AsName` and requires `unsafe`. Use `Mib<T, N>` in
+  place of `MibStr` for string keys. MIB indices are read-only, and
+  `Mib::from_raw` requires `unsafe`.
+- The raw string write functions `raw::write_str` and `raw::write_str_mib`
+  now require `unsafe`. String writes and updates return `EINVAL` for
+  values without a trailing NUL.
+
 - tikv-jemalloc-sys: the `background_threads` feature no longer puts
   `background_thread:true` into the default `malloc_conf` on targets that
   don't support background threads, which now include Apple targets. jemalloc

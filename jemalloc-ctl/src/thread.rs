@@ -4,7 +4,7 @@ use crate::error::Result;
 use crate::raw::{read, read_mib};
 
 option! {
-    allocatedp allocatedp_mib[ str: b"thread.allocatedp\0", non_str: 2 ] => *mut u64 |
+    allocatedp allocatedp_mib[ name: b"thread.allocatedp\0", mib: 2 ] => *mut u64 |
     ops:  |
     test: allocatedp_read_test |
     docs:
@@ -59,7 +59,7 @@ impl allocatedp_mib {
 }
 
 option! {
-    deallocatedp deallocatedp_mib[ str: b"thread.deallocatedp\0", non_str: 2 ] => *mut u64 |
+    deallocatedp deallocatedp_mib[ name: b"thread.deallocatedp\0", mib: 2 ] => *mut u64 |
     ops:  |
     test: deallocatedp_read_test |
     docs:

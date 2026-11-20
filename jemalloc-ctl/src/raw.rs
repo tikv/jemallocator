@@ -1,4 +1,4 @@
-//! Raw `unsafe` access to the `malloctl` API.
+//! Raw access to the `mallctl` API.
 
 use crate::error::{cvt, Result};
 use crate::{
@@ -62,10 +62,11 @@ pub fn name_to_mib(name: &[u8], mib: &mut [usize]) -> Result<()> {
 ///
 /// # Safety
 ///
-/// This function is `unsafe` because it is possible to use it to construct an
-/// invalid `T`, for example, by passing `T=bool` for a key returning `u8`. The
-/// sizes of `bool` and `u8` match, but `bool` cannot represent all values that
-/// `u8` can.
+/// `mib` must be valid for the running jemalloc instance. The key must
+/// treat `oldp` as a pure output buffer, whose contents are initially
+/// uninitialized. On success, it must fully initialize a valid `T`.
+/// Keys such as `arena.<i>.name` that require a caller-provided pointer
+/// in `oldp` need a direct `mallctlbymib` call instead.
 pub unsafe fn read_mib<T: Copy>(mib: &[usize]) -> Result<T> {
     let mut value = MaybeUninit::<T>::uninit();
     let mut len = mem::size_of::<T>();
@@ -86,10 +87,10 @@ pub unsafe fn read_mib<T: Copy>(mib: &[usize]) -> Result<T> {
 ///
 /// # Safety
 ///
-/// This function is `unsafe` because it is possible to use it to construct an
-/// invalid `T`, for example, by passing `T=bool` for a key returning `u8`. The
-/// sizes of `bool` and `u8` match, but `bool` cannot represent all values that
-/// `u8` can.
+/// The key must treat `oldp` as a pure output buffer, whose contents are
+/// initially uninitialized. On success, it must fully initialize a valid
+/// `T`. Keys such as `arena.<i>.name` that require a caller-provided
+/// pointer in `oldp` need a direct `mallctl` call instead.
 pub unsafe fn read<T: Copy>(name: &[u8]) -> Result<T> {
     validate_name(name);
 
@@ -113,10 +114,9 @@ pub unsafe fn read<T: Copy>(name: &[u8]) -> Result<T> {
 ///
 /// # Safety
 ///
-/// This function is `unsafe` because it is possible to use it to construct an
-/// invalid `T`, for example, by passing `T=u8` for a key expecting `bool`. The
-/// sizes of `bool` and `u8` match, but `bool` cannot represent all values that
-/// `u8` can.
+/// `mib` must be valid for the running jemalloc instance. `T` and `value`
+/// must satisfy the key's type and value requirements, including any
+/// requirements for pointers that jemalloc reads or retains.
 pub unsafe fn write_mib<T>(mib: &[usize], mut value: T) -> Result<()> {
     cvt(tikv_jemalloc_sys::mallctlbymib(
         mib.as_ptr(),
@@ -133,10 +133,8 @@ pub unsafe fn write_mib<T>(mib: &[usize], mut value: T) -> Result<()> {
 ///
 /// # Safety
 ///
-/// This function is `unsafe` because it is possible to use it to construct an
-/// invalid `T`, for example, by passing `T=u8` for a key expecting `bool`. The
-/// sizes of `bool` and `u8` match, but `bool` cannot represent all values that
-/// `u8` can.
+/// `T` and `value` must satisfy the key's type and value requirements,
+/// including any requirements for pointers that jemalloc reads or retains.
 pub unsafe fn write<T>(name: &[u8], mut value: T) -> Result<()> {
     validate_name(name);
 
@@ -150,17 +148,14 @@ pub unsafe fn write<T>(name: &[u8], mut value: T) -> Result<()> {
 }
 
 /// Uses the MIB `mib` as key to the _MALLCTL NAMESPACE_ and writes its `value`
-/// returning its previous value.
+/// returning the value reported by the key.
 ///
 /// The [`name_to_mib`] API translates a string of the key (e.g. `arenas.nbins`)
 /// to a `mib` (Management Information Base).
 ///
 /// # Safety
 ///
-/// This function is `unsafe` because it is possible to use it to construct an
-/// invalid `T`, for example, by passing `T=u8` for a key expecting `bool`. The
-/// sizes of `bool` and `u8` match, but `bool` cannot represent all values that
-/// `u8` can.
+/// The requirements of [`read_mib`] and [`write_mib`] both apply.
 pub unsafe fn update_mib<T: Copy>(mib: &[usize], mut value: T) -> Result<T> {
     let mut old_len = mem::size_of::<T>();
     let mut old_value = MaybeUninit::<T>::uninit();
@@ -177,14 +172,11 @@ pub unsafe fn update_mib<T: Copy>(mib: &[usize], mut value: T) -> Result<T> {
 }
 
 /// Uses the null-terminated string `name` as key to the _MALLCTL NAMESPACE_ and
-/// writes its `value` returning its previous value.
+/// writes its `value` and returns the value reported by the key.
 ///
 /// # Safety
 ///
-/// This function is `unsafe` because it is possible to use it to construct an
-/// invalid `T`, for example, by passing `T=u8` for a key expecting `bool`. The
-/// sizes of `bool` and `u8` match, but `bool` cannot represent all values that
-/// `u8` can.
+/// The requirements of [`read()`] and [`write()`] both apply.
 pub unsafe fn update<T>(name: &[u8], mut value: T) -> Result<T> {
     validate_name(name);
 
@@ -208,24 +200,9 @@ pub unsafe fn update<T>(name: &[u8], mut value: T) -> Result<T> {
 ///
 /// # Safety
 ///
-/// This function is unsafe because if the key does not return a pointer to a
-/// null-terminated string the behavior is undefined.
-///
-/// For example, a key for a `u64` value can be used to read a pointer on 64-bit
-/// platform, where this pointer will point to the address denoted by the `u64`s
-/// representation. Also, a key to a `*mut extent_hooks_t` will return a pointer
-/// that will not point to a null-terminated string.
-///
-/// This function needs to compute the length of the string by looking for the
-/// null-terminator: `\0`. This requires reading the memory behind the pointer.
-///
-/// If the pointer is invalid (e.g. because it was converted from a `u64` that
-/// does not represent a valid address), reading the string to look for `\0`
-/// will dereference a non-dereferenceable pointer, which is undefined behavior.
-///
-/// If the pointer is valid but it does not point to a null-terminated string,
-/// looking for `\0` will read garbage and might end up reading out-of-bounds,
-/// which is undefined behavior.
+/// The requirements of [`read_mib`] apply. On success, the key must return
+/// a pointer to an immutable NUL-terminated string valid for the entire
+/// program.
 pub unsafe fn read_str_mib(mib: &[usize]) -> Result<&'static [u8]> {
     let ptr: *const c_char = read_mib(mib)?;
     Ok(ptr2str(ptr))
@@ -236,49 +213,40 @@ pub unsafe fn read_str_mib(mib: &[usize]) -> Result<&'static [u8]> {
 /// The [`name_to_mib`] API translates a string of the key (e.g. `arenas.nbins`)
 /// to a `mib` (Management Information Base).
 ///
-/// # Panics
+/// # Safety
 ///
-/// If `value` is not a non-empty null-terminated string.
-pub fn write_str_mib(mib: &[usize], value: &'static [u8]) -> Result<()> {
-    assert!(!value.is_empty(), "value cannot be empty");
-    assert_eq!(*value.last().unwrap(), b'\0');
-    // This is safe because `value` will always point to a null-terminated
-    // string, which makes it safe for all key value types: pointers to
-    // null-terminated strings, pointers, pointer-sized integers, etc.
-    unsafe { write_mib(mib, value.as_ptr() as *const c_char) }
+/// `mib` must be valid for the running jemalloc instance. If the key
+/// supports writing, it must take a pointer to an immutable NUL-terminated
+/// string.
+///
+/// # Errors
+///
+/// Returns `EINVAL` if `value` lacks a trailing NUL.
+pub unsafe fn write_str_mib(
+    mib: &[usize],
+    value: &'static [u8],
+) -> Result<()> {
+    write_mib(mib, str_ptr(value)?)
 }
 
 /// Uses the MIB `mib` as key to the _MALLCTL NAMESPACE_ and writes its `value`
-/// returning its previous value.
+/// returning the value reported by the key.
 ///
 /// The [`name_to_mib`] API translates a string of the key (e.g. `arenas.nbins`)
 /// to a `mib` (Management Information Base).
 ///
 /// # Safety
 ///
-/// This function is unsafe because if the key does not return a pointer to a
-/// null-terminated string the behavior is undefined.
+/// The requirements of [`read_str_mib`] and [`write_str_mib`] both apply.
 ///
-/// For example, a key for a `u64` value can be used to read a pointer on 64-bit
-/// platform, where this pointer will point to the address denoted by the `u64`s
-/// representation. Also, a key to a `*mut extent_hooks_t` will return a pointer
-/// that will not point to a null-terminated string.
+/// # Errors
 ///
-/// This function needs to compute the length of the string by looking for the
-/// null-terminator: `\0`. This requires reading the memory behind the pointer.
-///
-/// If the pointer is invalid (e.g. because it was converted from a `u64` that
-/// does not represent a valid address), reading the string to look for `\0`
-/// will dereference a non-dereferenceable pointer, which is undefined behavior.
-///
-/// If the pointer is valid but it does not point to a null-terminated string,
-/// looking for `\0` will read garbage and might end up reading out-of-bounds,
-/// which is undefined behavior.
+/// Returns `EINVAL` if `value` lacks a trailing NUL.
 pub unsafe fn update_str_mib(
     mib: &[usize],
     value: &'static [u8],
 ) -> Result<&'static [u8]> {
-    let ptr: *const c_char = update_mib(mib, value.as_ptr() as *const c_char)?;
+    let ptr = update_mib(mib, str_ptr(value)?)?;
     Ok(ptr2str(ptr))
 }
 
@@ -287,24 +255,9 @@ pub unsafe fn update_str_mib(
 ///
 /// # Safety
 ///
-/// This function is unsafe because if the key does not return a pointer to a
-/// null-terminated string the behavior is undefined.
-///
-/// For example, a key for a `u64` value can be used to read a pointer on 64-bit
-/// platform, where this pointer will point to the address denoted by the `u64`s
-/// representation. Also, a key to a `*mut extent_hooks_t` will return a pointer
-/// that will not point to a null-terminated string.
-///
-/// This function needs to compute the length of the string by looking for the
-/// null-terminator: `\0`. This requires reading the memory behind the pointer.
-///
-/// If the pointer is invalid (e.g. because it was converted from a `u64` that
-/// does not represent a valid address), reading the string to look for `\0`
-/// will dereference a non-dereferenceable pointer, which is undefined behavior.
-///
-/// If the pointer is valid but it does not point to a null-terminated string,
-/// looking for `\0` will read garbage and might end up reading out-of-bounds,
-/// which is undefined behavior.
+/// The requirements of [`read()`] apply. On success, the key must return
+/// a pointer to an immutable NUL-terminated string valid for the entire
+/// program.
 pub unsafe fn read_str(name: &[u8]) -> Result<&'static [u8]> {
     let ptr: *const c_char = read(name)?;
     Ok(ptr2str(ptr))
@@ -312,62 +265,53 @@ pub unsafe fn read_str(name: &[u8]) -> Result<&'static [u8]> {
 
 /// Uses the null-terminated string `name` as key to the _MALLCTL NAMESPACE_ and
 /// writes its `value`.
-pub fn write_str(name: &[u8], value: &'static [u8]) -> Result<()> {
-    assert!(!value.is_empty(), "value cannot be empty");
-    assert_eq!(*value.last().unwrap(), b'\0');
-    // This is safe because `value` will always point to a null-terminated
-    // string, which makes it safe for all key value types: pointers to
-    // null-terminated strings, pointers, pointer-sized integers, etc.
-    unsafe { write(name, value.as_ptr() as *const c_char) }
-}
-
-/// Uses the null-terminated string `name` as key to the _MALLCTL NAMESPACE_ and
-/// writes its `value` returning its previous value.
 ///
 /// # Safety
 ///
-/// This function is unsafe because if the key does not return a pointer to a
-/// null-terminated string the behavior is undefined.
+/// If the key supports writing, it must take a pointer to an immutable
+/// NUL-terminated string.
 ///
-/// For example, a key for a `u64` value can be used to read a pointer on 64-bit
-/// platform, where this pointer will point to the address denoted by the `u64`s
-/// representation. Also, a key to a `*mut extent_hooks_t` will return a pointer
-/// that will not point to a null-terminated string.
+/// # Errors
 ///
-/// This function needs to compute the length of the string by looking for the
-/// null-terminator: `\0`. This requires reading the memory behind the pointer.
+/// Returns `EINVAL` if `value` lacks a trailing NUL.
+pub unsafe fn write_str(name: &[u8], value: &'static [u8]) -> Result<()> {
+    write(name, str_ptr(value)?)
+}
+
+/// Uses the null-terminated string `name` as key to the _MALLCTL NAMESPACE_ and
+/// writes its `value` and returns the value reported by the key.
 ///
-/// If the pointer is invalid (e.g. because it was converted from a `u64` that
-/// does not represent a valid address), reading the string to look for `\0`
-/// will dereference a non-dereferenceable pointer, which is undefined behavior.
+/// # Safety
 ///
-/// If the pointer is valid but it does not point to a null-terminated string,
-/// looking for `\0` will read garbage and might end up reading out-of-bounds,
-/// which is undefined behavior.
+/// The requirements of [`read_str`] and [`write_str`] both apply.
+///
+/// # Errors
+///
+/// Returns `EINVAL` if `value` lacks a trailing NUL.
 pub unsafe fn update_str(
     name: &[u8],
     value: &'static [u8],
 ) -> Result<&'static [u8]> {
-    let ptr: *const c_char = update(name, value.as_ptr() as *const c_char)?;
+    let ptr = update(name, str_ptr(value)?)?;
     Ok(ptr2str(ptr))
 }
 
-/// Converts a non-empty null-terminated character string at `ptr` into a valid
-/// null-terminated UTF-8 string.
+fn str_ptr(value: &'static [u8]) -> Result<*const c_char> {
+    if value.last() != Some(&0) {
+        cvt(libc::EINVAL)?;
+    }
+    Ok(value.as_ptr().cast())
+}
+
+/// Borrows a NUL-terminated character string, including the NUL byte.
 ///
 /// # Panics
-///
 /// If `ptr.is_null()`.
-///
 /// # Safety
-///
-/// If `ptr` does not point to a null-terminated character string the behavior
-/// is undefined.
+/// `ptr` must point to an immutable NUL-terminated string valid for the
+/// entire program.
 unsafe fn ptr2str(ptr: *const c_char) -> &'static [u8] {
-    assert!(
-        !ptr.is_null(),
-        "attempt to convert a null-ptr to a UTF-8 string"
-    );
+    assert!(!ptr.is_null(), "attempt to borrow a null string pointer");
     let len = libc::strlen(ptr);
     slice::from_raw_parts(ptr as *const u8, len + 1)
 }
