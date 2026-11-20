@@ -7,6 +7,9 @@
   string reads and updates return `&CStr`. `Name::mib()` infers the MIB
   length from the allocator's lookup.
 - Raw string writes and `ThreadLocal::get` now require `unsafe`.
+- The stats printing APIs require `use_std`. `stats_print` omits general
+  configuration. Use the unsafe `stats_print_with_environment` for full
+  output. Runtime metrics require `stats` with the bundled jemalloc.
 - tikv-jemalloc-sys: the `background_threads` feature no longer puts
   `background_thread:true` into the default `malloc_conf` on targets that
   don't support background threads, which now include Apple targets. jemalloc

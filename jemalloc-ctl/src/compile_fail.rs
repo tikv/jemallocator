@@ -41,3 +41,13 @@
 //! let counter = allocatedp::read().unwrap();
 //! let _ = counter.get();
 //! ```
+
+#[cfg(feature = "use_std")]
+/// Printing allocator statistics with environment data requires `unsafe`.
+///
+/// ```compile_fail
+/// use tikv_jemalloc_ctl::stats_print::{stats_print_with_environment, Options};
+///
+/// stats_print_with_environment(Vec::new(), Options::default()).unwrap();
+/// ```
+mod stats_print {}
