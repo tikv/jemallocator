@@ -4,7 +4,8 @@
   `Name::new` replaces `AsName` and requires `unsafe`. Use `Mib<T, N>` in
   place of `MibStr` for string keys. MIB indices are read-only, and
   `Mib::from_raw` requires `unsafe`.
-- The raw string write functions `raw::write_str` and `raw::write_str_mib`
+- Named mallctl calls reject negative index components with `EINVAL`.
+  The raw string write functions `raw::write_str` and `raw::write_str_mib`
   now require `unsafe`. String writes and updates return `EINVAL` for
   values without a trailing NUL.
 
