@@ -8,6 +8,8 @@
   The raw string write functions `raw::write_str` and `raw::write_str_mib`
   now require `unsafe`. String writes and updates return `EINVAL` for
   values without a trailing NUL.
+- `ThreadLocal::get` now requires `unsafe` because cached counter pointers
+  are valid only while jemalloc's thread data is live.
 
 - tikv-jemalloc-sys: the `background_threads` feature no longer puts
   `background_thread:true` into the default `malloc_conf` on targets that
