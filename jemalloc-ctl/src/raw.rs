@@ -119,6 +119,11 @@ pub unsafe fn read<T: Copy>(name: &[u8]) -> Result<T> {
 /// `mib` must be valid for the running jemalloc instance. `T` and `value`
 /// must satisfy the key's type and value requirements, including any
 /// requirements for pointers that jemalloc reads or retains.
+/// The caller must also meet the key's concurrency and process-state
+/// requirements. For example, writing `prof.reset` requires exclusive access
+/// to profiling sampling state, which allocations on other threads can read
+/// even when `prof.active` is `false`. With the bundled jemalloc, use the
+/// value limit documented for `profiling::prof_reset`.
 pub unsafe fn write_mib<T>(mib: &[usize], mut value: T) -> Result<()> {
     cvt(tikv_jemalloc_sys::mallctlbymib(
         mib.as_ptr(),
@@ -131,12 +136,17 @@ pub unsafe fn write_mib<T>(mib: &[usize], mut value: T) -> Result<()> {
 }
 
 /// Uses the null-terminated string `name` as the key to the _MALLCTL NAMESPACE_
-/// and writes it `value`
+/// and writes its `value`.
 ///
 /// # Safety
 ///
 /// `T` and `value` must satisfy the key's type and value requirements,
 /// including any requirements for pointers that jemalloc reads or retains.
+/// The caller must also meet the key's concurrency and process-state
+/// requirements. For example, writing `prof.reset` requires exclusive access
+/// to profiling sampling state, which allocations on other threads can read
+/// even when `prof.active` is `false`. With the bundled jemalloc, use the
+/// value limit documented for `profiling::prof_reset`.
 pub unsafe fn write<T>(name: &[u8], mut value: T) -> Result<()> {
     validate_name(name)?;
 
@@ -217,9 +227,8 @@ pub unsafe fn read_str_mib(mib: &[usize]) -> Result<&'static [u8]> {
 ///
 /// # Safety
 ///
-/// `mib` must be valid for the running jemalloc instance. If the key
-/// supports writing, it must take a pointer to an immutable NUL-terminated
-/// string.
+/// The requirements of [`write_mib`] apply. If the key supports writing,
+/// it must take a pointer to an immutable NUL-terminated string.
 ///
 /// # Errors
 ///
@@ -270,8 +279,8 @@ pub unsafe fn read_str(name: &[u8]) -> Result<&'static [u8]> {
 ///
 /// # Safety
 ///
-/// If the key supports writing, it must take a pointer to an immutable
-/// NUL-terminated string.
+/// The requirements of [`write()`] apply. If the key supports writing,
+/// it must take a pointer to an immutable NUL-terminated string.
 ///
 /// # Errors
 ///

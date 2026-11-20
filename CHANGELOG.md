@@ -15,6 +15,10 @@
   jemalloc's cached configuration strings remain valid throughout the call.
   With the vendored jemalloc, enable `stats` for a report with runtime
   metrics. With `use_std` alone, the runtime report is empty.
+- `profiling::prof_reset` requires `unsafe` and must be synchronized with
+  other profiling state accesses, including allocations on other threads.
+  It returns `EINVAL` above `PROF_RESET_MAX_LG_SAMPLE` (30 on 32-bit targets,
+  48 on 64-bit targets).
 - tikv-jemalloc-sys: the `background_threads` feature no longer puts
   `background_thread:true` into the default `malloc_conf` on targets that
   don't support background threads, which now include Apple targets. jemalloc
