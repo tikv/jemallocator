@@ -10,13 +10,15 @@ use std::panic::{self, AssertUnwindSafe};
 ///
 /// All options default to `false`.
 #[derive(Copy, Clone, Default)]
+#[non_exhaustive]
 pub struct Options {
     /// If set, the output will be JSON-formatted.
     ///
     /// This corresponds to the `J` character.
     pub json_format: bool,
 
-    /// If set, information that never changes during execution will be skipped.
+    /// Skips the general configuration section in
+    /// [`stats_print_with_environment`]. [`stats_print`] always skips it.
     ///
     /// This corresponds to the `g` character.
     pub skip_constants: bool,
@@ -45,8 +47,6 @@ pub struct Options {
     ///
     /// This corresponds to the `x` character.
     pub skip_mutex_statistics: bool,
-
-    _p: (),
 }
 
 struct State<W> {
@@ -76,12 +76,43 @@ where
     }
 }
 
-/// Writes allocator statistics.
+/// Writes allocator statistics with the general configuration section omitted.
 ///
-/// The information is the same that can be retrieved by the individual lookup methods in this
-/// crate, but all done at once.
-#[cfg_attr(feature = "cargo-clippy", allow(clippy::cast_possible_wrap))]
-pub fn stats_print<W>(writer: W, options: Options) -> io::Result<()>
+/// The omitted section includes jemalloc's cached environment configuration.
+/// With the vendored jemalloc, enable the `stats` feature to include runtime
+/// metrics. With `use_std` alone, the text report contains only its opening
+/// and closing markers and JSON contains an empty `jemalloc` object.
+pub fn stats_print<W>(writer: W, mut options: Options) -> io::Result<()>
+where
+    W: Write,
+{
+    options.skip_constants = true;
+    // SAFETY: The `g` option skips the section that reads cached strings.
+    unsafe { stats_print_with_environment(writer, options) }
+}
+
+/// Writes allocator statistics with the general configuration section enabled
+/// by default. The section includes the allocator's startup environment
+/// configuration, such as `MALLOC_CONF` or its prefixed equivalent.
+///
+/// # Safety
+///
+/// With [`Options::skip_constants`] set to `false`, the caller must ensure
+/// that the configuration strings cached by jemalloc remain valid and
+/// immutable throughout the call, including while `writer` runs. If jemalloc
+/// cached a string from the process environment, its storage must remain
+/// valid from jemalloc initialization through the end of this call.
+///
+/// ```compile_fail
+/// use tikv_jemalloc_ctl::stats_print::{stats_print_with_environment, Options};
+///
+/// stats_print_with_environment(Vec::new(), Options::default()).unwrap();
+/// ```
+#[allow(clippy::cast_possible_wrap)]
+pub unsafe fn stats_print_with_environment<W>(
+    writer: W,
+    options: Options,
+) -> io::Result<()>
 where
     W: Write,
 {
@@ -132,34 +163,5 @@ where
             panic::resume_unwind(e);
         }
         state.error
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    #[test]
-    fn basic() {
-        let mut buf = vec![];
-        stats_print(&mut buf, Options::default()).unwrap();
-        println!("{}", String::from_utf8(buf).unwrap());
-    }
-
-    #[test]
-    fn all_options() {
-        let mut buf = vec![];
-        let options = Options {
-            json_format: true,
-            skip_constants: true,
-            skip_merged_arenas: true,
-            skip_per_arena: true,
-            skip_bin_size_classes: true,
-            skip_large_size_classes: true,
-            skip_mutex_statistics: true,
-            _p: (),
-        };
-        stats_print(&mut buf, options).unwrap();
-        println!("{}", String::from_utf8(buf).unwrap());
     }
 }

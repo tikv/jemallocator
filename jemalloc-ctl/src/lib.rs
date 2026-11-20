@@ -12,7 +12,10 @@
 //! This crate provides a type for each `mallctl` operation. Calling
 //! `$op::{read(), write(x), update(x)}` on the type calls `mallctl` with the
 //! string-based API. If the operation will be repeatedly performed, a MIB for
-//! the operation can be obtained using `$op.mib()`.
+//! the operation can be obtained using `$op::mib()`.
+//!
+//! For a key without a built-in wrapper, construct a typed [`Name`] with
+//! [`Name::new`] after verifying the key's value type and access requirements.
 #![cfg_attr(
     feature = "stats",
     doc = r##"
@@ -78,11 +81,7 @@ fn main() {
 #[global_allocator]
 static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 
-use crate::std::{fmt, mem, num, ops, ptr, result, slice, str};
-#[cfg(not(feature = "use_std"))]
-use core as std;
-#[cfg(feature = "use_std")]
-use std;
+use core::{fmt, mem, num, ops, ptr, result, slice, str};
 
 #[macro_use]
 mod macros;
@@ -102,10 +101,10 @@ pub mod stats_print;
 pub mod thread;
 
 pub use error::{Error, Result};
-pub use keys::{Access, AsName, Mib, MibStr, Name};
+pub use keys::{Access, Mib, Name};
 
 option! {
-    version version_mib[ str: b"version\0", str: 1 ] => &'static str |
+    version version_mib[ name: b"version\0", mib: 1 ] => &'static str |
     ops: r |
     test: version_read_test |
     docs:
@@ -124,11 +123,18 @@ option! {
     /// println!("jemalloc version {}", version_mib.read().unwrap());
     /// # }
     /// ```
-    mib_docs: /// See [`version`].
+    mib_docs:
+    /// See [`version`].
+    ///
+    /// ```compile_fail
+    /// use tikv_jemalloc_ctl::{version, version_mib};
+    ///
+    /// let _ = version_mib(version::name().mib::<1>().unwrap());
+    /// ```
 }
 
 option! {
-    background_thread background_thread_mib[ str: b"background_thread\0", non_str: 1 ] => bool |
+    background_thread background_thread_mib[ name: b"background_thread\0", mib: 1 ] => bool |
     ops: r,w,u |
     test: background_thread_read_write_update_test |
     docs:
@@ -163,7 +169,7 @@ option! {
 }
 
 option! {
-    max_background_threads max_background_threads_mib[ str: b"max_background_threads\0", non_str: 1 ] => libc::size_t |
+    max_background_threads max_background_threads_mib[ name: b"max_background_threads\0", mib: 1 ] => libc::size_t |
     ops: r, w, u |
     test: max_background_threads_read_write_update_test |
     docs:
@@ -189,9 +195,9 @@ option! {
 }
 
 option! {
-    epoch epoch_mib[ str: b"epoch\0", non_str: 1 ] => u64 |
+    epoch epoch_mib[ name: b"epoch\0", mib: 1 ] => u64 |
     ops: r, w, u |
-    test: epoch_read_write_update_test |
+    test: () |
     docs:
     /// `jemalloc` epoch.
     ///

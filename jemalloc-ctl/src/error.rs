@@ -63,12 +63,7 @@ impl StdError for Error {
 
 fn description(code: c_int) -> Option<&'static str> {
     match code {
-        libc::EINVAL => Some(
-            "`newp` is not `NULL`, and `newlen` is too large or too \
-             small. Alternatively, `*oldlenp` is too large or too \
-             small; in this case as much data as possible are read \
-             despite the error.",
-        ),
+        libc::EINVAL => Some("Invalid mallctl argument or buffer length."),
         libc::ENOENT => {
             Some("`name` or `mib` specifies an unknown/invalid value.")
         }

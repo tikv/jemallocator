@@ -1,5 +1,24 @@
 # Unreleased
 
+- `tikv-jemalloc-ctl` now ties mallctl names and MIBs to their value types.
+  `Name::new` replaces `AsName` and requires `unsafe`. Use `Mib<T, N>` in
+  place of `MibStr` for string keys. MIB indices are read-only, and
+  `Mib::from_raw` requires `unsafe`.
+- Named mallctl calls reject negative index components with `EINVAL`.
+  The raw string write functions `raw::write_str` and `raw::write_str_mib`
+  now require `unsafe`. String writes and updates return `EINVAL` for
+  values without a trailing NUL.
+- `ThreadLocal::get` now requires `unsafe` because cached counter pointers
+  are valid only while jemalloc's thread data is live.
+- Safe `stats_print` always omits the general configuration section. The
+  new unsafe `stats_print_with_environment` preserves full output when
+  jemalloc's cached configuration strings remain valid throughout the call.
+  With the vendored jemalloc, enable `stats` for a report with runtime
+  metrics. With `use_std` alone, the runtime report is empty.
+- `profiling::prof_reset` requires `unsafe` and must be synchronized with
+  other profiling state accesses, including allocations on other threads.
+  It returns `EINVAL` above `PROF_RESET_MAX_LG_SAMPLE` (30 on 32-bit targets,
+  48 on 64-bit targets).
 - tikv-jemalloc-sys: the `background_threads` feature no longer puts
   `background_thread:true` into the default `malloc_conf` on targets that
   don't support background threads, which now include Apple targets. jemalloc
