@@ -3,7 +3,7 @@
 //! These settings are controlled by the `MALLOC_CONF` environment variable.
 
 option! {
-    abort abort_mib[ str: b"opt.abort\0", non_str: 2 ] => bool |
+    abort abort_mib[ name: b"opt.abort\0" ] => bool |
     ops: r |
     test: abort_read_test |
     docs:
@@ -28,7 +28,7 @@ option! {
 }
 
 option! {
-    dss dss_mib[ str: b"opt.dss\0", str: 2 ] => &'static str |
+    dss dss_mib[ name: b"opt.dss\0" ] => &'static str |
     ops: r |
     test: dss_read_test |
     docs:
@@ -56,7 +56,7 @@ option! {
 }
 
 option! {
-    narenas narenas_mib[ str: b"opt.narenas\0", non_str: 2 ] => libc::c_uint |
+    narenas narenas_mib[ name: b"opt.narenas\0" ] => libc::c_uint |
     ops: r |
     test: narenas_read_test |
     docs:
@@ -82,7 +82,7 @@ option! {
 }
 
 option! {
-    junk junk_mib[ str: b"opt.junk\0", str: 2 ] => &'static str |
+    junk junk_mib[ name: b"opt.junk\0" ] => &'static str |
     ops: r |
     test: junk_read_test |
     docs:
@@ -117,7 +117,7 @@ option! {
 }
 
 option! {
-    zero zero_mib[ str: b"opt.zero\0", non_str: 2 ] => bool |
+    zero zero_mib[ name: b"opt.zero\0" ] => bool |
     ops: r |
     test: zero_read_test |
     docs:
@@ -146,7 +146,7 @@ option! {
 }
 
 option! {
-    tcache tcache_mib[ str: b"opt.tcache\0", non_str: 2 ] => bool |
+    tcache tcache_mib[ name: b"opt.tcache\0" ] => bool |
     ops: r |
     test: tcache_read_test |
     docs:
@@ -172,7 +172,7 @@ option! {
 }
 
 option! {
-    tcache_max tcache_max_mib[ str: b"opt.tcache_max\0", non_str: 2 ] => libc::size_t |
+    tcache_max tcache_max_mib[ name: b"opt.tcache_max\0" ] => libc::size_t |
     ops: r |
     test: tcache_max_read_test |
     docs:
@@ -198,7 +198,7 @@ option! {
 }
 
 option! {
-    background_thread background_thread_mib[ str: b"opt.background_thread\0", non_str: 2 ] => bool |
+    background_thread background_thread_mib[ name: b"opt.background_thread\0" ] => bool |
     ops: r |
     test: background_thread_read_test |
     docs:

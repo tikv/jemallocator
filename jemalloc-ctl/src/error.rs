@@ -15,13 +15,26 @@ impl NonZeroT for i64 {
 
 pub type NonZeroCInt = <c_int as NonZeroT>::T;
 
-/// Errors of the `tikv_jemalloc_sys::mallct`-family of functions.
+/// Errors from the `mallctl` functions and their Rust wrappers.
 ///
-/// The `jemalloc-sys` crate: `mallctl`, `mallctlnametomib`, and `mallctlbymib``
-/// functions return `0` on success; otherwise they return an error value.
+/// The `jemalloc-sys` functions `mallctl`, `mallctlnametomib`, and
+/// `mallctlbymib` return `0` on success and an error code on failure.
 #[repr(transparent)]
 #[derive(Copy, Clone, PartialEq)]
 pub struct Error(NonZeroCInt);
+
+impl Error {
+    pub(crate) const INVALID_ARGUMENT: Self =
+        match NonZeroCInt::new(libc::EINVAL as _) {
+            Some(errno) => Self(errno),
+            None => panic!("EINVAL must be nonzero"),
+        };
+    pub(crate) const INVALID_UTF8: Self =
+        match NonZeroCInt::new(libc::EILSEQ as _) {
+            Some(errno) => Self(errno),
+            None => panic!("EILSEQ must be nonzero"),
+        };
+}
 
 /// Result type
 pub type Result<T> = result::Result<T, Error>;
@@ -63,12 +76,8 @@ impl StdError for Error {
 
 fn description(code: c_int) -> Option<&'static str> {
     match code {
-        libc::EINVAL => Some(
-            "`newp` is not `NULL`, and `newlen` is too large or too \
-             small. Alternatively, `*oldlenp` is too large or too \
-             small; in this case as much data as possible are read \
-             despite the error.",
-        ),
+        libc::EINVAL => Some("Invalid mallctl argument or buffer length."),
+        libc::EILSEQ => Some("mallctl returned a string with invalid UTF-8."),
         libc::ENOENT => {
             Some("`name` or `mib` specifies an unknown/invalid value.")
         }

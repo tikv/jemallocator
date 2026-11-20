@@ -1,6 +1,12 @@
 # Unreleased
 
 - Raise the minimum supported Rust version to 1.72.0.
+- `tikv-jemalloc-ctl` adds typed mallctl names and MIBs and tightens input
+  validation. Custom handles require `unsafe` and `Name::new` returns a
+  `Result`. Typed handles support `&'static CStr` as a value type. Raw
+  string reads and updates return `&CStr`. `Name::mib()` infers the MIB
+  length from the allocator's lookup.
+- Raw string writes now require `unsafe`.
 - tikv-jemalloc-sys: the `background_threads` feature no longer puts
   `background_thread:true` into the default `malloc_conf` on targets that
   don't support background threads, which now include Apple targets. jemalloc
@@ -12,12 +18,8 @@
 - tikv-jemalloc-ctl: expose the `stats.pinned` mallctl added in jemalloc 5.4.0
   via `stats::pinned`.
 - Remove the dependency on the unmaintained `paste` crate:
-  - `tikv-jemalloc-ctl`: key-generation macros no longer derive
-    identifiers at compile time; `option!` takes the companion MIB
-    type name explicitly (`epoch epoch_mib[ str: ..., non_str: 1 ]
-    => u64 |`) together with the generated test name (`test:
-    epoch_read_write_update_test |`). Generated names and public
-    API are unchanged.
+  - `tikv-jemalloc-ctl`: key-generation macros take the companion MIB type
+    name explicitly.
   - the nightly-gated allocator benchmarks now use std's own
     successor mechanism, the unstable `macro_metavar_expr_concat`
     feature (`${ concat(prefix, $size, suffix) }`), replacing both
