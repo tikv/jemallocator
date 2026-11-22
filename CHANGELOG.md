@@ -1,5 +1,6 @@
 # Unreleased
 
+- Raise the minimum supported Rust version to 1.72.0.
 - tikv-jemalloc-sys: the `background_threads` feature no longer puts
   `background_thread:true` into the default `malloc_conf` on targets that
   don't support background threads, which now include Apple targets. jemalloc
