@@ -32,6 +32,12 @@ libc = { version = "0.2", default-features = false }
 [dev-dependencies]
 tikv-jemallocator = { path = "../jemallocator", version = "0.7.0" }
 
+[[test]]
+name = "profiling_hooks"
+# Reset profiling while no test harness threads can allocate.
+harness = false
+required-features = ["profiling", "use_std"]
+
 [features]
 default = []
 stats = ["tikv-jemalloc-sys/stats"]

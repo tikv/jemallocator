@@ -224,25 +224,54 @@ option! {
     docs:
     /// Current log base 2 of the mean number of bytes between samples.
     ///
-    /// Initialised from [`lg_prof_sample`] and updated by [`prof_reset`].
+    /// Initialised from [`lg_prof_sample`] and updated by [`prof_reset`],
+    /// whose caller must exclude concurrent reads of this key.
     mib_docs: /// See [`lg_sample`].
 }
 
+/// Largest log sample interval applied by [`prof_reset`].
+///
+/// This is 30 on 32-bit targets and 48 on 64-bit targets.
+pub const PROF_RESET_MAX_LG_SAMPLE: libc::size_t = if usize::BITS == 32 {
+    // jemalloc rounds size / (1 - exp(-size / rate)) before storing it as
+    // size_t. The exact quotient is bounded by size + rate. Size classes
+    // below 2^31 and a rate at most 2^30 leave room for rounding on 32-bit.
+    30
+} else {
+    // Keep 1 - exp(-size / rate) well above the rounding error near 1.
+    48
+};
+
 /// Resets `jemalloc`'s heap profile sample accumulators and, going forward,
 /// draws sample intervals from a geometric distribution with a mean of
-/// `2^new_lg_sample` bytes of allocation activity (values `>= 64` are clamped
-/// to `63`). Sampling still requires `prof.active` and `thread.prof.active`.
+/// `2^new_lg_sample` bytes of allocation activity. Values above
+/// [`PROF_RESET_MAX_LG_SAMPLE`] are clamped to that limit to keep jemalloc's
+/// shifts and floating-point conversions to `size_t` in range when rebuilding
+/// its sampling table. Sampling still requires `prof.active` and
+/// `thread.prof.active`.
 ///
 /// Corresponds to `prof.reset`, which is write-only: unlike most keys in
 /// this module, there is no matching `read()`/`update()`.
 ///
 /// # Errors
 ///
-/// Returns an error (`ENOENT`) if `opt.prof` is `false` at runtime. The
-/// `profiling` feature enables profiling support but does not set `opt.prof`;
-/// configure `prof:true`, for example via `JEMALLOC_SYS_WITH_MALLOC_CONF` at
-/// build time.
-pub fn prof_reset(new_lg_sample: libc::size_t) -> crate::error::Result<()> {
+/// Returns `ENOENT` if `opt.prof` is `false` at runtime. The `profiling`
+/// feature enables profiling support but does not set `opt.prof`. For example,
+/// set `JEMALLOC_SYS_WITH_MALLOC_CONF` to `prof:true` at build time.
+///
+/// # Safety
+///
+/// Synchronize the reset with every other access to jemalloc's profiling
+/// sampling state, including other resets, reads of [`lg_sample`], and
+/// allocations and deallocations on other threads. Even when [`prof_active`]
+/// is `false`, allocations can read the sampling interval and freeing a
+/// previously sampled allocation can read the sampling table.
+/// A caller can ensure exclusive access by resetting before other threads
+/// begin using jemalloc and while jemalloc's background threads are stopped.
+pub unsafe fn prof_reset(
+    new_lg_sample: libc::size_t,
+) -> crate::error::Result<()> {
+    let new_lg_sample = new_lg_sample.min(PROF_RESET_MAX_LG_SAMPLE);
     unsafe { crate::raw::write(b"prof.reset\0", new_lg_sample) }
 }
 
@@ -400,105 +429,4 @@ pub unsafe extern "C" fn noop_prof_backtrace_hook(
     _max_length: c_uint,
 ) {
     *backtrace_length = 0;
-}
-
-// Heap-allocates to force samples, so this needs a real allocator (`use_std`).
-#[cfg(all(test, feature = "use_std"))]
-mod hook_tests {
-    use super::*;
-    use std::sync::atomic::{AtomicUsize, Ordering};
-
-    static SAMPLE_HOOK_CALLS: AtomicUsize = AtomicUsize::new(0);
-    static SAMPLE_FREE_HOOK_CALLS: AtomicUsize = AtomicUsize::new(0);
-    static SAMPLE_BACKTRACE_LENGTH: AtomicUsize = AtomicUsize::new(usize::MAX);
-
-    unsafe extern "C" fn counting_sample_hook(
-        _ptr: *const c_void,
-        _size: libc::size_t,
-        _backtrace: *mut *mut c_void,
-        backtrace_length: c_uint,
-        _usable_size: libc::size_t,
-    ) {
-        SAMPLE_BACKTRACE_LENGTH
-            .store(backtrace_length as usize, Ordering::SeqCst);
-        SAMPLE_HOOK_CALLS.fetch_add(1, Ordering::SeqCst);
-    }
-
-    unsafe extern "C" fn counting_sample_free_hook(
-        _ptr: *const c_void,
-        _usable_size: libc::size_t,
-    ) {
-        SAMPLE_FREE_HOOK_CALLS.fetch_add(1, Ordering::SeqCst);
-    }
-
-    // Exercises the whole hook contract end-to-end against real `jemalloc`
-    // ctls: activates profiling, resets the sampler to catch every
-    // allocation, installs counting hooks, allocates/frees, and asserts both
-    // hooks actually fired before restoring prior state.
-    #[test]
-    fn sample_and_sample_free_hooks_fire() {
-        // Requires `opt.prof`; see the `profiling` feature docs. The CI job
-        // for this test bakes `prof:true` via `JEMALLOC_SYS_WITH_MALLOC_CONF`.
-        if !prof::read().unwrap() {
-            return;
-        }
-        let was_active = prof_active::update(false).unwrap();
-        let prev_lg_sample = lg_sample::read().unwrap();
-        SAMPLE_BACKTRACE_LENGTH.store(usize::MAX, Ordering::SeqCst);
-        // lg_sample: 0 => average one sample per byte, i.e. every allocation.
-        // `jemalloc` only recomputes each thread's next sample distance
-        // (from the new `lg_sample`) once the current, already-primed
-        // distance (drawn under whatever `lg_sample` was in effect before
-        // this call, e.g. the crate's default of 512 KiB) has been
-        // exhausted, so the very next allocation isn't guaranteed to sample
-        // yet. Only allocations after that first one are.
-        prof_reset(0).unwrap();
-        let prev_backtrace =
-            unsafe { set_prof_backtrace_hook(noop_prof_backtrace_hook) }
-                .unwrap()
-                .expect("jemalloc had no previous backtrace hook");
-        let prev_sample =
-            unsafe { set_prof_sample_hook(Some(counting_sample_hook)) }
-                .unwrap();
-        let prev_sample_free = unsafe {
-            set_prof_sample_free_hook(Some(counting_sample_free_hook))
-        }
-        .unwrap();
-        prof_active::write(true).unwrap();
-
-        // Warm up past any sample distance primed under the previous
-        // `lg_sample`. The default's geometric interval can reach ~18 MiB, so
-        // burn well past that before checking for samples.
-        for _ in 0..32 {
-            drop(Box::new([0u8; 1024 * 1024]));
-        }
-
-        let before_sample = SAMPLE_HOOK_CALLS.load(Ordering::SeqCst);
-        let before_free = SAMPLE_FREE_HOOK_CALLS.load(Ordering::SeqCst);
-        for _ in 0..16 {
-            drop(Box::new([0u8; 4096]));
-            if SAMPLE_HOOK_CALLS.load(Ordering::SeqCst) > before_sample
-                && SAMPLE_FREE_HOOK_CALLS.load(Ordering::SeqCst) > before_free
-            {
-                break;
-            }
-        }
-
-        prof_active::write(false).unwrap();
-        unsafe { set_prof_sample_hook(prev_sample) }.unwrap();
-        unsafe { set_prof_sample_free_hook(prev_sample_free) }.unwrap();
-        unsafe { set_prof_backtrace_hook(prev_backtrace) }.unwrap();
-        prof_reset(prev_lg_sample).unwrap();
-        prof_active::write(was_active).unwrap();
-
-        assert!(
-            SAMPLE_HOOK_CALLS.load(Ordering::SeqCst) > before_sample,
-            "prof_sample hook did not fire after warm-up with lg_sample=0"
-        );
-        assert!(
-            SAMPLE_FREE_HOOK_CALLS.load(Ordering::SeqCst) > before_free,
-            "prof_sample_free hook did not fire after freeing sampled allocations"
-        );
-        assert_eq!(SAMPLE_BACKTRACE_LENGTH.load(Ordering::SeqCst), 0);
-    }
 }

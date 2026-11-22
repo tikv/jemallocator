@@ -144,6 +144,12 @@ pub(crate) unsafe fn read_cstr<T: Copy>(name: &CStr) -> Result<T> {
 /// `mib` must be valid for the running jemalloc instance. `T` and `value`
 /// must satisfy the key's type and value requirements, including any
 /// requirements for pointers that jemalloc reads or retains.
+/// The caller must also meet the key's concurrency and process-state
+/// requirements. For example, writing `prof.reset` requires exclusive access
+/// to profiling sampling state. Other threads can read that state when they
+/// allocate or free memory, even when `prof.active` is `false`. For the bundled
+/// jemalloc, the caller must bound the value by the limit documented for
+/// `profiling::prof_reset`.
 pub unsafe fn write_mib<T>(mib: &[usize], mut value: T) -> Result<()> {
     cvt(tikv_jemalloc_sys::mallctlbymib(
         mib.as_ptr(),
@@ -162,6 +168,12 @@ pub unsafe fn write_mib<T>(mib: &[usize], mut value: T) -> Result<()> {
 ///
 /// `T` and `value` must satisfy the key's type and value requirements,
 /// including any requirements for pointers that jemalloc reads or retains.
+/// The caller must also meet the key's concurrency and process-state
+/// requirements. For example, writing `prof.reset` requires exclusive access
+/// to profiling sampling state. Other threads can read that state when they
+/// allocate or free memory, even when `prof.active` is `false`. For the bundled
+/// jemalloc, the caller must bound the value by the limit documented for
+/// `profiling::prof_reset`.
 pub unsafe fn write<T>(name: &[u8], value: T) -> Result<()> {
     write_cstr(parse_name(name)?, value)
 }

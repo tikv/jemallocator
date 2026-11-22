@@ -42,6 +42,16 @@
 //! let _ = counter.get();
 //! ```
 
+#[cfg(feature = "profiling")]
+/// Resetting profiling requires `unsafe`.
+///
+/// ```compile_fail
+/// use tikv_jemalloc_ctl::profiling::prof_reset;
+///
+/// prof_reset(0).unwrap();
+/// ```
+mod profiling {}
+
 #[cfg(feature = "use_std")]
 /// Printing allocator statistics with environment data requires `unsafe`.
 ///
