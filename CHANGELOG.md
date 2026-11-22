@@ -6,7 +6,8 @@
   `Result`. Typed handles support `&'static CStr` as a value type. Raw
   string reads and updates return `&CStr`. `Name::mib()` infers the MIB
   length from the allocator's lookup.
-- Raw string writes and `ThreadLocal::get` now require `unsafe`.
+- Raw string writes, `ThreadLocal::get`, and `profiling::prof_reset` now
+  require `unsafe`. `prof_reset` caps the sampling setting at a safe limit.
 - The stats printing APIs require `use_std`. `stats_print` omits general
   configuration. Use the unsafe `stats_print_with_environment` for full
   output. Runtime metrics require `stats` with the bundled jemalloc.
