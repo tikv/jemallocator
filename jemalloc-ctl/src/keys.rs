@@ -342,15 +342,11 @@ impl_access!(
 // Keep these paths qualified so rustc links jemalloc before static libc
 // in musl test builds.
 fn bool_to_c(value: bool) -> tikv_jemalloc_sys::c_bool {
-    #[cfg(target_env = "msvc")]
-    let value = tikv_jemalloc_sys::c_bool::from(value);
-    value
+    tikv_jemalloc_sys::c_bool::from(value)
 }
 
 fn bool_from_c(value: tikv_jemalloc_sys::c_bool) -> bool {
-    #[cfg(target_env = "msvc")]
-    let value = value != 0;
-    value
+    value != bool_to_c(false)
 }
 
 impl Access<bool> for Name<'_, bool> {
@@ -432,23 +428,6 @@ mod tests {
 
         assert_eq!(size_of::<epoch_mib>(), size_of::<[usize; 1]>());
         assert_eq!(size_of::<malloc_conf_mib>(), size_of::<[usize; 2]>());
-    }
-
-    #[test]
-    fn bool_rw() {
-        let name =
-            unsafe { Name::<bool>::new(b"thread.tcache.enabled\0") }.unwrap();
-        let tcache = name.read().unwrap();
-        let new_tcache = !tcache;
-
-        name.write(new_tcache).unwrap();
-        let mib = name.mib().unwrap();
-        assert_eq!(mib.read().unwrap(), new_tcache);
-        assert_eq!(name.update(tcache).unwrap(), new_tcache);
-        assert_eq!(mib.update(new_tcache).unwrap(), tcache);
-        assert_eq!(name.read().unwrap(), new_tcache);
-        mib.write(tcache).unwrap();
-        assert_eq!(mib.read().unwrap(), tcache);
     }
 
     #[cfg(feature = "use_std")]

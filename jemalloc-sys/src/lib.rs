@@ -47,14 +47,20 @@
 
 use libc::{c_char, c_int, c_uint, c_void, size_t};
 
-/// Boolean type used by the jemalloc bindings on MSVC targets.
-///
-/// This alias matches the MSVC compatibility header's `BOOL` representation.
-#[cfg(target_env = "msvc")]
+// Cargo's links override can skip build.rs. In that case, use the target's
+// historical default unless the Cargo configuration supplies a width.
+/// Boolean type used when jemalloc's C headers represent `bool` as an integer.
+#[cfg(any(
+    jemalloc_bool_size = "4",
+    all(target_env = "msvc", not(jemalloc_bool_size = "1"))
+))]
 pub type c_bool = c_int;
 
-/// Boolean type used by the jemalloc bindings on targets other than MSVC.
-#[cfg(not(target_env = "msvc"))]
+/// Boolean type used when jemalloc's C headers represent `bool` as one byte.
+#[cfg(not(any(
+    jemalloc_bool_size = "4",
+    all(target_env = "msvc", not(jemalloc_bool_size = "1"))
+)))]
 pub type c_bool = bool;
 
 /// Align the memory allocation to start at an address that is a
