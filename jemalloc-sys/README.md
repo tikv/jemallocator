@@ -206,6 +206,25 @@ responsible for compiling the library to match what `jemalloc-sys` expects.
 Especially, handle API prefix as whatever feature
 `unprefixed_malloc_on_supported_platforms` says.
 
+The bundled build assumes a one-byte C `bool` except when `cl.exe` uses
+jemalloc's legacy MSVC compatibility headers, where it assumes four bytes.
+Set `JEMALLOC_SYS_OVERRIDE_BOOL_SIZE` to `1` or `4` for custom headers or a
+prebuilt library with a different width. The prebuilt default is `4` on MSVC
+targets and `1` elsewhere.
+
+If you link a prebuilt library with a [Cargo build script override], configure
+the width through `rustc-cfg` in the target's `jemalloc` table. For example, for
+a one-byte C `bool` on MSVC, use the following setting alongside your link flags.
+
+```toml
+[target.x86_64-pc-windows-msvc.jemalloc]
+rustc-cfg = ['jemalloc_bool_size="1"']
+```
+
+Omit this setting to use the prebuilt default.
+
+[Cargo build script override]: https://doc.rust-lang.org/cargo/reference/build-scripts.html#overriding-build-scripts
+
 For more information see [`jemalloc/INSTALL.md`][jemalloc_install].
 
 [jemalloc_install]: https://github.com/jemalloc/jemalloc/blob/dev/INSTALL.md#advanced-configuration

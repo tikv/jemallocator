@@ -137,6 +137,7 @@ fn main() {
             "Path to `jemalloc` in `JEMALLOC_OVERRIDE={}` does not exist",
             jemalloc.display()
         );
+        configure_c_bool(|| matches!(env::var("CARGO_CFG_TARGET_ENV").as_deref(), Ok("msvc")));
         println!(
             "cargo:rustc-link-search=native={}",
             jemalloc.parent().unwrap().display()
@@ -330,6 +331,11 @@ fn main() {
 
     run_and_log(&mut cmd, &build_dir.join("config.log"));
 
+    // With the legacy C99 headers, cl.exe uses BOOL and clang-cl uses _Bool.
+    configure_c_bool(|| {
+        compiler.is_like_msvc() && !compiler.is_like_clang_cl() && uses_msvc_compat_bool(&build_dir)
+    });
+
     // Make:
     let make = make_cmd(&host);
     run(&mut make_command(make, &build_dir, &num_jobs));
@@ -388,6 +394,7 @@ fn main() {
         }
     }
     println!("cargo:rerun-if-changed=jemalloc");
+    println!("cargo:rerun-if-changed=configure/configure");
 
     if target.contains("android") {
         // These symbols are used by jemalloc on android but the really old android
@@ -398,6 +405,34 @@ fn main() {
             .compile("pthread_atfork");
         println!("cargo:rerun-if-changed=src/pthread_atfork.c");
     }
+}
+
+fn uses_msvc_compat_bool(build_dir: &Path) -> bool {
+    let makefile = fs::read(build_dir.join("Makefile"))
+        .expect("failed to read the configured jemalloc Makefile");
+    let configured_cppflags = makefile
+        .split(|&byte| byte == b'\n')
+        .find_map(|line| line.strip_prefix(b"CPPFLAGS :="))
+        .expect("jemalloc Makefile did not report CPPFLAGS");
+    configured_cppflags
+        .split(u8::is_ascii_whitespace)
+        .any(|flag| flag.starts_with(b"-I") && flag.ends_with(b"/include/msvc_compat/C99"))
+}
+
+fn configure_c_bool(default_int_bool: impl FnOnce() -> bool) {
+    let size = match read_and_watch_env_os("JEMALLOC_SYS_OVERRIDE_BOOL_SIZE") {
+        Some(size) if size == "1" => 1,
+        Some(size) if size == "4" => 4,
+        Some(_) => panic!("JEMALLOC_SYS_OVERRIDE_BOOL_SIZE must be 1 or 4"),
+        None => {
+            if default_int_bool() {
+                4
+            } else {
+                1
+            }
+        }
+    };
+    println!("cargo:rustc-cfg=jemalloc_bool_size=\"{size}\"");
 }
 
 fn make_command(make_cmd: &str, build_dir: &Path, num_jobs: &str) -> Command {

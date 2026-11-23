@@ -28,6 +28,7 @@ maintenance = { status = "actively-developed" }
 
 [lints.rust]
 unexpected_cfgs = { level = "allow", check-cfg = [
+    'cfg(jemalloc_bool_size, values("1", "4"))',
     'cfg(jemallocator_docs)',
     'cfg(prefixed)',
 ] }
@@ -36,7 +37,7 @@ unexpected_cfgs = { level = "allow", check-cfg = [
 libc = { version = "^0.2.8", default-features = false }
 
 [build-dependencies]
-cc = "^1.0.13"
+cc = "1.2.8"
 
 [features]
 default = ["background_threads_runtime_support"]
