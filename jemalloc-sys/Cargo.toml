@@ -42,7 +42,9 @@ cc = "1.2.8"
 [features]
 default = ["background_threads_runtime_support"]
 profiling = []
+# `profiling_libunwind` and `profiling_frameptr` are mutually exclusive
 profiling_libunwind = ["profiling"]
+profiling_frameptr = ["profiling"]
 debug = []
 background_threads_runtime_support = []
 background_threads = [ "background_threads_runtime_support" ]
