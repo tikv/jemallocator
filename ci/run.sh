@@ -76,12 +76,13 @@ cargo test --target "${TARGET}" \
              --manifest-path jemallocator-global/Cargo.toml \
              --features force_global_jemalloc
 
-# FIXME: Re-enable following test when allocator API is stable again.
-# if [ "${TRAVIS_RUST_VERSION}" = "nightly"  ]
-# then
-#     # The Alloc trait is unstable:
-#     ${CARGO_CMD} test --target "${TARGET}" --features alloc_trait
-# fi
+# Exercise `core::alloc::Allocator` on Rust 1.100 or later.
+if [ "${ALLOC_TRAIT_TESTS:-}" = "1" ]
+then
+    # These CI jobs build the bundled jemalloc with a compiler that can dump macros.
+    JEMALLOC_SYS_TEST_EXPECT_ALIGNMENT_PROBE=1 \
+        cargo test --target "${TARGET}" -p tikv-jemallocator --features alloc_trait
+fi
 
 # Test that overriding works in dylibs.
 case "$TARGET" in

@@ -1,5 +1,14 @@
 # Unreleased
 
+- tikv-jemallocator: implement `core::alloc::Allocator` behind the existing
+  `alloc_trait` feature, which requires Rust 1.100 or later. The
+  implementation supports zero-sized layouts and can grow or shrink a block
+  in place when jemalloc can keep its size class consistent with the new layout.
+  CI tests the feature on stable and nightly Rust.
+- tikv-jemallocator: resize operations move blocks directly when a size-class
+  change involves a slab-managed allocation. This saved roughly 6 ns per
+  resize for the measured small allocations. The new nightly resize benchmarks
+  cover both slab-managed allocations and extents.
 - Raise the minimum supported Rust version to 1.72.0.
 - `tikv-jemalloc-ctl` adds typed mallctl names and MIBs and tightens input
   validation. Custom handles require `unsafe` and `Name::new` returns a

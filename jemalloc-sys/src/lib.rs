@@ -85,6 +85,22 @@ pub const fn MALLOCX_ALIGN(aling: usize) -> c_int {
     aling.trailing_zeros() as c_int
 }
 
+/// Guaranteed malloc alignment, capped at 16 bytes and subject to the
+/// requested size being at least the alignment.
+///
+/// Defaults to 1 when the alignment is unknown.
+#[doc(hidden)]
+pub const MALLOC_ALIGNMENT: usize = match option_env!("TIKV_JEMALLOC_MALLOC_ALIGNMENT") {
+    Some(alignment) => match alignment.as_bytes() {
+        b"2" => 2,
+        b"4" => 4,
+        b"8" => 8,
+        b"16" => 16,
+        _ => 1,
+    },
+    None => 1,
+};
+
 /// Initialize newly allocated memory to contain zero bytes.
 ///
 /// In the growing reallocation case, the real size prior to reallocation
@@ -294,14 +310,18 @@ extern "C" {
     ///
     /// If `ptr` is null, no action occurs.
     ///
+    /// Use [`free`] or [`dallocx`] for allocations made with an explicit alignment.
+    ///
     /// # Safety
     ///
-    /// The behavior is _undefined_ if:
+    /// For a non-null `ptr`, the behavior is _undefined_ if:
     ///
+    /// * `size` differs from the requested size in bytes of the current allocation,
     /// * `ptr` does not match a pointer earlier returned by the memory
     ///   allocation functions of this crate, or
     /// * the memory region referenced by `ptr` has been deallocated, or
-    /// * `ptr` is returned by `aligned_alloc`.
+    /// * the allocation was made with an explicit alignment, including with
+    ///   [`aligned_alloc`] or [`mallocx`] with alignment flags.
     #[cfg_attr(prefixed, link_name = "_rjem_free_sized")]
     pub fn free_sized(ptr: *mut c_void, size: size_t);
 

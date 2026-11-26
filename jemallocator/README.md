@@ -15,7 +15,8 @@ The `jemalloc` support ecosystem consists of the following crates:
 
 * `tikv-jemalloc-sys`: builds and links against `jemalloc` exposing raw C bindings to it.
 * `tikv-jemallocator`: provides the `Jemalloc` type which implements the
-  `GlobalAlloc` and `Alloc` traits. 
+  `GlobalAlloc` trait and, behind the `alloc_trait` feature, the
+  `core::alloc::Allocator` trait.
 * `tikv-jemalloc-ctl`: high-level wrapper over `jemalloc`'s control and introspection
   APIs (the `mallctl*()` family of functions and the _MALLCTL NAMESPACE_)'
 
@@ -71,7 +72,9 @@ other targets are only tested on Rust nightly.
 
 This crate provides following cargo feature flags:
 
-* `alloc_trait` When the `alloc_trait` feature of this crate is enabled, it also implements the `Alloc` trait, allowing usage in collections.
+* `alloc_trait` enables the `core::alloc::Allocator` implementation for
+  `Jemalloc`, so it can be used directly in collections. This feature requires
+  Rust 1.100 or later.
 
 * `default` feature is `background_threads_runtime_support`.
 

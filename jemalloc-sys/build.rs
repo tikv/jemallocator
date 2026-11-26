@@ -130,6 +130,7 @@ fn main() {
     }
 
     if let Some(jemalloc) = read_and_watch_env_os("JEMALLOC_OVERRIDE") {
+        println!("cargo:rustc-env=TIKV_JEMALLOC_MALLOC_ALIGNMENT=1");
         info!("jemalloc override set");
         let jemalloc = PathBuf::from(jemalloc);
         assert!(
@@ -338,7 +339,15 @@ fn main() {
 
     // Make:
     let make = make_cmd(&host);
-    run(&mut make_command(make, &build_dir, &num_jobs));
+    let mut build = make_command(make, &build_dir, &num_jobs);
+    if add_quantum_rule(&build_dir, &target, &compiler) {
+        build.args(["-f", "Makefile", "-f", "rust-quantum.mk"]);
+    }
+    run(&mut build);
+    println!(
+        "cargo:rustc-env=TIKV_JEMALLOC_MALLOC_ALIGNMENT={}",
+        malloc_alignment(&build_dir)
+    );
 
     // Skip watching this environment variables to avoid rebuild in CI.
     if env::var("JEMALLOC_SYS_RUN_JEMALLOC_TESTS").is_ok() {
@@ -453,6 +462,48 @@ fn make_command(make_cmd: &str, build_dir: &Path, num_jobs: &str) -> Command {
         cmd.arg("-j").arg(num_jobs);
     }
     cmd
+}
+
+fn add_quantum_rule(build_dir: &Path, target: &str, compiler: &cc::Tool) -> bool {
+    let dump_macros = if compiler.is_like_clang_cl() {
+        "/clang:-dM"
+    } else if compiler.is_like_msvc() {
+        return false;
+    } else {
+        "-dM"
+    };
+
+    // ctl.c reports arenas.quantum. As a prerequisite of the linked object,
+    // the macro dump inherits even Make's target-specific flags.
+    let ctl = if target.contains("windows") {
+        "ctl"
+    } else {
+        "ctl.pic"
+    };
+    fs::write(
+        build_dir.join("rust-quantum.mk"),
+        format!(
+            "$(objroot)src/{ctl}.$(O): rust-quantum.defs\n\
+             rust-quantum.defs: $(srcroot)src/ctl.c $(objroot)include/jemalloc/internal/private_namespace.h\n\
+             \t@$(CC) $(CFLAGS) -E {dump_macros} $(CPPFLAGS) $< > $@ 2>/dev/null || rm -f $@\n"
+        ),
+    )
+    .expect("failed to write jemalloc quantum Make rule");
+    true
+}
+
+fn malloc_alignment(build_dir: &Path) -> usize {
+    fs::read_to_string(build_dir.join("rust-quantum.defs"))
+        .ok()
+        .and_then(|defs| {
+            defs.lines().find_map(|line| {
+                line.strip_prefix("#define LG_QUANTUM ")?
+                    .trim()
+                    .parse::<u32>()
+                    .ok()
+            })
+        })
+        .map_or(1, |lg| 1 << lg.min(4))
 }
 
 fn run_and_log(cmd: &mut Command, log_file: &Path) {
