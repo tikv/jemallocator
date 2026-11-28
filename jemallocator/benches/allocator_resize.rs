@@ -55,6 +55,12 @@ impl ToggleState {
         }
         self.block
     }
+
+    fn deallocate(self, small: Layout, big: Layout) {
+        let current_layout = if self.grew { big } else { small };
+        // SAFETY: grew tracks the current layout of this live block.
+        unsafe { A.deallocate(base_nn(&self.block), current_layout) };
+    }
 }
 
 fn assert_classes(a: usize, b: usize, relation: &str) {
@@ -94,6 +100,7 @@ fn resize_cross_class_64_128(b: &mut Bencher) {
             black_box(sink);
         }
     });
+    st.deallocate(small, big);
 }
 
 /// Same-bucket resize: the pointer is retained outright; a regression-free
@@ -115,6 +122,7 @@ fn resize_same_bucket_232_256(b: &mut Bencher) {
             black_box(sink);
         }
     });
+    st.deallocate(small, big);
 }
 
 /// Cross-class resize around a kilobyte: relocation dominated by the copy;
@@ -136,6 +144,7 @@ fn resize_cross_class_1024_1536(b: &mut Bencher) {
             black_box(sink);
         }
     });
+    st.deallocate(small, big);
 }
 
 /// Cross-class resize with both endpoints in the extent-managed regime,
@@ -158,4 +167,5 @@ fn resize_large_inplace_262144_311296(b: &mut Bencher) {
             black_box(sink);
         }
     });
+    st.deallocate(small, big);
 }
