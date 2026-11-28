@@ -206,6 +206,10 @@ responsible for compiling the library to match what `jemalloc-sys` expects.
 Especially, handle API prefix as whatever feature
 `unprefixed_malloc_on_supported_platforms` says.
 
+For alignment, Rust assumes the target's default quantum. If the prebuilt library
+was configured with `--with-lg-quantum`, set `JEMALLOC_SYS_WITH_LG_QUANTUM` to the
+same value.
+
 The bundled build assumes a one-byte C `bool` except when `cl.exe` uses
 jemalloc's legacy MSVC compatibility headers, where it assumes four bytes.
 Set `JEMALLOC_SYS_OVERRIDE_BOOL_SIZE` to `1` or `4` for custom headers or a

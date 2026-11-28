@@ -45,7 +45,10 @@
 #![allow(renamed_and_removed_lints)]
 #![deny(missing_docs, broken_intra_doc_links)]
 
+mod quantum;
+
 use libc::{c_char, c_int, c_uint, c_void, size_t};
+use quantum::LG_QUANTUM;
 
 // Cargo's links override can skip build.rs. In that case, use the target's
 // historical default unless the Cargo configuration supplies a width.
@@ -90,16 +93,7 @@ pub const fn MALLOCX_ALIGN(aling: usize) -> c_int {
 ///
 /// Defaults to 1 when the alignment is unknown.
 #[doc(hidden)]
-pub const MALLOC_ALIGNMENT: usize = match option_env!("TIKV_JEMALLOC_MALLOC_ALIGNMENT") {
-    Some(alignment) => match alignment.as_bytes() {
-        b"2" => 2,
-        b"4" => 4,
-        b"8" => 8,
-        b"16" => 16,
-        _ => 1,
-    },
-    None => 1,
-};
+pub const MALLOC_ALIGNMENT: usize = 1 << if LG_QUANTUM >= 4 { 4 } else { LG_QUANTUM };
 
 /// Initialize newly allocated memory to contain zero bytes.
 ///

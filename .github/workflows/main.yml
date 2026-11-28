@@ -82,6 +82,20 @@ jobs:
         fi
     - name: test
       run: sh ci/run.sh
+    - name: Test alignment with an 8-byte quantum
+      if: matrix.target == 'x86_64-unknown-linux-gnu' && matrix.rust == 'stable'
+      env:
+        JEMALLOC_SYS_WITH_LG_QUANTUM: '3'
+        JEMALLOC_SYS_TEST_EXPECT_QUANTUM: '8'
+        JEMALLOC_SYS_TEST_EXPECT_ALIGNMENT: '8'
+      run: cargo test --target "$TARGET" -p tikv-jemallocator --test smoke
+    - name: Test alignment with a C compiler quantum override
+      if: matrix.target == 'x86_64-unknown-linux-gnu' && matrix.rust == 'stable'
+      env:
+        CPPFLAGS: '-DLG_QUANTUM=3'
+        JEMALLOC_SYS_TEST_EXPECT_QUANTUM: '8'
+        JEMALLOC_SYS_TEST_EXPECT_ALIGNMENT: '1'
+      run: cargo test --target "$TARGET" -p tikv-jemallocator --test smoke
   test_bench:
     name: Benchmarks using x86_64-unknown-linux-gnu (nightly)
     runs-on: ubuntu-latest

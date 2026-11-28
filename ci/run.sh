@@ -79,8 +79,7 @@ cargo test --target "${TARGET}" \
 # Exercise `core::alloc::Allocator` on Rust 1.100 or later.
 if [ "${ALLOC_TRAIT_TESTS:-}" = "1" ]
 then
-    # These CI jobs build the bundled jemalloc with a compiler that can dump macros.
-    JEMALLOC_SYS_TEST_EXPECT_ALIGNMENT_PROBE=1 \
+    JEMALLOC_SYS_TEST_EXPECT_ALIGNMENT=16 \
         cargo test --target "${TARGET}" -p tikv-jemallocator --features alloc_trait
 fi
 

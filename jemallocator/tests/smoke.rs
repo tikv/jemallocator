@@ -46,8 +46,14 @@ fn aligned_allocations_in_distinct_slots() {
     unsafe {
         let quantum: usize = tikv_jemalloc_ctl::raw::read(b"arenas.quantum\0").unwrap();
         assert!(tikv_jemalloc_sys::MALLOC_ALIGNMENT <= quantum);
-        if std::env::var_os("JEMALLOC_SYS_TEST_EXPECT_ALIGNMENT_PROBE").is_some() {
-            assert_eq!(tikv_jemalloc_sys::MALLOC_ALIGNMENT, quantum.min(16));
+        if let Ok(expected) = std::env::var("JEMALLOC_SYS_TEST_EXPECT_QUANTUM") {
+            assert_eq!(quantum, expected.parse::<usize>().unwrap());
+        }
+        if let Ok(expected) = std::env::var("JEMALLOC_SYS_TEST_EXPECT_ALIGNMENT") {
+            assert_eq!(
+                tikv_jemalloc_sys::MALLOC_ALIGNMENT,
+                expected.parse::<usize>().unwrap()
+            );
         }
 
         let blocks: [_; 16] =

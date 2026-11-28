@@ -129,8 +129,14 @@ fn main() {
         println!("cargo:rustc-cfg=prefixed");
     }
 
+    let lg_quantum = read_and_watch_env("JEMALLOC_SYS_WITH_LG_QUANTUM")
+        .ok()
+        .filter(|value| !value.is_empty());
+    if let Some(lg_quantum) = &lg_quantum {
+        println!("cargo:rustc-env=JEMALLOC_LG_QUANTUM={lg_quantum}");
+    }
+
     if let Some(jemalloc) = read_and_watch_env_os("JEMALLOC_OVERRIDE") {
-        println!("cargo:rustc-env=TIKV_JEMALLOC_MALLOC_ALIGNMENT=1");
         info!("jemalloc override set");
         let jemalloc = PathBuf::from(jemalloc);
         assert!(
@@ -270,7 +276,7 @@ fn main() {
         cmd.arg(format!("--with-lg-hugepage={lg_hugepage}"));
     }
 
-    if let Ok(lg_quantum) = read_and_watch_env("JEMALLOC_SYS_WITH_LG_QUANTUM") {
+    if let Some(lg_quantum) = &lg_quantum {
         info!("--with-lg-quantum={}", lg_quantum);
         cmd.arg(format!("--with-lg-quantum={lg_quantum}"));
     }
@@ -332,6 +338,15 @@ fn main() {
 
     run_and_log(&mut cmd, &build_dir.join("config.log"));
 
+    // The configured compiler flags can override the Rust target's default quantum.
+    if lg_quantum.is_none() {
+        let makefile = fs::read(build_dir.join("Makefile"))
+            .expect("failed to read the configured jemalloc Makefile");
+        if makefile_mentions_lg_quantum(&String::from_utf8_lossy(&makefile)) {
+            println!("cargo:rustc-env=JEMALLOC_LG_QUANTUM=0");
+        }
+    }
+
     // With the legacy C99 headers, cl.exe uses BOOL and clang-cl uses _Bool.
     configure_c_bool(|| {
         compiler.is_like_msvc() && !compiler.is_like_clang_cl() && uses_msvc_compat_bool(&build_dir)
@@ -339,15 +354,7 @@ fn main() {
 
     // Make:
     let make = make_cmd(&host);
-    let mut build = make_command(make, &build_dir, &num_jobs);
-    if add_quantum_rule(&build_dir, &target, &compiler) {
-        build.args(["-f", "Makefile", "-f", "rust-quantum.mk"]);
-    }
-    run(&mut build);
-    println!(
-        "cargo:rustc-env=TIKV_JEMALLOC_MALLOC_ALIGNMENT={}",
-        malloc_alignment(&build_dir)
-    );
+    run(&mut make_command(make, &build_dir, &num_jobs));
 
     // Skip watching this environment variables to avoid rebuild in CI.
     if env::var("JEMALLOC_SYS_RUN_JEMALLOC_TESTS").is_ok() {
@@ -416,6 +423,21 @@ fn main() {
     }
 }
 
+fn makefile_mentions_lg_quantum(makefile: &str) -> bool {
+    makefile
+        .lines()
+        .filter(|line| !line.trim_start().starts_with('#'))
+        .any(|line| {
+            line.match_indices("LG_QUANTUM").any(|(index, name)| {
+                let after = &line[index + name.len()..];
+                after.is_empty()
+                    || after.starts_with(|c: char| {
+                        c.is_ascii_whitespace() || matches!(c, '=' | '\'' | '"')
+                    })
+            })
+        })
+}
+
 fn uses_msvc_compat_bool(build_dir: &Path) -> bool {
     let makefile = fs::read(build_dir.join("Makefile"))
         .expect("failed to read the configured jemalloc Makefile");
@@ -462,48 +484,6 @@ fn make_command(make_cmd: &str, build_dir: &Path, num_jobs: &str) -> Command {
         cmd.arg("-j").arg(num_jobs);
     }
     cmd
-}
-
-fn add_quantum_rule(build_dir: &Path, target: &str, compiler: &cc::Tool) -> bool {
-    let dump_macros = if compiler.is_like_clang_cl() {
-        "/clang:-dM"
-    } else if compiler.is_like_msvc() {
-        return false;
-    } else {
-        "-dM"
-    };
-
-    // ctl.c reports arenas.quantum. As a prerequisite of the linked object,
-    // the macro dump inherits even Make's target-specific flags.
-    let ctl = if target.contains("windows") {
-        "ctl"
-    } else {
-        "ctl.pic"
-    };
-    fs::write(
-        build_dir.join("rust-quantum.mk"),
-        format!(
-            "$(objroot)src/{ctl}.$(O): rust-quantum.defs\n\
-             rust-quantum.defs: $(srcroot)src/ctl.c $(objroot)include/jemalloc/internal/private_namespace.h\n\
-             \t@$(CC) $(CFLAGS) -E {dump_macros} $(CPPFLAGS) $< > $@ 2>/dev/null || rm -f $@\n"
-        ),
-    )
-    .expect("failed to write jemalloc quantum Make rule");
-    true
-}
-
-fn malloc_alignment(build_dir: &Path) -> usize {
-    fs::read_to_string(build_dir.join("rust-quantum.defs"))
-        .ok()
-        .and_then(|defs| {
-            defs.lines().find_map(|line| {
-                line.strip_prefix("#define LG_QUANTUM ")?
-                    .trim()
-                    .parse::<u32>()
-                    .ok()
-            })
-        })
-        .map_or(1, |lg| 1 << lg.min(4))
 }
 
 fn run_and_log(cmd: &mut Command, log_file: &Path) {
