@@ -45,7 +45,10 @@
 #![allow(renamed_and_removed_lints)]
 #![deny(missing_docs, broken_intra_doc_links)]
 
+mod quantum;
+
 use libc::{c_char, c_int, c_uint, c_void, size_t};
+use quantum::LG_QUANTUM;
 
 // Cargo's links override can skip build.rs. In that case, use the target's
 // historical default unless the Cargo configuration supplies a width.
@@ -84,6 +87,13 @@ pub const fn MALLOCX_LG_ALIGN(la: usize) -> c_int {
 pub const fn MALLOCX_ALIGN(aling: usize) -> c_int {
     aling.trailing_zeros() as c_int
 }
+
+/// Guaranteed malloc alignment, capped at 16 bytes and subject to the
+/// requested size being at least the alignment.
+///
+/// Defaults to 1 when the alignment is unknown.
+#[doc(hidden)]
+pub const MALLOC_ALIGNMENT: usize = 1 << if LG_QUANTUM >= 4 { 4 } else { LG_QUANTUM };
 
 /// Initialize newly allocated memory to contain zero bytes.
 ///
@@ -294,14 +304,18 @@ extern "C" {
     ///
     /// If `ptr` is null, no action occurs.
     ///
+    /// Use [`free`] or [`dallocx`] for allocations made with an explicit alignment.
+    ///
     /// # Safety
     ///
-    /// The behavior is _undefined_ if:
+    /// For a non-null `ptr`, the behavior is _undefined_ if:
     ///
+    /// * `size` differs from the requested size in bytes of the current allocation,
     /// * `ptr` does not match a pointer earlier returned by the memory
     ///   allocation functions of this crate, or
     /// * the memory region referenced by `ptr` has been deallocated, or
-    /// * `ptr` is returned by `aligned_alloc`.
+    /// * the allocation was made with an explicit alignment, including with
+    ///   [`aligned_alloc`] or [`mallocx`] with alignment flags.
     #[cfg_attr(prefixed, link_name = "_rjem_free_sized")]
     pub fn free_sized(ptr: *mut c_void, size: size_t);
 

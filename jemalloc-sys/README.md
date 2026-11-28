@@ -206,15 +206,30 @@ responsible for compiling the library to match what `jemalloc-sys` expects.
 Especially, handle API prefix as whatever feature
 `unprefixed_malloc_on_supported_platforms` says.
 
+With `JEMALLOC_OVERRIDE`, the build script reads `JEMALLOC_SYS_WITH_LG_QUANTUM`
+and forwards its value to Rust. If the prebuilt library uses a non-default
+quantum, set this variable to the base-2 exponent used to build the library.
+Otherwise Rust uses the target's default quantum.
+
 The bundled build assumes a one-byte C `bool` except when `cl.exe` uses
 jemalloc's legacy MSVC compatibility headers, where it assumes four bytes.
 Set `JEMALLOC_SYS_OVERRIDE_BOOL_SIZE` to `1` or `4` for custom headers or a
 prebuilt library with a different width. The prebuilt default is `4` on MSVC
 targets and `1` elsewhere.
 
-If you link a prebuilt library with a [Cargo build script override], configure
-the width through `rustc-cfg` in the target's `jemalloc` table. For example, for
-a one-byte C `bool` on MSVC, use the following setting alongside your link flags.
+A [Cargo build script override] via the target's `jemalloc` table skips
+`build.rs`. For a prebuilt library with a non-default quantum, set
+`JEMALLOC_LG_QUANTUM` directly through `rustc-env` so Rust uses the library's
+alignment guarantee. For example, add this setting alongside your link flags
+for an 8-byte quantum on x86-64 GNU/Linux.
+
+```toml
+[target.x86_64-unknown-linux-gnu.jemalloc]
+rustc-env = { JEMALLOC_LG_QUANTUM = "3" }
+```
+
+For a one-byte C `bool` on MSVC, configure the width through `rustc-cfg` in the
+target's `jemalloc` table alongside your link flags.
 
 ```toml
 [target.x86_64-pc-windows-msvc.jemalloc]

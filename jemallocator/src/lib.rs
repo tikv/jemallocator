@@ -12,60 +12,29 @@
 //!
 //! This crate provides bindings to jemalloc as a memory allocator for Rust.
 //! This crate mainly exports, one type, `Jemalloc`, which implements the
-//! `GlobalAlloc` trait and optionally the `Alloc` trait,
+//! `GlobalAlloc` trait, and optionally the `core::alloc::Allocator` trait,
 //! and is suitable both as a memory allocator and as a global allocator.
+//!
+//! `GlobalAlloc` uses the original layout to pass a sized deallocation hint
+//! to jemalloc. `Allocator` releases blocks without a hint because a valid
+//! layout can change through an in-place resize. Callers using the raw
+//! `tikv-jemalloc-sys` bindings must uphold the contract of any sized
+//! deallocation they perform.
 
-#![cfg_attr(feature = "alloc_trait", feature(allocator_api))]
 // TODO: rename the following lint on next minor bump
 #![allow(renamed_and_removed_lints)]
 #![deny(missing_docs, broken_intra_doc_links)]
 #![no_std]
 
-#[cfg(feature = "alloc_trait")]
-use core::alloc::{Alloc, AllocErr, CannotReallocInPlace, Excess};
 use core::alloc::{GlobalAlloc, Layout};
-#[cfg(feature = "alloc_trait")]
-use core::ptr::NonNull;
 
 use libc::{c_int, c_void};
 
-// This constant equals _Alignof(max_align_t) and is platform-specific. It
-// contains the _maximum_ alignment that the memory allocations returned by the
-// C standard library memory allocation APIs (e.g. `malloc`) are guaranteed to
-// have.
-//
-// The memory allocation APIs are required to return memory that can fit any
-// object whose fundamental aligment is <= _Alignof(max_align_t).
-//
-// In C, there are no ZSTs, and the size of all types is a multiple of their
-// alignment (size >= align). So for allocations with size <=
-// _Alignof(max_align_t), the malloc-APIs return memory whose alignment is
-// either the requested size if its a power-of-two, or the next smaller
-// power-of-two.
-#[cfg(any(target_arch = "arm", target_arch = "mips", target_arch = "powerpc"))]
-const ALIGNOF_MAX_ALIGN_T: usize = 8;
-#[cfg(any(
-    target_arch = "x86",
-    target_arch = "x86_64",
-    target_arch = "aarch64",
-    target_arch = "powerpc64",
-    target_arch = "loongarch64",
-    target_arch = "mips64",
-    target_arch = "riscv32",
-    target_arch = "riscv64",
-    target_arch = "s390x",
-    target_arch = "sparc64"
-))]
-const ALIGNOF_MAX_ALIGN_T: usize = 16;
-
-/// If `align` is less than `_Alignof(max_align_t)`, and if the requested
-/// allocation `size` is larger than the alignment, we are guaranteed to get a
-/// suitably aligned allocation by default, without passing extra flags, and
-/// this function returns `0`.
-///
-/// Otherwise, it returns the alignment flag to pass to the jemalloc APIs.
+/// jemalloc's tiny size classes are powers of two. Once the requested size
+/// reaches the alignment, plain malloc can satisfy it up to the configured
+/// alignment bound.
 fn layout_to_flags(align: usize, size: usize) -> c_int {
-    if align <= ALIGNOF_MAX_ALIGN_T && align <= size {
+    if align <= ffi::MALLOC_ALIGNMENT && align <= size {
         0
     } else {
         ffi::MALLOCX_ALIGN(align)
@@ -77,17 +46,22 @@ macro_rules! assume {
     ($e:expr) => {
         debug_assert!($e);
         if !($e) {
-            core::hint::unreachable_unchecked();
+            // SAFETY: the assumed condition is documented as always holding;
+            // recent rustc versions made `unreachable_unchecked` an unsafe fn.
+            unsafe {
+                core::hint::unreachable_unchecked();
+            }
         }
     };
 }
 
 /// Handle to the jemalloc allocator
 ///
-/// This type implements the `GlobalAllocAlloc` trait, allowing usage a global allocator.
+/// This type implements the `GlobalAlloc` trait, allowing usage as a global
+/// allocator.
 ///
-/// When the `alloc_trait` feature of this crate is enabled, it also implements the `Alloc` trait,
-/// allowing usage in collections.
+/// With the `alloc_trait` feature on Rust 1.100 or later, it also implements
+/// `core::alloc::Allocator` for direct use in collections such as `Vec`.
 #[derive(Copy, Clone, Default, Debug)]
 pub struct Jemalloc;
 
@@ -139,131 +113,7 @@ unsafe impl GlobalAlloc for Jemalloc {
 }
 
 #[cfg(feature = "alloc_trait")]
-unsafe impl Alloc for Jemalloc {
-    #[inline]
-    unsafe fn alloc(&mut self, layout: Layout) -> Result<NonNull<u8>, AllocErr> {
-        NonNull::new(GlobalAlloc::alloc(self, layout)).ok_or(AllocErr)
-    }
-
-    #[inline]
-    unsafe fn alloc_zeroed(&mut self, layout: Layout) -> Result<NonNull<u8>, AllocErr> {
-        NonNull::new(GlobalAlloc::alloc_zeroed(self, layout)).ok_or(AllocErr)
-    }
-
-    #[inline]
-    unsafe fn dealloc(&mut self, ptr: NonNull<u8>, layout: Layout) {
-        GlobalAlloc::dealloc(self, ptr.as_ptr(), layout)
-    }
-
-    #[inline]
-    unsafe fn realloc(
-        &mut self,
-        ptr: NonNull<u8>,
-        layout: Layout,
-        new_size: usize,
-    ) -> Result<NonNull<u8>, AllocErr> {
-        NonNull::new(GlobalAlloc::realloc(self, ptr.as_ptr(), layout, new_size)).ok_or(AllocErr)
-    }
-
-    #[inline]
-    unsafe fn alloc_excess(&mut self, layout: Layout) -> Result<Excess, AllocErr> {
-        let flags = layout_to_flags(layout.align(), layout.size());
-        let ptr = ffi::mallocx(layout.size(), flags);
-        if let Some(nonnull) = NonNull::new(ptr as *mut u8) {
-            let excess = ffi::nallocx(layout.size(), flags);
-            Ok(Excess(nonnull, excess))
-        } else {
-            Err(AllocErr)
-        }
-    }
-
-    #[inline]
-    unsafe fn realloc_excess(
-        &mut self,
-        ptr: NonNull<u8>,
-        layout: Layout,
-        new_size: usize,
-    ) -> Result<Excess, AllocErr> {
-        let flags = layout_to_flags(layout.align(), new_size);
-        let ptr = ffi::rallocx(ptr.cast().as_ptr(), new_size, flags);
-        if let Some(nonnull) = NonNull::new(ptr as *mut u8) {
-            let excess = ffi::nallocx(new_size, flags);
-            Ok(Excess(nonnull, excess))
-        } else {
-            Err(AllocErr)
-        }
-    }
-
-    #[inline]
-    fn usable_size(&self, layout: &Layout) -> (usize, usize) {
-        let flags = layout_to_flags(layout.align(), layout.size());
-        unsafe {
-            let max = ffi::nallocx(layout.size(), flags);
-            (layout.size(), max)
-        }
-    }
-
-    #[inline]
-    unsafe fn grow_in_place(
-        &mut self,
-        ptr: NonNull<u8>,
-        layout: Layout,
-        new_size: usize,
-    ) -> Result<(), CannotReallocInPlace> {
-        let flags = layout_to_flags(layout.align(), new_size);
-        let usable_size = ffi::xallocx(ptr.cast().as_ptr(), new_size, 0, flags);
-        if usable_size >= new_size {
-            Ok(())
-        } else {
-            // `xallocx` returns a size smaller than the requested one to
-            // indicate that the allocation could not be grown in place
-            //
-            // the old allocation remains unaltered
-            Err(CannotReallocInPlace)
-        }
-    }
-
-    #[inline]
-    unsafe fn shrink_in_place(
-        &mut self,
-        ptr: NonNull<u8>,
-        layout: Layout,
-        new_size: usize,
-    ) -> Result<(), CannotReallocInPlace> {
-        if new_size == layout.size() {
-            return Ok(());
-        }
-        let flags = layout_to_flags(layout.align(), new_size);
-        let usable_size = ffi::xallocx(ptr.cast().as_ptr(), new_size, 0, flags);
-
-        if usable_size < layout.size() {
-            // If `usable_size` is smaller than the original size, the
-            // size-class of the allocation was shrunk to the size-class of
-            // `new_size`, and it is safe to deallocate the allocation with
-            // `new_size`:
-            Ok(())
-        } else if usable_size == ffi::nallocx(new_size, flags) {
-            // If the allocation was not shrunk and the size class of `new_size`
-            // is the same as the size-class of `layout.size()`, then the
-            // allocation can be properly deallocated using `new_size` (and also
-            // using `layout.size()` because the allocation did not change)
-
-            // note: when the allocation is not shrunk, `xallocx` returns the
-            // usable size of the original allocation, which in this case matches
-            // that of the requested allocation:
-            debug_assert_eq!(
-                ffi::nallocx(new_size, flags),
-                ffi::nallocx(layout.size(), flags)
-            );
-            Ok(())
-        } else {
-            // If the allocation was not shrunk, but the size-class of
-            // `new_size` is not the same as that of the original allocation,
-            // then shrinking the allocation failed:
-            Err(CannotReallocInPlace)
-        }
-    }
-}
+mod allocator;
 
 /// Return the usable size of the allocation pointed to by ptr.
 ///

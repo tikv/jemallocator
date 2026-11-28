@@ -29,12 +29,19 @@ is-it-maintained-open-issues = { repository = "tikv/jemallocator" }
 maintenance = { status = "actively-developed" }
 
 [lib]
-test = false
 bench = false
 
 [[test]]
 name = "ffi"
 required-features = ["stats"]
+
+[[bench]]
+name = "allocator_resize"
+required-features = ["nightly_bench"]
+
+[[bench]]
+name = "roundtrip"
+required-features = ["nightly_bench"]
 
 [dependencies]
 tikv-jemalloc-sys = { path = "../jemalloc-sys", version = "0.7.0", default-features = false }
@@ -46,6 +53,7 @@ tikv-jemalloc-ctl = { path = "../jemalloc-ctl", version = "0.7.0" }
 [features]
 default = ["background_threads_runtime_support"]
 alloc_trait = []
+nightly_bench = ["alloc_trait"]
 profiling = ["tikv-jemalloc-sys/profiling"]
 profiling_libunwind = ["tikv-jemalloc-sys/profiling_libunwind", "profiling"]
 debug = ["tikv-jemalloc-sys/debug"]

@@ -129,6 +129,13 @@ fn main() {
         println!("cargo:rustc-cfg=prefixed");
     }
 
+    let lg_quantum = read_and_watch_env("JEMALLOC_SYS_WITH_LG_QUANTUM")
+        .ok()
+        .filter(|value| !value.is_empty());
+    if let Some(lg_quantum) = &lg_quantum {
+        println!("cargo:rustc-env=JEMALLOC_LG_QUANTUM={lg_quantum}");
+    }
+
     if let Some(jemalloc) = read_and_watch_env_os("JEMALLOC_OVERRIDE") {
         info!("jemalloc override set");
         let jemalloc = PathBuf::from(jemalloc);
@@ -269,7 +276,7 @@ fn main() {
         cmd.arg(format!("--with-lg-hugepage={lg_hugepage}"));
     }
 
-    if let Ok(lg_quantum) = read_and_watch_env("JEMALLOC_SYS_WITH_LG_QUANTUM") {
+    if let Some(lg_quantum) = &lg_quantum {
         info!("--with-lg-quantum={}", lg_quantum);
         cmd.arg(format!("--with-lg-quantum={lg_quantum}"));
     }
@@ -330,6 +337,15 @@ fn main() {
     cmd.arg(format!("--prefix={}", out_dir.display()));
 
     run_and_log(&mut cmd, &build_dir.join("config.log"));
+
+    // The configured compiler flags can override the Rust target's default quantum.
+    if lg_quantum.is_none() {
+        let makefile = fs::read(build_dir.join("Makefile"))
+            .expect("failed to read the configured jemalloc Makefile");
+        if makefile_mentions_lg_quantum(&String::from_utf8_lossy(&makefile)) {
+            println!("cargo:rustc-env=JEMALLOC_LG_QUANTUM=0");
+        }
+    }
 
     // With the legacy C99 headers, cl.exe uses BOOL and clang-cl uses _Bool.
     configure_c_bool(|| {
@@ -405,6 +421,21 @@ fn main() {
             .compile("pthread_atfork");
         println!("cargo:rerun-if-changed=src/pthread_atfork.c");
     }
+}
+
+fn makefile_mentions_lg_quantum(makefile: &str) -> bool {
+    makefile
+        .lines()
+        .filter(|line| !line.trim_start().starts_with('#'))
+        .any(|line| {
+            line.match_indices("LG_QUANTUM").any(|(index, name)| {
+                let after = &line[index + name.len()..];
+                after.is_empty()
+                    || after.starts_with(|c: char| {
+                        c.is_ascii_whitespace() || matches!(c, '=' | '\'' | '"')
+                    })
+            })
+        })
 }
 
 fn uses_msvc_compat_bool(build_dir: &Path) -> bool {
